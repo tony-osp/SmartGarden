@@ -21,12 +21,22 @@ limitations under the License.
 #ifndef _SETTINGS_h
 #define _SETTINGS_h
 
-#define NUM_ZONES 4
+// This simple Remote station may have up to 8 zones
+#define MAX_ZONES 8
+// This simple Remote station has only one Station defined in the config
+#define MAX_STATIONS 1
+// This Remote station may have up to 8 sensors
+#define MAX_SENSORS	 8
 
 #include <inttypes.h>
 
 #include "core.h"
 #include "port.h"
+
+#include "eepromMap.h"
+
+#define EEPROM_SHEADER "R2.3"
+
 
 #define NETWORK_XBEE_DEFAULT_ENABLED	true
 
@@ -38,7 +48,7 @@ limitations under the License.
 #define NETWORK_FLAGS_ENABLED		1	// 1 - indicates that the network is enabled (config)
 #define NETWORK_FLAGS_ON			2	// 1 - indicates that the network is running (runtime state)
 
-#define NETWORK_XBEE_ADDRESS		2
+#define NETWORK_XBEE_DEFAULTADDRESS	2
 #define DEFAULT_STATION_ID			1
 
 #define DEFAULT_TTR					99
@@ -61,10 +71,23 @@ uint16_t GetXBeeAddr(void);
 uint16_t GetXBeePANID(void);
 uint8_t GetXBeeChan(void);
 uint8_t GetXBeeFlags(void);
-void SetXBeeFlags(uint8_t flags);
-
-uint8_t GetStationID(void);
+uint8_t GetMyStationID(void);
 uint8_t GetMaxTtr(void);
+uint8_t GetNumZones(void);
+uint8_t GetPumpChannel(void);
+
+
+void SetXBeeFlags(uint8_t flags);
+void SetXBeeAddr(uint16_t addr);
+void SetXBeePANID(uint16_t panID);
+void SetXBeePortSpeed(uint16_t speed);
+void SetXBeePort(uint8_t port);
+void SetXBeeChan(uint8_t chan);
+void SetXBeeFlags(uint8_t flags);
+void SetMyStationID(uint8_t stationID);
+void SetMaxTtr(uint8_t ttr);
+void SetNumZones(uint8_t numZones);
+void SetPumpChannel(uint8_t pumpChannel);
 
 
 #endif

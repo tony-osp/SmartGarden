@@ -517,16 +517,12 @@ struct RMESSAGE_TIME_BROADCAST
 // Sensors to input registers mappings
 
 #define	MREGISTER_TEMP_SENSOR1					0
-#define	MREGISTER_TEMP_SENSOR2					1
-#define	MREGISTER_TEMP_SENSOR3					2
-#define	MREGISTER_TEMP_SENSOR4					3
-#define	MREGISTER_HUMIDITY_SENSOR1				4
-#define	MREGISTER_PRESSURE_SENSOR1				5
+#define	MREGISTER_HUMIDITY_SENSOR1				1
 
 // Note: additional sensors can be defined in subsequent registers, and the whole area will need to be extended (below)
 
-//  input registers area size
-#define	MODBUSMAP_SENSORS_MAX	(MREGISTER_PRESSURE_SENSOR1+1)
+//  number of sensors 
+#define	MODBUSMAP_SENSORS_MAX	2
 
 
 #endif  //_SGRPROTOCOLDEF_h

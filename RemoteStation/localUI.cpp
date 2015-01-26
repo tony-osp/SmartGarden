@@ -478,12 +478,12 @@ void OSLocalUI::lcd_print_station(byte line, char c)
 {
   LCD_SETCURSOR(lcd, 0, line);
 
-  if( GetStationID() == 0) {
+  if( GetMyStationID() == 0) {
     lcd_print_pgm(PSTR("MC:"));  // Master controller is display as 'MC', but we should really never see it here (retaining code for compat)
   }
   else {
     lcd_print_pgm(PSTR("S"));	// show our StationID
-    lcd.print((int)GetStationID());
+    lcd.print((int)GetMyStationID());
     lcd_print_pgm(PSTR(":"));   // extension boards are displayed as E1, E2...
   }
 
@@ -630,7 +630,7 @@ byte weekday_today() {
 //
 void manual_station_on(byte sid, int ontimer)
 {
-        if( sid >= NUM_ZONES ) return;    // basic protection, ensure that required zone number is within acceptable range
+        if( sid >= GetNumZones() ) return;    // basic protection, ensure that required zone number is within acceptable range
 
         if( ActiveZoneNum() != -1 ){    // something is currently running, turn it off
 

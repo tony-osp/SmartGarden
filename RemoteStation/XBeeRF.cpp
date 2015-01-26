@@ -102,7 +102,7 @@ void XBeeRFClass::begin()
 	delay(2000);
 
 	rprotocol.begin();
-	rprotocol.myUnitID = GetStationID();
+	rprotocol.myUnitID = GetMyStationID();
 
 //	rprotocol.RegisterTransport((void*)&XBeeSendPacket);	// register transport Send routine with the remote protocol
 //															// rprotocol will use it to send wire packets

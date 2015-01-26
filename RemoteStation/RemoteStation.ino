@@ -22,37 +22,29 @@
 
 #include "localUI.h"
 #include "SGSensors.h"
-#include <freeMemory.h>
+#include "freeMemory.h"
 #include "port.h"
 #include <XBee.h>
 #include "SGRProtocol.h"
 #include "XBeeRF.h"
-
 #include "sdlog.h"
+#include "sysreset.h"
 
 OSLocalUI localUI;
 
 void setup() {
     Serial.begin(57600); 
-    Serial.println("Start!");
+    Serial.println(F("Start!"));
 
     localUI.begin();
     localUI.lcd_print_line_clear_pgm(PSTR("Connecting..."), 1);
 
 	XBeeRF.begin();
 
-//    localUI.lcd_print_line_clear_pgm(PSTR("Test Test"), 1);
-//    delay(2000);
-    
-//	if (IsFirstBoot())
-//		ResetEEPROM();
+	if (IsFirstBoot())
+		ResetEEPROM();
 
-// start the Ethernet connection and the server:
-//    Ethernet.begin(mac, GetIP(), INADDR_NONE, GetGateway(), GetNetmask());
-
-    // give the Ethernet shield time to set up:
-    delay(1000);
-    
+   
    localUI.set_mode(OSUI_MODE_HOME);  // set to HOME mode, page 0
    localUI.resume();
 }

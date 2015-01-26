@@ -70,7 +70,7 @@ private:
 
 };
 
-// Modbus holding registers area size
+// holding registers area size
 //
 // Currently we support up to 8 zones (can be changed if necessary)
 #define         MODBUSMAP_SYSTEM_MAX    (MREGISTER_ZONE_COUNTDOWN + 8)

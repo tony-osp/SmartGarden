@@ -64,7 +64,7 @@ bool RProtocolSlave::begin(void)
 
 bool RProtocolSlave::SendZonesReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t firstZone, uint8_t numZones)
 {		
-		if( (firstZone+numZones) > NUM_ZONES )
+		if( (firstZone+numZones) >  GetNumZones() )
 		{
 			trace(F("SendZonesReport - wrong input parameters\n"));
 			return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
@@ -226,11 +226,11 @@ inline void MessageZonesRead( void *ptr, uint16_t netAddress )
 	}
 	
 	if( (pMessage->FirstZone == 0) && (pMessage->NumZones == 0x0FF) )		// check for the special "magic" number of 0x0FF, which means "read all zones"
-		pMessage->NumZones = NUM_ZONES;
+		pMessage->NumZones =  GetNumZones();
 
 // Parameters validity check. The station allows reading only zone status, address 0, and no more than the total number of zones
 
-	if( ((pMessage->FirstZone+pMessage->NumZones) > NUM_ZONES) || (pMessage->NumZones < 1)  )
+	if( ((pMessage->FirstZone+pMessage->NumZones) >  GetNumZones()) || (pMessage->NumZones < 1)  )
 	{
 		trace(F("MessageZonesRead - wrong data address or the number of zones to read\n"));
 	
@@ -283,7 +283,7 @@ inline uint16_t	getSingleSystemRegister(uint8_t regAddr)
 									return   DEFAULT_MAX_DURATION;	// temporary
 	
 	default:
-			if( (regAddr >= MREGISTER_ZONE_COUNTDOWN) && (regAddr < (MREGISTER_ZONE_COUNTDOWN+NUM_ZONES)) )
+			if( (regAddr >= MREGISTER_ZONE_COUNTDOWN) && (regAddr < (MREGISTER_ZONE_COUNTDOWN+ GetNumZones())) )
 			{
 			// this is request to read specific zone countdown counter
 			
@@ -392,14 +392,8 @@ inline uint16_t		getSingleSensor(uint8_t regAddr)
 		case MREGISTER_TEMP_SENSOR1:
 									return  sensorsModule.Temperature;
 	
-		case MREGISTER_TEMP_SENSOR2:
-									return  0;
-
 		case MREGISTER_HUMIDITY_SENSOR1:
 									return  sensorsModule.Humidity;
-	
-		case MREGISTER_PRESSURE_SENSOR1:
-									return  1001;
 	
 	default:
 			trace(F("getSingleSensorRegister - error, wrong register address %d\n"), regAddr);
@@ -434,7 +428,7 @@ inline void MessageZonesSet( void *ptr, uint16_t netAddress )
 	
 // Parameters validity check. 
 
-	if( ((pMessage->NumZones+pMessage->FirstZone) > NUM_ZONES) || (pMessage->NumZones < 1) )  //Check bounds
+	if( ((pMessage->NumZones+pMessage->FirstZone) >  GetNumZones()) || (pMessage->NumZones < 1) )  //Check bounds
 	{
 		trace(F("MessageZonesSet - wrong parameters\n"));
 	
@@ -465,7 +459,7 @@ inline void MessageZonesSet( void *ptr, uint16_t netAddress )
 
 
 //
-// Helper funciton - set single system register. 
+// Helper function - set single system register. 
 // This routine is used to set system data and configuration.
 //
 //  Input - RProtocol address of the required register (addresses start from 0).

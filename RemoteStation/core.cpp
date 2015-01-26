@@ -29,7 +29,7 @@ void runStateClass::LogSchedule(int iValve, time_t eventTime, bool bManual, int 
 
 // main zones information. This is defined outside of the class for convenience
 
-static zone_struct  zones[NUM_ZONES];	
+static zone_struct  zones[MAX_ZONES];	
 
 uint8_t ZoneToIOMap[] = {31, 41, 40, 42, 43, 44, 45, 46, 47, 38, 37, 36, 35, 34, 33, 32};
 
@@ -42,7 +42,7 @@ static void io_latch()
         if (outState == prevOutState)
                 return;
 
-        for (int i = 0; i <= NUM_ZONES; i++)
+        for (int i = 0; i <= GetNumZones(); i++)
         {
 			digitalWrite(ZoneToIOMap[i], (outState&(0x01<<i))?1:0);
         }
@@ -75,7 +75,7 @@ void TurnOffZones()
 
 bool isZoneOn(int8_t iNum)
 {
-        if ((iNum <= 0) || (iNum > NUM_ZONES))
+        if ((iNum <= 0) || (iNum > GetNumZones()))
                 return false;
 
 		if( zones[iNum-1].flags & ZONE_FLAGS_ACTIVE )	return true;
@@ -86,7 +86,7 @@ int8_t ActiveZoneNum(void)
 {
         if( outState == 0 ) return -1;      // nothing is running
 
-        for( byte n=1; n<=NUM_ZONES; n++){          // note: zones are numbered from 1. Slot 0 is used for the common pump.
+        for( byte n=1; n<=GetNumZones(); n++){          // note: zones are numbered from 1. Slot 0 is used for the common pump.
 
 			if( zones[n-1].flags & ZONE_FLAGS_ACTIVE ) return n;
         }
@@ -96,7 +96,7 @@ int8_t ActiveZoneNum(void)
 
 bool TurnOnZone(uint8_t iValve)
 {
-        if( iValve >= NUM_ZONES )
+        if( iValve >= GetNumZones() )
 		{
 				trace(F("TurnOnZone - failed, incorrect zone number %d\n"), iValve);
                 return false;
@@ -110,7 +110,7 @@ bool TurnOnZone(uint8_t iValve)
 
 bool TurnOffZone(uint8_t iValve)
 {
-        if( iValve >= NUM_ZONES )
+        if( iValve >= GetNumZones() )
 		{
 				trace(F("TurnOnZone - failed, incorrect zone number %d\n"), iValve);
                 return false;
@@ -126,7 +126,7 @@ bool TurnOffZone(uint8_t iValve)
 bool runStateClass::StartZone(bool bManual, int iSchedule, int8_t iValve_in, uint8_t time2run )
 {
 // Sanity checks
-	if( (iValve_in < 1) || (iValve_in > NUM_ZONES) ) 
+	if( (iValve_in < 1) || (iValve_in > GetNumZones()) ) 
 	{
 			trace(F("StartZone - failure, invalid zone requested.\n"));
 			return false;  
@@ -193,7 +193,7 @@ void	runStateClass::StopAllZones(void)
 {
 	trace(F("StopShedules - Stopping all zones\n"));
 
-	for( int8_t i=0; i<NUM_ZONES; i++ )
+	for( int8_t i=0; i<GetNumZones(); i++ )
 	{
 		if( zones[i].flags & ZONE_FLAGS_ACTIVE )		// this zone is currently running
 		{	  
@@ -209,7 +209,7 @@ void	runStateClass::StopAllZones(void)
 
 void	runStateClass::begin(void)
 {
-	for( int8_t i=0; i<NUM_ZONES; i++ )
+	for( int8_t i=0; i<GetNumZones(); i++ )
 	{
 		memset(&zones[i], 0, sizeof(zone_struct));
 		zones[i].flags = ZONE_FLAGS_ENABLED;
@@ -227,7 +227,7 @@ void	runStateClass::begin(void)
 //
 void ProcessEvents(void)
 {
-	for( int8_t i=0; i<NUM_ZONES; i++ )
+	for( int8_t i=0; i<GetNumZones(); i++ )
 	{
 		if( zones[i].flags & ZONE_FLAGS_ACTIVE )		// this zone is currently running
 		{
@@ -248,35 +248,23 @@ void ProcessEvents(void)
 
 void mainLoop()
 {
+
         static bool firstLoop = true;
-        static bool bDoneMidnightReset = false;
         if (firstLoop)
         {
                 firstLoop = false;
                 freeMemory();
 
-                if (IsFirstBoot())
-                        ResetEEPROM();
                 io_setup();
-
                 sensorsModule.begin();  // start sensors module
-
 				runState.begin();
 
-//                //Init the web server
-//                if (!webServer.Init())
-//                        exit(EXIT_FAILURE);
-
-//                // Set the clock.
-//                nntpTimeServer.checkTime();
-
-//                ReloadEvents();
-                //ShowSockStatus();
 #ifdef LOGGING
                 sdlog.begin(PSTR("System started."));
 #endif
 
         }
+
 
 // Optimization - following code needs to be executed regularly but high frequency is not required.
 // To preserve system resources let's make it execute once per second.
@@ -289,27 +277,10 @@ void mainLoop()
 
              old_millis = new_millis;
 
-             // Check to see if we need to set the clock and do so if necessary.
-//             nntpTimeServer.checkTime();
-
-             const time_t timeNow = now();
-             // One shot at midnight
-             if ((hour(timeNow) == 0) && !bDoneMidnightReset)
-             {
-                     trace(F("Reloading Midnight\n"));
-                     bDoneMidnightReset = true;
-                     // TODO:  outstanding midnight events.  See other TODO for how.
-//                     ReloadEvents(true);
-             }
-             else if (hour(timeNow) != 0)
-                     bDoneMidnightReset = false;
-
              sensorsModule.loop();  // read and process sensors. Note: sensors module has its own scheduler.
 
         }  // one-second block
 
-//        //  See if any web clients have connected
-//        webServer.ProcessWebClients();
 
 		// Process any pending events.
         ProcessEvents();
