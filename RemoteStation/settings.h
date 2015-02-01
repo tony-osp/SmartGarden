@@ -40,7 +40,10 @@ limitations under the License.
 
 #define NETWORK_XBEE_DEFAULT_ENABLED	true
 
-#define NETWORK_XBEE_DEFAULT_PANID	5520	
+#define NETWORK_XBEE_PANID_HIGH		0x15	// high byte of PAN ID is fixed.
+
+#define NETWORK_XBEE_DEFAULT_PANID	0x90	// Low byte of PAN ID is configurable, this is the default.
+
 #define NETWORK_XBEE_DEFAULT_CHAN	16
 #define NETWORK_XBEE_DEFAULT_PORT	1
 #define NETWORK_XBEE_DEFAULT_SPEED	57600
@@ -55,6 +58,8 @@ limitations under the License.
 #define DEFAULT_MAX_OFFLINE_TDELTA  300000UL		// time (in milliseconds) since last time sync before indicator starts to show that the station is offline
 													// 300,000ms is 5minutes.
 
+#define	LOCAL_NUM_DIRECT_CHANNELS	4
+
 ////////////////////
 //  EEPROM Getter/Setters
 
@@ -68,18 +73,22 @@ bool IsXBeeEnabled(void);
 uint8_t GetXBeePort(void);
 uint16_t GetXBeePortSpeed(void);
 uint16_t GetXBeeAddr(void);
-uint16_t GetXBeePANID(void);
+uint8_t GetXBeePANID(void);
 uint8_t GetXBeeChan(void);
 uint8_t GetXBeeFlags(void);
 uint8_t GetMyStationID(void);
 uint8_t GetMaxTtr(void);
 uint8_t GetNumZones(void);
 uint8_t GetPumpChannel(void);
+uint8_t GetDirectIOPin(uint8_t n);
+uint16_t GetEvtMasterFlags(void);
+uint8_t  GetEvtMasterStationID(void);
+uint16_t GetEvtMasterStationAddress(void);
 
 
 void SetXBeeFlags(uint8_t flags);
 void SetXBeeAddr(uint16_t addr);
-void SetXBeePANID(uint16_t panID);
+void SetXBeePANID(uint8_t panID);
 void SetXBeePortSpeed(uint16_t speed);
 void SetXBeePort(uint8_t port);
 void SetXBeeChan(uint8_t chan);
@@ -88,6 +97,10 @@ void SetMyStationID(uint8_t stationID);
 void SetMaxTtr(uint8_t ttr);
 void SetNumZones(uint8_t numZones);
 void SetPumpChannel(uint8_t pumpChannel);
+void SaveZoneIOMap(uint8_t *ptr);
+void SetEvtMasterStationAddress(uint16_t addr);
+void SetEvtMasterFlags(uint16_t flags);
+void SetEvtMasterStationID(uint8_t stationID);
 
 
 #endif

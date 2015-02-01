@@ -9,6 +9,7 @@
 #include "port.h"
 #include <stdlib.h>
 #include "SGSensors.h"
+#include "RProtocolSlave.h"
 
 #ifdef LOGGING
 Logging sdlog;
@@ -18,6 +19,11 @@ Sensors sensorsModule;
 
 // A bitfield that defines which zones are currently on.
 int ZoneState = 0;
+
+uint8_t		LastReceivedStationID = 255;
+uint8_t		LastReceivedRssi      = 0;
+uint32_t	LastReceivedTime;
+
 
 
 void runStateClass::LogSchedule(int iValve, time_t eventTime, bool bManual, int iSchedule )
@@ -31,7 +37,6 @@ void runStateClass::LogSchedule(int iValve, time_t eventTime, bool bManual, int 
 
 static zone_struct  zones[MAX_ZONES];	
 
-uint8_t ZoneToIOMap[] = {31, 41, 40, 42, 43, 44, 45, 46, 47, 38, 37, 36, 35, 34, 33, 32};
 
 static uint16_t outState = 0;
 static uint16_t prevOutState = 0;
@@ -42,9 +47,9 @@ static void io_latch()
         if (outState == prevOutState)
                 return;
 
-        for (int i = 0; i <= GetNumZones(); i++)
+        for (int i = 0; i < GetNumZones(); i++)
         {
-			digitalWrite(ZoneToIOMap[i], (outState&(0x01<<i))?1:0);
+			digitalWrite(GetDirectIOPin(i), (outState&(0x01<<i))?1:0);
         }
 
         // Now store the new output state so we know if things have changed
@@ -53,10 +58,10 @@ static void io_latch()
 
 void io_setup()
 {
-        for (uint8_t i=0; i<sizeof(ZoneToIOMap); i++)
+        for (uint8_t i=0; i<GetNumZones(); i++)
         {
-               pinMode(ZoneToIOMap[i], OUTPUT);
-               digitalWrite(ZoneToIOMap[i], 0);
+               pinMode(GetDirectIOPin(i), OUTPUT);
+               digitalWrite(GetDirectIOPin(i), 0);
         }
 
 		outState = 0;
@@ -122,8 +127,19 @@ bool TurnOffZone(uint8_t iValve)
 		return true;
 }
 
+// Local Start/Stop zone additionally send report to the registered EvtMaster, if there is one
 
 bool runStateClass::StartZone(bool bManual, int iSchedule, int8_t iValve_in, uint8_t time2run )
+{
+	RemoteStartZone(bManual, iSchedule, iValve_in, time2run );
+
+	if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
+			rprotocol.SendZonesReport(GetEvtMasterStationAddress(), 0, GetEvtMasterStationID(), 0, GetNumZones());
+}
+
+// Remote Start/Stop don't send report to EvtMaster (for now we are assuming remote control is coming form the master)
+
+bool runStateClass::RemoteStartZone(bool bManual, int iSchedule, int8_t iValve_in, uint8_t time2run )
 {
 // Sanity checks
 	if( (iValve_in < 1) || (iValve_in > GetNumZones()) ) 
@@ -190,6 +206,15 @@ bool runStateClass::StartZone(bool bManual, int iSchedule, int8_t iValve_in, uin
 }
 
 void	runStateClass::StopAllZones(void)
+{
+	RemoteStopAllZones();
+
+	if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
+			rprotocol.SendZonesReport(GetEvtMasterStationAddress(), 0, GetEvtMasterStationID(), 0, GetNumZones());
+}
+
+
+void	runStateClass::RemoteStopAllZones(void)
 {
 	trace(F("StopShedules - Stopping all zones\n"));
 

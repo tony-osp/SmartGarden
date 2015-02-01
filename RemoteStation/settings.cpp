@@ -47,6 +47,15 @@ void ResetEEPROM()
 		SetMaxTtr(DEFAULT_TTR);
 		SetNumZones(MAX_ZONES);
 
+		uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = {41, 40, 42, 43 };
+
+		SaveZoneIOMap( zoneToIOMap );
+
+		SetEvtMasterFlags(0);
+		SetEvtMasterStationID(0);
+		SetEvtMasterStationAddress(0);
+
+
 		localUI.lcd_print_line_clear_pgm(PSTR("EEPROM reloaded"), 0);
 		localUI.lcd_print_line_clear_pgm(PSTR("Rebooting..."), 1);
 		delay(2000);
@@ -91,14 +100,14 @@ uint16_t GetXBeePortSpeed(void)
 	return speed;
 }
 
-uint16_t GetXBeePANID(void)
+uint8_t GetXBeePANID(void)
 {
-	uint16_t panID;
+//	uint16_t panID;
 
-	panID = EEPROM.read(ADDR_NETWORK_XBEE_PANID+1) << 8;
-	panID += EEPROM.read(ADDR_NETWORK_XBEE_PANID);
+//	panID = EEPROM.read(ADDR_NETWORK_XBEE_PANID+1) << 8;
+//	panID += EEPROM.read(ADDR_NETWORK_XBEE_PANID);
 
-	return panID;
+	return EEPROM.read(ADDR_NETWORK_XBEE_PANID);
 }
 
 uint16_t GetXBeeAddr(void)
@@ -136,10 +145,9 @@ void SetXBeePortSpeed(uint16_t speed)
 	EEPROM.write(ADDR_NETWORK_XBEE_SPEED+1, speedh);
 }
 
-void SetXBeePANID(uint16_t panID)
+void SetXBeePANID(uint8_t panIDl)
 {
-	uint8_t panIDh = (panID & 0x0FF00) >> 8;
-	uint8_t panIDl = panID & 0x0FF;
+	uint8_t panIDh = NETWORK_XBEE_PANID_HIGH;
 
 	EEPROM.write(ADDR_NETWORK_XBEE_PANID, panIDl);
 	EEPROM.write(ADDR_NETWORK_XBEE_PANID+1, panIDh);
@@ -180,7 +188,10 @@ void SetMaxTtr(uint8_t ttr)
 
 uint8_t GetNumZones(void)
 {
-	return EEPROM.read(ADDR_NUM_ZONES);
+	uint8_t  nZones = EEPROM.read(ADDR_NUM_ZONES);
+	
+	if( nZones <= MAX_ZONES ) return nZones;			// basic protection in case of EEPROM corruption
+	else					  return 0;			// in case of EEPROM corruption it is safer to assume 0 enabled zones.
 }
 
 
@@ -205,3 +216,65 @@ uint8_t GetXBeeFlags(void)
 {
 	return EEPROM.read(ADDR_NETWORK_XBEE_FLAGS);
 }
+
+void SaveZoneIOMap(uint8_t *ptr)
+{
+        for( int i = 0; i < LOCAL_NUM_DIRECT_CHANNELS; i++)
+                EEPROM.write(ADDR_OT_DIRECT_IO + i, *(ptr+i));
+}
+
+uint8_t GetDirectIOPin(uint8_t n)
+{
+	if( n >= LOCAL_NUM_DIRECT_CHANNELS ) return 0;
+
+	return EEPROM.read(ADDR_OT_DIRECT_IO + n);
+}
+
+uint16_t GetEvtMasterFlags(void)
+{
+	uint16_t flags;
+
+	flags = EEPROM.read(ADDR_EVTMASTER_FLAGS+1) << 8;
+	flags += EEPROM.read(ADDR_EVTMASTER_FLAGS);
+
+	return flags;
+}
+
+uint8_t  GetEvtMasterStationID(void)
+{
+	return EEPROM.read(ADDR_EVTMASTER_STATIONID);
+}
+
+uint16_t GetEvtMasterStationAddress(void)
+{
+	uint16_t addr;
+
+	addr = EEPROM.read(ADDR_EVTMASTER_ADDRESS+1) << 8;
+	addr += EEPROM.read(ADDR_EVTMASTER_ADDRESS);
+
+	return addr;
+}
+
+void SetEvtMasterStationAddress(uint16_t addr)
+{
+	uint8_t addrH = addr >> 8;
+	uint8_t addrL = addr & 0x0FF;
+
+	EEPROM.write(ADDR_EVTMASTER_ADDRESS+1, addrH);
+	EEPROM.write(ADDR_EVTMASTER_ADDRESS, addrL);
+}
+
+void SetEvtMasterFlags(uint16_t flags)
+{
+	uint8_t flagsH = flags >> 8;
+	uint8_t flagsL = flags & 0x0FF;
+
+	EEPROM.write(ADDR_EVTMASTER_FLAGS+1, flagsH);
+	EEPROM.write(ADDR_EVTMASTER_FLAGS, flagsL);
+}
+
+void SetEvtMasterStationID(uint8_t stationID)
+{
+	EEPROM.write(ADDR_EVTMASTER_STATIONID, stationID);
+}
+

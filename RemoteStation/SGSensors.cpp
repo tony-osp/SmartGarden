@@ -39,8 +39,10 @@ limitations under the License.
 #endif
 
 
-#include "SGsensors.h"
 #include "port.h"
+#include "SGsensors.h"
+#include "settings.h"
+#include "RProtocolSlave.h"
 
 
 
@@ -57,12 +59,15 @@ DHT dht_sensor(DHTPIN, DHTTYPE);
 SFE_BMP180 bmp180;
 #endif
 
+// how many sensors this station has
+#define NUM_SENSORS 2
+
 int Sensors::Temperature = 0;
 int Sensors::Humidity = 0;
 
 // local forward declarations
 
-char pressure_MinTimer(void);
+char sensors_MinTimer(void);
 char bmp180_Read(int *pressure, int *temperature);
 
 // initialization. Intended to be called from setup()
@@ -110,7 +115,7 @@ byte Sensors::loop(void)
 
              old_millis = new_millis;
 
-             pressure_MinTimer();
+             sensors_MinTimer();
        }
 }
 
@@ -118,7 +123,7 @@ byte Sensors::loop(void)
 // timer worker for pressure sensors.
 // This funciton will be called once a minute, allowing pressure sensors code to read sensors if required.
 
-char pressure_MinTimer(void)
+char sensors_MinTimer(void)
 {
 #ifdef SENSOR_ENABLE_BMP180
 
@@ -177,6 +182,10 @@ char pressure_MinTimer(void)
 
            sdlog.LogSensorReading(SENSOR_TYPE_TEMPERATURE, 2, temp);    // DHT temperature sensor has ID=2
            sdlog.LogSensorReading(SENSOR_TYPE_HUMIDITY, 1, hum);                   // DHT humidity sensor ID=1
+
+		   if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SENSORS )
+				rprotocol.SendSensorsReport(GetEvtMasterStationAddress(), 0, GetEvtMasterStationID(), 0, NUM_SENSORS);
+
      }
 #endif  //   SENSOR_ENABLE_DHT
      return true;

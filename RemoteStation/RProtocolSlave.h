@@ -56,7 +56,9 @@ public:
                 bool            SendZonesReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t firstZone, uint8_t numZones);
                 bool            SendSensorsReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t firstSensor, uint8_t numSensors);
                 bool            SendSystemRegisters(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t firstRegister, uint8_t numRegisters);
+                bool            SendEvtMasterReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID);
 
+                bool            SendPingReply(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint32_t cookie);
                 bool            SendOKResponse(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t FCode);
                 bool            SendErrorResponse(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t fCode, uint8_t errorCode);
 

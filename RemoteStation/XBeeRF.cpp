@@ -66,11 +66,11 @@ void XBeeRFClass::begin()
 	xbee = XBee();
 
 // Set XBee port and speed
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
 	if( xbeePort == 0 )
 	{
 		Serial.begin(xbeeSpeed); xbee.setSerial(Serial);
 	}
-#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
 	else if( xbeePort == 1 )
 	{
 		Serial1.begin(xbeeSpeed); xbee.setSerial(Serial1);
@@ -83,23 +83,28 @@ void XBeeRFClass::begin()
 	{
 		Serial3.begin(xbeeSpeed); xbee.setSerial(Serial3);
 	}
+#else  // Mega
+		Serial.begin(xbeeSpeed); xbee.setSerial(Serial);	// on Uno always uses Serial
 #endif // Mega
 // Now set XBee PAN ID, address and other parameters
 
-	trace(F("Setting XBeeAddr: %X, PANID:%X, Chan:%X\n"), GetXBeeAddr(), GetXBeePANID(), (int)GetXBeeChan() );
+	uint16_t  panID = NETWORK_XBEE_PANID_HIGH << 8;		// high 8 bit of XBee PAN ID are fixed, low 8 bit are configurable
+	panID += GetXBeePANID();
+
+	trace(F("Setting XBeeAddr: %X, PANID:%X, Chan:%X\n"), GetXBeeAddr(), panID, (int)GetXBeeChan() );
 
 	localUI.lcd_print_line_clear_pgm(PSTR("XBee start"), 0);
 
 	if( !sendAtCommandParam(PSTR("MY"), GetXBeeAddr()) )	goto failed_ex1;
-	if( !sendAtCommandParam(PSTR("ID"), GetXBeePANID()) )	goto failed_ex1;
+	if( !sendAtCommandParam(PSTR("ID"), panID) )			goto failed_ex1;
 	if( !sendAtCommandParam(PSTR("CH"), GetXBeeChan()) )	goto failed_ex1;
-	if( !sendAtCommand(PSTR("AC")) )	goto failed_ex1;
+	if( !sendAtCommand(PSTR("AC")) )						goto failed_ex1;
 
 	SetXBeeFlags(GetXBeeFlags() | NETWORK_FLAGS_ON);	// Mark XBee network as On
 	fXBeeReady = true;		// and set local readiness flag
 
 	localUI.lcd_print_line_clear_pgm(PSTR("XBee ready!"), 0);
-	delay(2000);
+	delay(1000);
 
 	rprotocol.begin();
 	rprotocol.myUnitID = GetMyStationID();
@@ -107,7 +112,7 @@ void XBeeRFClass::begin()
 //	rprotocol.RegisterTransport((void*)&XBeeSendPacket);	// register transport Send routine with the remote protocol
 //															// rprotocol will use it to send wire packets
 
-// For some mysterios reasons passing callback function as an argumet is rejected by the linker for AtMega328 but is OK for direct assignment
+// For some mysterios reasons passing callback function as an argumet is rejected by the linker for AtMega328 (not Mega!) but is OK for direct assignment
 	rprotocol._SendMessage = (PTransportCallback)&XBeeSendPacket;
 
 failed_ex1:
@@ -260,9 +265,6 @@ bool XBeeSendPacket(uint16_t netAddress, void *msg, size_t mSize)
 	tx.setFrameId(XBeeRF.frameIDCounter);
 
     XBeeRF.xbee.send(tx);
-
-//	localUI.lcd_print_memory(1);
-//	delay(3000);
 
 	freeMemory();
 

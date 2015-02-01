@@ -77,7 +77,7 @@ bool RProtocolSlave::SendZonesReport(uint16_t netAddress, uint16_t transactionID
 		ReportMessage.Header.FromUnitID = rprotocol.myUnitID;
 		ReportMessage.Header.ToUnitID = toUnitID;
 		ReportMessage.Header.TransactionID = transactionID;
-		ReportMessage.Header.Length = 3;	// we assume that we have no more than 8 zones, hence status data is 1 byte
+		ReportMessage.Header.Length = 4;	// we assume that we have no more than 8 zones, hence status data is 1 byte
 // Note: since currently we have no more than 8 zones in the Remote station, we hardcode response size
 
 		uint8_t	zonesStatus = 0;
@@ -87,6 +87,7 @@ bool RProtocolSlave::SendZonesReport(uint16_t netAddress, uint16_t transactionID
 			if( isZoneOn(i+1) ) zonesStatus |= 1 << i;			// note: isZoneOn() uses 1-based numbering!
 		}
 
+		ReportMessage.StationFlags = ZONES_REPFLAG_STATION_ENABLED;
 		ReportMessage.FirstZone = firstZone;
 		ReportMessage.NumZones = numZones;
 		ReportMessage.ZonesData[0] = zonesStatus;
@@ -157,6 +158,45 @@ bool RProtocolSlave::SendSystemRegisters(uint16_t netAddress, uint16_t transacti
 
 	return _SendMessage(netAddress, outbuf, sizeof(RMESSAGE_SYSREGISTERS_REPORT)+numRegisters*2);
 }
+
+// Helper routine - send EvtMaster registration report
+
+bool RProtocolSlave::SendEvtMasterReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID)
+{
+	RMESSAGE_EVTMASTER_REPORT Message;
+
+	Message.Header.ProtocolID = RPROTOCOL_ID;
+	Message.Header.FCode = FCODE_EVTMASTER_REPORT;
+	Message.Header.FromUnitID = rprotocol.myUnitID;
+	Message.Header.ToUnitID = toUnitID;
+	Message.Header.TransactionID = transactionID;
+	Message.Header.Length = sizeof(RMESSAGE_EVTMASTER_REPORT)-sizeof(RMESSAGE_HEADER);	
+
+	Message.EvtFlags = GetEvtMasterFlags();
+	Message.MasterStationID = GetEvtMasterStationID();
+	Message.MasterStationAddress = GetEvtMasterStationAddress();
+
+	return _SendMessage(netAddress, &Message, sizeof(Message));
+}
+
+
+// Helper routine - send Ping reply
+
+bool RProtocolSlave::SendPingReply(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint32_t cookie)
+{
+	RMESSAGE_PING_REPLY Message;
+
+	Message.Header.ProtocolID = RPROTOCOL_ID;
+	Message.Header.FCode = FCODE_PING_REPLY;
+	Message.Header.FromUnitID = rprotocol.myUnitID;
+	Message.Header.ToUnitID = toUnitID;
+	Message.Header.TransactionID = transactionID;
+	Message.Header.Length = sizeof(RMESSAGE_PING_REPLY)-sizeof(RMESSAGE_HEADER);	
+
+	Message.cookie = cookie;	
+
+	return _SendMessage(netAddress, &Message, sizeof(Message));
+}
 	
 
 
@@ -195,6 +235,107 @@ bool RProtocolSlave::SendErrorResponse(uint16_t netAddress, uint16_t transaction
 	Message.ExceptionCode = errorCode;
 	return _SendMessage(netAddress, &Message, sizeof(Message));	
 }
+
+
+//
+//	packets processing routines - Read EvtMaster Status
+//
+//	Input - pointer to the input packet (packet includes header)
+// 			It is assumed that basic input packet structure is already validated
+//
+//			Second parameter is the sender network address, it will be used to send response.
+//	
+//	The routine will process input, execute required action(s), and will generate output packet
+//	using common helpers
+//
+//	read EvtMaster registration status expects to receive no parameters in the Data area.
+//
+inline void MessageEvtMasterRead( void *ptr, uint16_t netAddress )
+{
+	register RMESSAGE_EVTMASTER_READ	*pMessage = (RMESSAGE_EVTMASTER_READ *)ptr;
+
+// no parameters
+
+	rprotocol.SendEvtMasterReport(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID);
+}
+
+//
+//	packets processing routines - Set EvtMaster Status
+//
+//	Input - pointer to the input packet (packet includes header)
+// 			It is assumed that basic input packet structure is already validated
+//
+//			Second parameter is the sender network address, it will be used to send response.
+//	
+//	The routine will process input, execute required action(s), and will generate output packet
+//	using common helpers
+//
+//
+inline void MessageEvtMasterSet( void *ptr, uint16_t netAddress )
+{
+	register RMESSAGE_EVTMASTER_SET	*pMessage = (RMESSAGE_EVTMASTER_SET *)ptr;
+
+	// parameters length check
+	if( pMessage->Header.Length != (sizeof(RMESSAGE_EVTMASTER_SET) - sizeof(RMESSAGE_HEADER)) )
+	{
+		trace(F("MessageEvtMasterSet - bad parameters length\n"));
+		return;		
+	}
+	
+// OK, parameters are valid. Execute action and send response
+
+	SetEvtMasterFlags(pMessage->EvtFlags);
+	if( pMessage->EvtFlags & EVTMASTER_FLAGS_REGISTER_SELF )	// flag indicating that we should register sender of this message as the master
+	{
+		SetEvtMasterStationID(pMessage->Header.FromUnitID);
+		SetEvtMasterStationAddress(netAddress);
+	}
+	else
+	{
+		SetEvtMasterStationID(pMessage->MasterStationID);
+		SetEvtMasterStationAddress(pMessage->MasterStationAddress);
+	}
+
+	// All done, check the type of response requested and send response.
+
+	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_BRIEF ) 
+		rprotocol.SendOKResponse(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode);
+
+	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_REPORT ) 
+		rprotocol.SendEvtMasterReport(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID);
+}
+
+
+//
+//	packets processing routines - Ping
+//
+//	Input - pointer to the input packet (packet includes header)
+// 			It is assumed that basic input packet structure is already validated
+//
+//			Second parameter is the sender network address, it will be used to send response.
+//	
+//	The routine will process input and will reply with an output packet
+//
+//	Ping expects to receive one parameter in the Data area:
+//
+//		1.	Cookie
+//
+inline void MessagePing( void *ptr, uint16_t netAddress )
+{
+	register RMESSAGE_PING	*pMessage = (RMESSAGE_PING *)ptr;
+
+	// parameters length check
+	if( pMessage->Header.Length != (sizeof(RMESSAGE_PING)-sizeof(RMESSAGE_HEADER)) )
+	{
+		trace(F("MessagePing - bad parameters length\n"));
+		return;		
+	}
+	
+	rprotocol.SendPingReply(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->cookie);
+
+	return;
+}
+
 
 
 
@@ -437,12 +578,16 @@ inline void MessageZonesSet( void *ptr, uint16_t netAddress )
 	}
 // OK, parameters are valid. Execute action and send response
 
-	for( uint8_t i=pMessage->FirstZone; i<(pMessage->FirstZone+pMessage->NumZones); i++ )
+	if( pMessage->Ttr == 0 ) 
 	{
-		if( pMessage->ZonesData[0] & (1 << i) ){
-
-			if( pMessage->Ttr == 0 ) runState.StopAllZones();	
-			else                     runState.StartZone(false, pMessage->ScheduleID, i+1, pMessage->Ttr); 
+		runState.RemoteStopAllZones();	
+	}
+	else
+	{
+		for( uint8_t i=pMessage->FirstZone; i<(pMessage->FirstZone+pMessage->NumZones); i++ )
+		{
+			if( pMessage->ZonesData[0] & (1 << i) )
+				runState.RemoteStartZone(false, pMessage->ScheduleID, i+1, pMessage->Ttr); 
 		}
 	}
 
@@ -664,6 +809,10 @@ void RProtocolSlave::ProcessNewFrame(uint8_t *ptr, uint8_t len, uint16_t netAddr
 		return;
 	}
 	
+// Record last StationID we received packet from and rssi (for radio link monitoring)
+
+	SetLastReceivedRssi(pMessage->Header.FromUnitID, rssi);
+
 // OK, the packet seems to be valid, let's parse and dispatch it.
 	
 	switch( pMessage->Header.FCode )
@@ -694,8 +843,20 @@ void RProtocolSlave::ProcessNewFrame(uint8_t *ptr, uint8_t len, uint16_t netAddr
 						MessageSystemRegistersSet( ptr, netAddress );
 						break;
 	
+		case FCODE_PING:	
+						MessagePing( ptr, netAddress );
+						break;
+
 		case FCODE_SCAN:	
 						MessageStationsScan( ptr, netAddress );
+						break;
+
+		case FCODE_EVTMASTER_READ:
+						MessageEvtMasterRead( ptr, netAddress );
+						break;
+
+		case FCODE_EVTMASTER_SET:
+						MessageEvtMasterSet( ptr, netAddress );
 						break;
 
 	}

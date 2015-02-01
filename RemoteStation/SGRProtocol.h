@@ -106,6 +106,12 @@ limitations under the License.
 #define FCODE_SYSSTRING_SET					10
 #define FCODE_SYSSTRING_REPORT				11
 
+// Log/Master station registration (SysLog equivalent)
+#define FCODE_EVTMASTER_READ				12
+#define FCODE_EVTMASTER_SET					13
+#define FCODE_EVTMASTER_REPORT				14
+
+
 // Other
 #define FCODE_SCAN							50
 #define FCODE_SCAN_REPLY					51
@@ -229,11 +235,14 @@ struct RMESSAGE_ZONES_REPORT
 	
 // PDU
 
+	uint8_t		StationFlags;		// flags. Flag 1 indicates that the station is enabled
 	uint8_t		FirstZone;			// first zone to report
 	uint8_t		NumZones;			// Number of zones to write
 	uint8_t		ZonesData[1];		// Array of data bytes for zones bits (8 zones per byte)
 									// Bit value of 1 means "corresponding zone is On", 0 means "Off"
 };
+
+#define ZONES_REPFLAG_STATION_ENABLED	1
 
 //
 //  FCODE_SENSORS_READ - Read Sensors Status
@@ -380,6 +389,61 @@ struct RMESSAGE_SYSSTRING_REPORT
 
 
 
+//
+//  FCODE_EVTMASTER_READ - Read current EvtMaster registration
+//
+struct RMESSAGE_EVTMASTER_READ
+{
+//  Header
+	RMESSAGE_HEADER	Header;
+	
+// PDU
+
+};
+
+
+
+//
+//  FCODE_EVTMASTER_SET - Register EvtMaster
+//
+struct RMESSAGE_EVTMASTER_SET
+{
+//  Header
+	RMESSAGE_HEADER	Header;
+	
+// PDU
+
+	uint8_t		Flags;					// response flags (ACK etc)
+	uint16_t	EvtFlags;				// Various flags indicating types of events to report etc
+	uint8_t		MasterStationID;		// StationID to register as the Master
+	uint16_t	MasterStationAddress;	// Network address of the Master station to register
+};
+
+#define EVTMASTER_FLAGS_REGISTER_SELF		1	// flag for RMESSAGE_EVTMASTER_SET, indicating that StationID and Network address of the sender should be used (values provied in the message are ignored)
+#define EVTMASTER_FLAGS_REPORT_ZONES		4	// flag for RMESSAGE_EVTMASTER_SET, indicating that Zone start/stop events as well as station enable/disable events should be reported
+#define EVTMASTER_FLAGS_REPORT_SENSORS		8	// flag for RMESSAGE_EVTMASTER_SET, indicating that new sensor readings should be sent (sensor polling frequency is defined by system registers)
+#define EVTMASTER_FLAGS_REPORT_WATERING		16	// flag for RMESSAGE_EVTMASTER_SET, indicating that watering log records should be reported
+#define EVTMASTER_FLAGS_REPORT_SYSTEM		32	// flag for RMESSAGE_EVTMASTER_SET, indicating that system changes notifications should be reported
+
+#define EVTMASTER_FLAGS_REPORT_ALL	(EVTMASTER_FLAGS_REPORT_ZONES | EVTMASTER_FLAGS_REPORT_SENSORS | EVTMASTER_FLAGS_REPORT_WATERING | EVTMASTER_FLAGS_REPORT_SYSTEM)
+
+//
+//  FCODE_EVTMASTER_REPORT - Report System string (e.g. Station Name)
+//
+//  This message will be sent in response to FCODE_EVTMASTER_READ message
+//
+struct RMESSAGE_EVTMASTER_REPORT
+{
+//  Header
+	RMESSAGE_HEADER	Header;
+	
+// PDU
+
+	uint16_t	EvtFlags;				// Various flags indicating types of events to report 
+	uint8_t		MasterStationID;		// StationID to registered as the Master
+	uint16_t	MasterStationAddress;	// Network address of the Master station 
+};
+
 
 
 //
@@ -452,6 +516,9 @@ struct RMESSAGE_PING
 {
 //  Header
 	RMESSAGE_HEADER	Header;
+
+// PDU
+	uint32_t	cookie;
 };
 
 // Extended FCode - PING_REPLY
@@ -459,6 +526,9 @@ struct RMESSAGE_PING_REPLY
 {
 //  Header
 	RMESSAGE_HEADER	Header;
+
+// PDU
+	uint32_t	cookie;
 };
 
 // Time broadcast

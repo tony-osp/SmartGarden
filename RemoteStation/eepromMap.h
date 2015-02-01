@@ -41,6 +41,10 @@ limitations under the License.
 #define ADDR_NUM_OT_OPEN_SPRINKLER				38
 #define ADDR_OT_OPEN_SPRINKLER					39		// OpenSprinkler-style serial IO hookup
 
+#define ADDR_EVTMASTER_FLAGS					43		// EventMaster flags - 2 bytes (zero if no master)
+#define ADDR_EVTMASTER_STATIONID				45		// EventMaster StationID - 1 byte
+#define ADDR_EVTMASTER_ADDRESS					46		// EventMaster XBee address - 2 bytes
+
 #define END_OF_ZONE_BLOCK						832
 
 // Networks config

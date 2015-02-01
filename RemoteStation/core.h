@@ -59,6 +59,9 @@ public:
 
 	bool	StartZone(bool bManual, int iSchedule, int8_t iValve, uint8_t time2run );
 	void	StopAllZones(void);
+	bool	RemoteStartZone(bool bManual, int iSchedule, int8_t iValve_in, uint8_t time2run );
+	void	RemoteStopAllZones(void);
+
 	void	begin(void);
 
 
@@ -70,6 +73,34 @@ private:
 	
 	int			 max_time2run;	// maximum time to run a zone, seconds
 };
+
+extern uint8_t		LastReceivedStationID;
+extern uint8_t		LastReceivedRssi;
+extern uint32_t		LastReceivedTime;
+
+
+inline uint8_t GetLastReceivedStationID(void)
+{
+	return LastReceivedStationID;
+}
+
+inline uint8_t GetLastReceivedRssi(uint8_t stationID)
+{
+	return LastReceivedRssi;
+}
+
+inline uint32_t GetLastReceivedTime(uint8_t stationID)
+{
+	return LastReceivedTime;
+}
+
+inline void SetLastReceivedRssi(uint8_t stationID, uint8_t rssi)
+{
+	LastReceivedStationID = stationID;
+	LastReceivedRssi = rssi;
+	LastReceivedTime = millis();
+}
+
 
 extern runStateClass runState;
 
