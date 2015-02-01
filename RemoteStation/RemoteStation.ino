@@ -22,19 +22,18 @@
 
 #include "localUI.h"
 #include "SGSensors.h"
-#include "freeMemory.h"
 #include "port.h"
 #include <XBee.h>
 #include "SGRProtocol.h"
 #include "XBeeRF.h"
 #include "sdlog.h"
-#include "sysreset.h"
 
 OSLocalUI localUI;
 
 void setup() {
     Serial.begin(57600); 
-    Serial.println(F("Start!"));
+    trace_setup(Serial);
+    trace(F("Start!\n"));
 
     localUI.begin();
     localUI.lcd_print_line_clear_pgm(PSTR("Connecting..."), 1);

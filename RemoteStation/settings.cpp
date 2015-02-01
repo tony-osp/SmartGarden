@@ -22,7 +22,6 @@ limitations under the License.
 #include "port.h"
 #include <string.h>
 #include <stdlib.h>
-#include "sysreset.h"
 #include "localUI.h"
 
 
