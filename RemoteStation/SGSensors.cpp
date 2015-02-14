@@ -16,19 +16,8 @@ using time-series pattern. Errors are reported using common Trace infrastructure
 
 
 
-Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+ Creative Commons Attribution-ShareAlike 3.0 license
+ (c) 2014 Tony-osp (tony-osp.dreamwidth.org)
 
 */
 
@@ -103,10 +92,10 @@ byte Sensors::begin(void)
 
 // -- Operation --
 
+static unsigned long  old_millis = millis() - 60000;             // setup initial condition to make it trigger on the first loop
 // Main loop. Intended to be called regularly  to handle sensors readings. Usually this will be called from Arduino loop()
 byte Sensors::loop(void)
 {
-       static unsigned long  old_millis = millis() - 60000;             // setup initial condition to make it trigger on the first loop
        unsigned long  new_millis = millis();                                    // Note: we are using built-in Arduino millis() function instead of now() or time-zone adjusted LocalNow(), because it is a lot faster
                                                                 // and for detecting minutes changes it does not make any difference.
 
@@ -183,8 +172,8 @@ char sensors_MinTimer(void)
            sdlog.LogSensorReading(SENSOR_TYPE_TEMPERATURE, 2, temp);    // DHT temperature sensor has ID=2
            sdlog.LogSensorReading(SENSOR_TYPE_HUMIDITY, 1, hum);                   // DHT humidity sensor ID=1
 
-		   if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SENSORS )
-				rprotocol.SendSensorsReport(GetEvtMasterStationAddress(), 0, GetEvtMasterStationID(), 0, NUM_SENSORS);
+                   if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SENSORS )
+                                rprotocol.SendSensorsReport(GetEvtMasterStationAddress(), 0, GetEvtMasterStationID(), 0, NUM_SENSORS);
 
      }
 #endif  //   SENSOR_ENABLE_DHT

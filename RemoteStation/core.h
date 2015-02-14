@@ -1,8 +1,7 @@
 // core.cpp
 // This file provides necessary minimal core functions required for RemoteStation operation
-// Author: Tony-osp
-// Copyright (c) 2014 Tony-osp
-//
+// Creative Commons Attribution-ShareAlike 3.0 license
+// Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // enable logging support
 #define LOGGING 1
