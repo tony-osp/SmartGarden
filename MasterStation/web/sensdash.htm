@@ -1,0 +1,409 @@
+﻿<!DOCTYPE HTML>
+<html>
+<!-- 
+  This is a simple Sensors Dashboard page for SmartGarden system.
+ 
+ It is not really a complete, finished work (yet), but rather a working prototype of the Dashboard page.
+
+ Creative Commons Attribution-ShareAlike 3.0 license
+ (c) 2015 Tony-osp (tony-osp.dreamwidth.org)
+-->
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SmartGarden Sensors Dashboard</title>  
+
+ <style>    
+    .thermometer-outer {
+      background: #c4f0ff;
+      border: 1px solid #c4c4c4;
+      border-radius: 3px;
+    }
+    .thermometer-outer-v {
+      height: 80px;
+      width: 10px;
+    }
+    .thermometer-inner {
+      background: #3f83f7;
+    }
+    .thermometer-inner-v {
+      width: 10px;
+    }
+  </style>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+  <script src="jqtherm.js"></script>
+  <script src="therm.js"></script>
+  <script src="http://code.highcharts.com/highcharts.js"></script>
+  <script src="http://code.highcharts.com/highcharts-more.js"></script>
+
+    <script>
+        setupTempSens = function (sID, val) {
+
+            $('#' + sID).thermometer({
+                scaleLabelText: 1.4,
+                unitsLabel: " F",
+                color: {
+                    label: 'rgba(55, 255, 255, 1)',
+                },
+                max: 120,
+                min: 0,
+                majorTicks: 4,
+                minorTicks: 1,
+                scaleTickLabelText: 1.5,
+                color: {
+                    fill: "rgba(91,231,246,1)",
+                    label: '#000000'
+                },
+                bulbRadiusByHeight: true
+            });
+
+            $('#' + sID).thermometer('setValue', val);
+        };
+
+        setupPressureSens = function (sID, val) {
+
+            $('#' + sID).highcharts({
+
+                chart: {
+                    type: 'gauge',
+                    plotBackgroundColor: null,
+                    plotBackgroundImage: null,
+                    plotBorderWidth: 0,
+                    plotShadow: false,
+                    marginTop: 0,
+                    spacing: [0, 0, 0, 0]
+                },
+
+                title: {
+                    text: null
+                },
+
+                exporting: {
+                    enabled: false
+                },
+                credits: {
+                    enabled: false
+                },
+
+                pane: {
+                    startAngle: -150,
+                    endAngle: 150,
+                    background: [{
+                        backgroundColor: {
+                            linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                            stops: [
+                                [0, '#FFF'],
+                                [1, '#333']
+                            ]
+                        },
+                        borderWidth: 0,
+                        outerRadius: '109%'
+                    }, {
+                        backgroundColor: {
+                            linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                            stops: [
+                                [0, '#333'],
+                                [1, '#FFF']
+                            ]
+                        },
+                        borderWidth: 1,
+                        outerRadius: '107%'
+                    }, {
+                        // default background
+                    }, {
+                        backgroundColor: '#DDD',
+                        borderWidth: 0,
+                        outerRadius: '105%',
+                        innerRadius: '103%'
+                    }]
+                },
+
+                // the value axis
+                yAxis: {
+                    min: 900,
+                    max: 1100,
+
+                    minorTickInterval: 'auto',
+                    minorTickWidth: 1,
+                    minorTickLength: 10,
+                    minorTickPosition: 'inside',
+                    minorTickColor: '#666',
+
+                    tickPixelInterval: 30,
+                    tickWidth: 2,
+                    tickPosition: 'inside',
+                    tickLength: 10,
+                    tickColor: '#666',
+                    labels: {
+                        step: 2,
+                        rotation: 'auto',
+                        style: { "color": "#6D869F", "font-size": "80%" }
+                    },
+                    title: {
+                        text: null
+                    },
+                    plotBands: [{
+                        from: 900,
+                        to: 950,
+                        color: '#DDDF0D' // yellow
+                    }, {
+                        from: 950,
+                        to: 1050,
+                        color: '#55BF3B' // green
+                    }, {
+                        from: 1050,
+                        to: 1100,
+                        color: '#DDDF0D' // yellow
+                    }]
+                },
+
+                series: [{
+                    name: 'Pressure',
+                    data: [val],
+                    tooltip: {
+                        valueSuffix: ' mbar'
+                    }
+                }]
+            });
+
+        };
+
+        setPressureSens = function (sID, val) {
+
+            var chart = $('#' + sID).highcharts();
+            chart.series[0].setData([val]);
+        }
+
+        setupHumiditySens = function (sID, val) {
+
+            $('#' + sID).highcharts({
+
+                chart: {
+                    type: 'gauge',
+                    plotBackgroundColor: null,
+                    plotBackgroundImage: null,
+                    plotBorderWidth: 0,
+                    plotShadow: false,
+                    marginTop: 0,
+                    spacing: [0, 0, 0, 0]
+                },
+
+                title: {
+                    text: null
+                },
+
+                exporting: {
+                    enabled: false
+                },
+                credits: {
+                    enabled: false
+                },
+
+                pane: {
+                    startAngle: -150,
+                    endAngle: 150,
+                    background: [{
+                        backgroundColor: {
+                            linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                            stops: [
+                                [0, '#FFF'],
+                                [1, '#333']
+                            ]
+                        },
+                        borderWidth: 0,
+                        outerRadius: '109%'
+                    }, {
+                        backgroundColor: {
+                            linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                            stops: [
+                                [0, '#333'],
+                                [1, '#FFF']
+                            ]
+                        },
+                        borderWidth: 1,
+                        outerRadius: '107%'
+                    }, {
+                        // default background
+                    }, {
+                        backgroundColor: '#DDD',
+                        borderWidth: 0,
+                        outerRadius: '105%',
+                        innerRadius: '103%'
+                    }]
+                },
+
+                // the value axis
+                yAxis: {
+                    min: 0,
+                    max: 100,
+
+                    minorTickInterval: 'auto',
+                    minorTickWidth: 1,
+                    minorTickLength: 10,
+                    minorTickPosition: 'inside',
+                    minorTickColor: '#666',
+
+                    tickPixelInterval: 30,
+                    tickWidth: 2,
+                    tickPosition: 'inside',
+                    tickLength: 10,
+                    tickColor: '#666',
+                    labels: {
+                        step: 2,
+                        rotation: 'auto',
+                        style: { "color": "#6D869F", "font-size": "80%" }
+                    },
+                    title: {
+                        text: null
+                    },
+                    plotBands: [{
+                        from: 0,
+                        to: 30,
+                        color: '#DDDF0D' // yellow
+                    }, {
+                        from: 30,
+                        to: 70,
+                        color: '#55BF3B' // green
+                    }, {
+                        from: 70,
+                        to: 100,
+                        color: '#DDDF0D' // yellow
+                    }]
+                },
+
+                series: [{
+                    name: 'Humidity',
+                    data: [val],
+                    tooltip: {
+                        valueSuffix: '%'
+                    }
+                }]
+            });
+
+        };
+
+        setHumiditySens = function (sID, val) {
+
+            var chart = $('#' + sID).highcharts();
+            chart.series[0].setData([val]);
+        }
+
+
+
+        setupSensors = function () {
+
+            $.getJSON("json/sensNow",
+            function (data) {
+
+                var sensHtml = "";
+                // alert("refreshSensorsData callback"); 
+
+                sensHtml += '<table><tr>\n';
+
+                for (var i = 0; i < data.sensors.length; i++) {
+
+                    if ((i%2) == 0) sensHtml += '</tr><tr>\n';    // four sensors in a row
+
+                    sensHtml += '<td style="vertical-align: text-top;">\n';
+                    if (data.sensors[i].sensorType == 'Temperature') {
+                        sensHtml += '<div style="text-align: center"><h3>' + data.sensors[i].sensorName + '</h3></div>\n';
+                        sensHtml += '<table>\n';
+                        sensHtml += '<tr><td style="vertical-align: middle;">';
+                        sensHtml += '<br>SensorID: ' + data.sensors[i].sensorID;
+                        sensHtml += '<br>Station : ' + data.sensors[i].stationName;
+                        sensHtml += '<br>Sensor channel: ' + data.sensors[i].sensorChannel;
+                        sensHtml += '<br><b>Temperature: ' + data.sensors[i].lastReading + '</b>';
+                        sensHtml += '</td>';
+
+                        sensHtml += '<td>';
+                        sensHtml += '<canvas id="sens'+ i +'" height="150" width="100"></canvas>';
+                        sensHtml += '</td>\n';
+
+                        sensHtml += '</tr></table>\n';
+                    }
+                    else if (data.sensors[i].sensorType == 'Pressure') {
+                        sensHtml += '<div style="text-align: center"><h3>' + data.sensors[i].sensorName + '</h3></div>\n';
+                        sensHtml += '<table>\n';
+                        sensHtml += '<tr><td style="vertical-align: middle;">';
+                        sensHtml += '<br>SensorID: ' + data.sensors[i].sensorID;
+                        sensHtml += '<br>Station : ' + data.sensors[i].stationName;
+                        sensHtml += '<br>Sensor channel: ' + data.sensors[i].sensorChannel;
+                        sensHtml += '<br><b>Air Pressure: ' + data.sensors[i].lastReading + '</b>';
+                        sensHtml += '</td>';
+
+                        sensHtml += '<td>';
+                        sensHtml += '<div id="sens' + i + '" style="vertical-align: middle; width: 150px; height: 150px; margin: 0 auto"></div>';
+                        sensHtml += '</td>\n';
+
+                        sensHtml += '</tr></table>\n';
+                    }
+                    else if (data.sensors[i].sensorType == 'Humidity') {
+                        sensHtml += '<div style="text-align: center"><h3>' + data.sensors[i].sensorName + '</h3></div>\n';
+                        sensHtml += '<table>\n';
+                        sensHtml += '<tr><td style="vertical-align: middle;">';
+                        sensHtml += '<br>SensorID: ' + data.sensors[i].sensorID;
+                        sensHtml += '<br>Station : ' + data.sensors[i].stationName;
+                        sensHtml += '<br>Sensor channel: ' + data.sensors[i].sensorChannel;
+                        sensHtml += '<br><b>Air Humidity: ' + data.sensors[i].lastReading + '</b>';
+                        sensHtml += '</td>';
+
+                        sensHtml += '<td>';
+                        sensHtml += '<div id="sens' + i + '" style="vertical-align: middle; width: 150px; height: 150px; margin: 0 auto"></div>';
+                        sensHtml += '</td>\n';
+
+                        sensHtml += '</tr></table>\n';
+                    }
+                    else {      // all other sensor types
+
+                        sensHtml += '<div style="text-align: center"><h3>' + data.sensors[i].sensorName + '</h3></div>\n';
+                        sensHtml += '<table>\n';
+                        sensHtml += '<tr><td style="vertical-align: text-bottom;">';
+                        sensHtml += '<br>SensorID: ' + data.sensors[i].sensorID;
+                        sensHtml += '<br>Station : ' + data.sensors[i].stationName;
+                        sensHtml += '<br>Sensor channel: ' + data.sensors[i].sensorChannel;
+                        sensHtml += '<br><b>' + data.sensors[i].sensorType + ': ' + data.sensors[i].lastReading + '</b>';
+                        sensHtml += '</td>';
+                        sensHtml += '</tr></table>\n';
+                    }
+                    sensHtml += '</td>\n';
+                    sensHtml += '<td>&nbsp;&nbsp;&nbsp;</td>\n';
+                };
+                sensHtml += '</tr></table>\n';
+
+                $('#sens-list').html(sensHtml);             // load html into the placeholder element
+
+                for (var i = 0; i < data.sensors.length; i++) {     // go through the list of sensors and activate sensors that need to be activated
+
+                    if (data.sensors[i].sensorType == 'Temperature') setupTempSens('sens' + i, data.sensors[i].lastReading);
+                    else if (data.sensors[i].sensorType == 'Pressure') setupPressureSens('sens' + i, data.sensors[i].lastReading);
+                    else if (data.sensors[i].sensorType == 'Humidity') setupHumiditySens('sens' + i, data.sensors[i].lastReading);
+            }
+
+            });
+        };
+    </script>
+
+</head>
+    
+<body>
+  <div style="text-align: center"><h1>SmartGarden Sensors Dashboard</h1></div>
+  
+  <div id="sens-list"></div>
+  
+  
+  <script>
+      $(function () {
+
+
+          $(document).ready(function () {
+
+              setupSensors();                         // refresh it right away 
+//              setInterval(refreshSensorsData, 10000);       // also schedule data refresh every 10 sec
+          });
+
+      });
+  </script>
+    <p>&copy; 2015 Tony-osp</p>
+</body>
+</html>

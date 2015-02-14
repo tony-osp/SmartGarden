@@ -1,0 +1,139 @@
+<!DOCTYPE HTML>
+<html>
+<!-- 
+  This is a simple Sensor Historical Data viewer for SmartGarden system.
+ 
+ It is not really a complete, finished work (yet), but rather a working prototype of the page.
+
+ Creative Commons Attribution-ShareAlike 3.0 license
+ (c) 2015 Tony-osp (tony-osp.dreamwidth.org)
+-->
+   <head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+      <title>Sprinklers Sensors Readings</title>
+      <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+      <script src="http://code.highcharts.com/highcharts.js"></script>
+      <script src="http://code.highcharts.com/modules/exporting.js"></script>
+      <script type='text/javascript' src='ko30.js'></script>
+
+
+      <script type="text/javascript">
+
+    var options = {
+        chart: {
+            renderTo: 'container',
+            type: 'spline'
+        },
+        title: {
+            text: 'Sprinklers Sensors Readings'
+        },
+        xAxis: {
+            type: 'datetime',
+            dateTimeLabelFormats: { 
+                month: '%e. %b',
+                year: '%y'
+            },
+            title: {
+                text: 'Date'
+            }
+        },
+        yAxis: {
+            title: {
+                text: 'Temperature, F'
+            },
+            min: 32
+        },
+
+        tooltip: {
+            headerFormat: '<b>{series.name}</b><br>',
+            pointFormat: '{point.x:%e. %b %y}: {point.y:.2f}F'
+        },
+
+
+        series: [{}]
+    };
+
+
+$(function () {
+
+
+$(document).ready(function() {
+
+;
+
+});
+
+});
+      </script>
+   </head>
+   <body>
+
+<div id="container"></div>
+
+Start date: <input data-bind="value: startDate" /> &nbsp; &nbsp; End date: <input data-bind="value: endDate" />
+
+<select data-bind='options: sensorChoices, value: sensorSelect'> </select>
+<select data-bind='options: scaleChoices,  value: scaleSelect'> </select>
+
+<button data-bind="click: refreshChart">Refresh</button>
+
+
+<script type='text/javascript'>
+
+// This is a simple *viewmodel* - JavaScript that defines the data and behavior of your UI
+
+     function sensorViewModel()
+     {
+
+        this.startDate = ko.observable("10/1/2014");
+        this.endDate   = ko.observable("10/31/2014");
+        
+        this.sensorChoices = ["Internal BMP180", "External DHT21" ];
+        this.sensorSelect  = ko.observable("Internal BMP180");
+
+        this.scaleChoices  = ["Hourly", "Daily", "Monthly", "Raw"];
+        this.scaleSelect   = ko.observable("Daily");
+     };
+
+     this.refreshChart = function() {
+    
+       var sensIndex = 1;
+
+       if( this.sensorSelect() == "Internal BMP180" ) sensIndex = 1;
+       else if( this.sensorSelect() == "External DHT21" ) sensIndex = 2;
+       else alert("Wrong sensor type " + this.sensorSelect() + ", this should not really happen!");
+
+       var scaleCode = "d";
+       if( this.scaleSelect() == "Hourly" ) scaleCode = 'h';
+       else if( this.scaleSelect() == "Daily" ) scaleCode = 'd';
+       else if( this.scaleSelect() == "Monthly" ) scaleCode = 'm';
+       else if( this.scaleSelect() == "Raw" ) scaleCode = ' ';
+       else alert("Wrong scale type " + this.scaleSelect() + ", this should not really happen!");
+
+       var pageName = "json/sens?sdate=" + (new Date(this.startDate()).getTime()/1000) +
+                      "&edate=" + (new Date(this.endDate()).getTime()/1000) + "&type=1&id=" + sensIndex.toFixed() + "&sum=" + scaleCode;
+        
+//       alert(pageName);
+         
+       $.ajax({
+          url: pageName,  // json endpoint with parameters we just generated
+          datatype: "json",
+          success: function(data) 
+          {
+               data = jQuery.parseJSON(data);
+               options.series[0].data = data.series[0].data;
+               options.series[0].name = data.series[0].name;
+               var chart = new Highcharts.Chart(options);
+          }
+       });
+    };
+
+// Activates knockout.js
+    ko.applyBindings(sensorViewModel);
+
+
+</script>
+
+    <p>&copy; 2014 Tony-osp</p>
+   </body>
+</html>
