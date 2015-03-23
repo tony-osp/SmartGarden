@@ -90,3 +90,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SENSORS_POLL_DEFAULT_REPEAT  60
 //#define SENSORS_POLL_DEFAULT_REPEAT  5
 
+// XBee
+
+// Indicator that this node is using XBee Pro 900 (Pro 900 uses different channel conventions and addressing)
+#define XBEE_TYPE_PRO900	1

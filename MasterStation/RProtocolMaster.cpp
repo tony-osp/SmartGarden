@@ -474,6 +474,8 @@ void RProtocolMaster::SendTimeBroadcast(void)
 {
 	RMESSAGE_TIME_BROADCAST Message;
 
+//	trace(F("Sending time broadcast\n"));
+
 		if( _SendMessage == 0 )
 			return;					// protection - transport callback is not registered
 

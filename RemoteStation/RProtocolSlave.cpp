@@ -28,7 +28,7 @@ extern Sensors sensorsModule;
 
 
 // Local static (ugly!)
-static unsigned long		tLastSync;			// timestamp of the last sync time
+static unsigned long		tLastSync = millis()-DEFAULT_MAX_OFFLINE_TDELTA;		// reset timestamp of the last sync time
 
 
 // Local forward declarations
@@ -46,7 +46,7 @@ inline uint16_t		getSingleSensor(uint8_t regAddr);
 
 bool RProtocolSlave::begin(void)
 {
-	tLastSync = millis()-DEFAULT_MAX_OFFLINE_TDELTA;			// reset timestamp of the last sync time
+;
 }
 
 
@@ -791,7 +791,7 @@ void RProtocolSlave::ProcessNewFrame(uint8_t *ptr, uint8_t len, uint16_t netAddr
 		return;
 	}
 	
-// Check RProtocol ID. It should be valid for all packets (except SCAN)
+// Check UnitID. It should be valid for all packets (except SCAN)
 
 	if(  (pMessage->Header.ToUnitID != rprotocol.myUnitID) && (pMessage->Header.FCode != FCODE_TIME_BROADCAST) && (pMessage->Header.FCode != FCODE_SCAN))
 	{

@@ -29,6 +29,7 @@
 #include "sdlog.h"
 
 OSLocalUI localUI;
+extern XBeeRFClass XBeeRF;
 
 void setup() {
     Serial.begin(57600); 

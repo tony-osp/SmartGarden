@@ -34,7 +34,7 @@
 
 #define NETWORK_XBEE_DEFAULT_PANID	0x90	// Low byte of PAN ID is configurable, this is the default.
 
-#define NETWORK_XBEE_DEFAULT_CHAN	16
+#define NETWORK_XBEE_DEFAULT_CHAN	7
 #define NETWORK_XBEE_DEFAULT_PORT	1
 #define NETWORK_XBEE_DEFAULT_SPEED	57600
 

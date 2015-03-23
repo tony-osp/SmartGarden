@@ -485,7 +485,7 @@ struct SetupIndex
 static SetupIndex setupIndex[SETUP_NUM_SETTINGS] = 
 {   {str_sname1, 1, 1, 9},
 	{str_sname2, 1, 1, 254},
-	{str_sname3, 12, 23}
+	{str_sname3, 7, 0, 23}
 };
 
 // Helper funciton. This code separated into a helper funciton just for clarity.
@@ -560,7 +560,7 @@ setup_top:
 				state = 1;									// Entering edit mode, osUI_Page is the index of the setting to edit
 				curr_value = setupIndex[osUI_Page].val;   // copy current value from the index 
 
-// let's display the number of minutes prompt
+// display input prompt
                 lcd.clear();
                 LCD_SETCURSOR(lcd, 0, 0);
                 lcd_print_pgm(PSTR("Edit:"));

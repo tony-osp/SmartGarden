@@ -48,40 +48,76 @@ void XBeeRFClass::begin()
 
 // Set XBee port and speed
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
-        if( xbeePort == 0 )
-        {
-                Serial.begin(xbeeSpeed); xbee.setSerial(Serial);
-        }
-        else if( xbeePort == 1 )
-        {
-                Serial1.begin(xbeeSpeed); xbee.setSerial(Serial1);
-        }
-        else if( xbeePort == 2 )
-        {
-                Serial2.begin(xbeeSpeed); xbee.setSerial(Serial2);
-        }
-        else if( xbeePort == 3 )
-        {
-                Serial3.begin(xbeeSpeed); xbee.setSerial(Serial3);
-        }
-#else  // Mega
-                Serial.begin(xbeeSpeed); xbee.setSerial(Serial);        // on Uno always uses Serial
-#endif // Mega
+	if( xbeePort == 0 )
+	{
+		Serial.begin(xbeeSpeed); xbee.setSerial(Serial);
+	}
+	else if( xbeePort == 1 )
+	{
+		Serial1.begin(xbeeSpeed); xbee.setSerial(Serial1);
+	}
+	else if( xbeePort == 2 )
+	{
+		Serial2.begin(xbeeSpeed); xbee.setSerial(Serial2);
+	}
+	else if( xbeePort == 3 )
+	{
+		Serial3.begin(xbeeSpeed); xbee.setSerial(Serial3);
+	}
+
+#else  // Mega or Moteino Mega (1284p)
+#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284p__)
+
+		Serial1.begin(xbeeSpeed); xbee.setSerial(Serial1);	// on Moteino Mega we are using Serial1
+
+#else // Uno or equivalent
+
+		Serial.begin(xbeeSpeed); xbee.setSerial(Serial);	// on Uno always uses Serial
+
+#endif // Moteino Mega (1284p)
+#endif // Mega or Moteino Mega
 	
 // Now set XBee PAN ID, address and other parameters
 
 	trace(F("Setting XBeeAddr: %X, PANID:%X, Chan:%X\n"), GetXBeeAddr(), GetXBeePANID(), (int)GetXBeeChan() );
 
-	if( !sendAtCommandParam(PSTR("MY"), GetXBeeAddr()) )	goto failed_ex1;
-	if( !sendAtCommandParam(PSTR("ID"), GetXBeePANID()) )	goto failed_ex1;
-	if( !sendAtCommandParam(PSTR("CH"), GetXBeeChan()) )	goto failed_ex1;
-	if( !sendAtCommand(PSTR("AC")) )	goto failed_ex1;
+#ifndef XBEE_TYPE_PRO900		// Pro 900 does not support MY addressing command
+	if( !sendAtCommandParam(PSTR("MY"), GetXBeeAddr()) )
+	{
+		trace(F("XBee init - failed to set Xbee Addr\n"));
+		goto failed_ex1;
+	}
+#endif
+	if( !sendAtCommandParam(PSTR("ID"), GetXBeePANID()) )
+	{
+		trace(F("XBee init - failed to set Xbee PAN ID\n"));
+		goto failed_ex1;
+	}
+#ifdef XBEE_TYPE_PRO900		// Xbee Pro 900 uses different channel selection commands
+	if( !sendAtCommandParam(PSTR("HP"), GetXBeeChan()) )
+	{
+		trace(F("XBee init - failed to set Xbee Chan\n"));
+		goto failed_ex1;
+	}
+#else	// regular Xbee (2.4GHz)
+	if( !sendAtCommandParam(PSTR("CH"), GetXBeeChan()) )
+	{
+		trace(F("XBee init - failed to set Xbee Chan\n"));
+		goto failed_ex1;
+	}
+#endif
+	if( !sendAtCommand(PSTR("AC")) )
+	{
+		trace(F("XBee init - failed to execute AC command\n"));
+		goto failed_ex1;
+	}
 
 	SetXBeeFlags(GetXBeeFlags() | NETWORK_FLAGS_ON);	// Mark XBee network as On
 	fXBeeReady = true;		// and set local readiness flag
 
 	rprotocol.RegisterTransport((void*)&XBeeSendPacket);	// register transport Send routine with the remote protocol
 															// rprotocol will use it to send wire packets
+	return;
 
 failed_ex1:
 	return;
@@ -358,12 +394,47 @@ bool XBeeRFClass::sendAtCommandParam(const char *cmd_pstr, uint8_t *param, uint8
 //
 //
 
+
+#ifdef XBEE_TYPE_PRO900	
+// For XBee Pro 900 we cannot use 16bit addressing, but 64bit addressing is too must hassle to setup - have to 
+//   either pre-configure 64bit addresses for all stations, or have to use some form of dynamic discovery.
+//
+// Instead, we are using broadcast mode, relying on the RProtocol stack to filter out right packets.
+//
 bool XBeeSendPacket(uint16_t netAddress, void *msg, uint8_t mSize)
 {
 	if( !XBeeRF.fXBeeReady )	// check that XBee is initialized and ready
 		return false;
 
-//	trace(F("XBee - sending packet to station %d, len %u\n"), netAddress, (unsigned int)mSize);
+	trace(F("XBee - sending packet to station %d, len %u\n"), netAddress, (unsigned int)mSize);
+
+	static Tx64Request tx = Tx64Request();						// pre-allocated, static objects to avoid dynamic memory issues
+	static XBeeAddress64  addrBroadcast = XBeeAddress64(0, 0xFFFF);
+
+	tx.setAddress64(addrBroadcast);								// since our XBee objects are pre-allocated, set parameters on the existing objects
+	tx.setOption(8);	// send multicast
+	tx.setPayload((uint8_t *)msg);
+	tx.setPayloadLength(mSize);
+
+	XBeeRF.frameIDCounter++;	// increment rolling counter
+	tx.setFrameId(0);			// set FrameID to 0, which means that XBee will not give us TX confirmation response.
+
+    xbee.send(tx);
+
+// No response from XBee is requested
+
+	return true;
+}
+
+#else  //Regular (2.4GHz XBee)
+// For regular XBee we can use basic 16bit addressing
+
+bool XBeeSendPacket(uint16_t netAddress, void *msg, uint8_t mSize)
+{
+	if( !XBeeRF.fXBeeReady )	// check that XBee is initialized and ready
+		return false;
+
+	trace(F("XBee - sending packet to station %d, len %u\n"), netAddress, (unsigned int)mSize);
 
 //	Tx16Request tx = Tx16Request(netAddress, (uint8_t *)msg, mSize);	
 	static Tx16Request tx = Tx16Request();						// pre-allocated, static objects to avoid dynamic memory issues
@@ -385,6 +456,9 @@ bool XBeeSendPacket(uint16_t netAddress, void *msg, uint8_t mSize)
 
 	return true;
 }
+
+#endif  //XBEE_TYPE_PRO900
+
 
 // Mail XBee loop poller. loop() should be called frequently, to allow processing of incoming packets
 //
@@ -430,6 +504,28 @@ void XBeeRFClass::loop(void)
 																		// Note: we don't copy the packet, and just use pointer to the packet already in XBee library buffer
 				return;
 		} 
+		else if( responseID == ZB_RX_RESPONSE )			// XBee Pro 900 uses this packet format when receiving 
+		{											
+				uint8_t  *msg = xbee.getResponse().getFrameData();
+				uint8_t	 msg_len = xbee.getResponse().getFrameDataLength();
+
+				static ZBRxResponse rx64 = ZBRxResponse();		// Note: we are using 64bit addressing
+				xbee.getResponse().getZBRxResponse(rx64);
+				
+				uint16_t  r16Addr = rx64.getRemoteAddress64().getLsb();
+
+//				trace(F("XBee.loop - received packed from %d, len=%d\n"), r16Addr, (int)msg_len);
+				if( msg_len < 12 )
+				{
+					trace(F("XBee.loop - incoming packet from station %d is too small\n"), r16Addr);
+					return;
+				}
+
+				rprotocol.ProcessNewFrame(msg+11, msg_len-11, r16Addr, 0);	// process incoming packet.
+																		// Note: we don't copy the packet, and just use pointer to the packet already in XBee library buffer
+				return;
+		} 
+
 		else {
 			trace(F("XBee.loop - Unrecognized frame from XBee %d\n"), responseID);
 			return;
