@@ -266,6 +266,9 @@ void ProcessEvents(void)
 				TurnOffZone(i);
 				zones[i].flags = ZONE_FLAGS_ENABLED;	
 				zones[i].runTime = 0;
+
+				if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
+					rprotocol.SendZonesReport(GetEvtMasterStationAddress(), 0, GetEvtMasterStationID(), 0, GetNumZones());
 			}
 		}
 	}

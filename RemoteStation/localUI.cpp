@@ -816,7 +816,11 @@ void manual_station_on(byte sid, int ontimer)
 
 // set run time for required zone.
 //
-	runState.StartZone(true, 100, sid+1, ontimer);
+		if( !isStationEnabled() )
+			enableStation();		// flip local enabled flag;
+
+		runState.StartZone(true, 100, sid+1, ontimer);
+
 }
 
 void manual_station_off(byte sid)
@@ -841,6 +845,8 @@ void disableStation(void)
 {
 
   _isStationEnabled = false;
+
+  runState.StopAllZones();
 }
 
 

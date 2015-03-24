@@ -12,9 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "localUI.h"
-
-
-
+#include "XBeeRF.h"
 
 void ResetEEPROM()
 {
@@ -35,7 +33,22 @@ void ResetEEPROM()
 		SetMaxTtr(DEFAULT_TTR);
 		SetNumZones(MAX_ZONES);
 
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+
 		uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = {41, 40, 42, 43 };
+
+#else  // Mega or Moteino Mega (1284p)
+#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284p__)
+
+		uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = {41, 40, 42, 43 };
+
+#else // Uno or equivalent
+
+		uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = {4, 5, 6, 7 };
+
+#endif // Moteino Mega (1284p)
+#endif // Mega or Moteino Mega
+
 
 		SaveZoneIOMap( zoneToIOMap );
 
@@ -161,6 +174,7 @@ uint8_t GetMyStationID(void)
 void SetMyStationID(uint8_t stationID)
 {
 	EEPROM.write(ADDR_STATION_ID, stationID);
+	XBeeRF.begin();		// restart XBee, since our stationID might've been changed.
 }
 
 
