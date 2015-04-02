@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <EEPROM.h>
 
-#define ENABLE_TRACE 1
+//#define ENABLE_TRACE 1
 
 
 #ifdef ENABLE_TRACE

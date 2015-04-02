@@ -88,6 +88,8 @@ public:
 	void ReportZoneStatus(uint8_t stationID, uint8_t channel, uint8_t z_status);
 	void ReportStationZonesStatus(uint8_t stationID, uint8_t z_status);
 
+	time_t	sLastContactTime[MAX_STATIONS];
+
 private:
 	void LogSchedule();
 	bool m_bSchedule;

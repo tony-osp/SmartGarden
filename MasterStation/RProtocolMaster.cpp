@@ -24,6 +24,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 RProtocolMaster::RProtocolMaster()
 {
 	_SendMessage = 0;
+	_ARPAddressUpdate = 0;
 }
 
 bool RProtocolMaster::begin(void)
@@ -34,6 +35,11 @@ bool RProtocolMaster::begin(void)
 void RProtocolMaster::RegisterTransport(void *ptr)
 {
 	_SendMessage = (PTransportCallback)ptr;
+}
+
+void RProtocolMaster::RegisterARP(void *ptr)
+{
+	_ARPAddressUpdate = (PARPCallback)ptr;
 }
 
 //
@@ -107,7 +113,7 @@ inline void MessageSystemRegistersReport( void *ptr )
 
 }
 
-inline void MessagePingReply( void *ptr, uint16_t netAddress, uint8_t rssi )
+inline void MessagePingReply( void *ptr )
 {
 	RMESSAGE_PING_REPLY	*pMessage = (RMESSAGE_PING_REPLY *)ptr;
 
@@ -118,7 +124,7 @@ inline void MessagePingReply( void *ptr, uint16_t netAddress, uint8_t rssi )
 		return;		
 	}
 	
-	trace(F("MessagePingReply - Received from station: %d, netAddress=%u, RSSI=%u\n"), (int)(pMessage->Header.FromUnitID), netAddress, (unsigned int)(rssi) );
+	trace(F("MessagePingReply - Received from station: %d\n"), (int)(pMessage->Header.FromUnitID) );
 }
 
 inline void MessageEvtMasterReport( void *ptr )
@@ -187,7 +193,7 @@ bool RProtocolMaster::SendReadZonesStatus( uint8_t stationID, uint16_t transacti
         Message.FirstZone = 0;
 		Message.NumZones = 0x0FF;	// read all station zone channels
 
-		return _SendMessage(sStation.networkAddress, (void *)(&Message), sizeof(Message));
+		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
 }
 
 
@@ -231,7 +237,7 @@ bool RProtocolMaster::SendReadSystemRegisters( uint8_t stationID, uint8_t startR
         Message.FirstRegister = startRegister;
 		Message.NumRegisters = numRegisters;	
 
-		return _SendMessage(sStation.networkAddress, (void *)(&Message), sizeof(Message));
+		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
 }
 
 
@@ -274,7 +280,7 @@ bool RProtocolMaster::SendReadSensors( uint8_t stationID, uint16_t transactionID
         Message.FirstSensor = 0;
 		Message.NumSensors = 0x0FF;	
 
-		return _SendMessage(sStation.networkAddress, (void *)(&Message), sizeof(Message));
+		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
 }
 
 
@@ -317,7 +323,7 @@ bool RProtocolMaster::SendForceSingleZone( uint8_t stationID, uint8_t channel, u
 		Message.ZonesData[0] = 1 << channel;
 		Message.Flags = RMESSAGE_FLAGS_ACK_STD;
 
-		return _SendMessage(sStation.networkAddress, (void *)(&Message), sizeof(Message));
+		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
 }
 
 
@@ -357,7 +363,7 @@ bool RProtocolMaster::SendTurnOffAllZones( uint8_t stationID, uint16_t transacti
 		Message.ZonesData[0] = 0;
 		Message.Flags = RMESSAGE_FLAGS_ACK_STD;
 
-		return _SendMessage(sStation.networkAddress, (void *)(&Message), sizeof(Message));
+		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
 }
 
 
@@ -409,7 +415,7 @@ bool RProtocolMaster::SendSetName( uint8_t stationID, const char *str, uint16_t 
 		pMessage->NumDataBytes = nameLen;
 		memcpy(&(pMessage->Name), str, nameLen);
 
-		return _SendMessage(sStation.networkAddress, (void *)pMessage, sizeof(RMESSAGE_SETNAME) + nameLen - 1);
+		return _SendMessage(stationID, (void *)pMessage, sizeof(RMESSAGE_SETNAME) + nameLen - 1);
 #endif //notdef
 
 		return false;
@@ -458,7 +464,7 @@ bool RProtocolMaster::SendRegisterEvtMaster( uint8_t stationID, uint8_t eventsMa
 		Message.MasterStationAddress = Message.MasterStationID = 0;
 		Message.Flags = RMESSAGE_FLAGS_ACK_STD;
 
-		return _SendMessage(sStation.networkAddress, (void *)(&Message), sizeof(Message));
+		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
 }
 
 //
@@ -488,7 +494,7 @@ void RProtocolMaster::SendTimeBroadcast(void)
 
 		Message.timeNow = nntpTimeServer.LocalNow();
 
-		_SendMessage(NETWORK_ADDRESS_BROADCAST, (void *)(&Message), sizeof(Message));
+		_SendMessage(255, (void *)(&Message), sizeof(Message));
 }
 
 
@@ -498,7 +504,7 @@ void RProtocolMaster::SendTimeBroadcast(void)
 // netAddress	- sender's RF network address
 // rssi			- recieving singlal strength indicator
 //
-void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint16_t netAddress, uint8_t rssi)
+void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddress )
 {
         register RMESSAGE_GENERIC *pMessage = (RMESSAGE_GENERIC *)ptr;    // for convenience of interpreting the packet
 
@@ -522,7 +528,16 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint16_t netAddress
                 return;
         }
 
-// OK, the packet seems to be valid, let's parse and dispatch it.
+// OK, the packet seems to be valid
+// first update timestamp of the last contact for the station
+
+		if( pMessage->Header.FromUnitID < MAX_STATIONS ){	// basic protection check to ensure we don't go outside of range
+			
+			runState.sLastContactTime[pMessage->Header.FromUnitID] = millis();
+		}
+// and report station->address association to ARP (if registered)
+
+		if( (_ARPAddressUpdate != 0) && (pNetAddress != 0) ) _ARPAddressUpdate(pMessage->Header.FromUnitID, pNetAddress);
 
 //		trace(F("ProcessNewFrame - processing packet, FCode: %d\n"), pMessage->Header.FCode);
 
@@ -542,7 +557,7 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint16_t netAddress
                                 break;
 
                 case FCODE_PING_REPLY:
-                                MessagePingReply( ptr, netAddress, rssi );
+                                MessagePingReply( ptr);
                                 break;
 
                 case FCODE_RESPONSE_ERROR:

@@ -19,7 +19,8 @@ XBee	xbee;
 
 
 // Local forward declarations
-bool XBeeSendPacket(uint16_t netAddress, void *msg, uint8_t mSize);
+bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize);
+bool XBeeARPUpdate(uint8_t nStation, uint8_t *pNetAddress);
 
 
 // Start XBee network if enabled. 
@@ -29,6 +30,10 @@ bool XBeeSendPacket(uint16_t netAddress, void *msg, uint8_t mSize);
 XBeeRFClass::XBeeRFClass()
 {
 	fXBeeReady = false;
+	for( uint8_t i=0; i<MAX_STATIONS; i++ )
+	{
+		arpTable[i].MSB = arpTable[i].LSB = 0;
+	}
 }
 
 void XBeeRFClass::begin()
@@ -117,6 +122,10 @@ void XBeeRFClass::begin()
 
 	rprotocol.RegisterTransport((void*)&XBeeSendPacket);	// register transport Send routine with the remote protocol
 															// rprotocol will use it to send wire packets
+	
+	rprotocol.RegisterARP((void *)&XBeeARPUpdate);			// register ARP callback with the remote protocol
+															// rprotocol will use it to report station=address associations
+
 	return;
 
 failed_ex1:
@@ -390,6 +399,33 @@ bool XBeeRFClass::sendAtCommandParam(const char *cmd_pstr, uint8_t *param, uint8
 	return false;	// failure. successful exit was above
 }
 
+// ARP table maintenance callback
+// RProtocol will call this callback to report station->address assocations
+//
+bool XBeeARPUpdate(uint8_t nStation, uint8_t *pNetAddress)
+{
+	if( nStation >= MAX_STATIONS ) return false;	// basic protection
+
+	// Note: Since we read network address directly from the input buffer it will be in big endian (XBee convention) and we need to convert it to little endian
+	//       When sending we are going through the xbee library that will do endian conversion
+
+	register uint8_t	 * buf4 = (uint8_t *)(&(XBeeRF.arpTable[nStation].MSB));
+	buf4[0] = pNetAddress[3];
+	buf4[1] = pNetAddress[2];
+	buf4[2] = pNetAddress[1];
+	buf4[3] = pNetAddress[0];
+
+	buf4 = (uint8_t *)(&(XBeeRF.arpTable[nStation].LSB));
+
+	buf4[0] = pNetAddress[7];
+	buf4[1] = pNetAddress[6];
+	buf4[2] = pNetAddress[5];
+	buf4[3] = pNetAddress[4];
+
+	return true;
+}
+
+
 // Main packet send routine. 
 //
 //
@@ -401,18 +437,41 @@ bool XBeeRFClass::sendAtCommandParam(const char *cmd_pstr, uint8_t *param, uint8
 //
 // Instead, we are using broadcast mode, relying on the RProtocol stack to filter out right packets.
 //
-bool XBeeSendPacket(uint16_t netAddress, void *msg, uint8_t mSize)
+bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 {
 	if( !XBeeRF.fXBeeReady )	// check that XBee is initialized and ready
 		return false;
 
-	trace(F("XBee - sending packet to station %d, len %u\n"), netAddress, (unsigned int)mSize);
+	trace(F("XBee - sending packet to station %d, len %u\n"), nStation, (unsigned int)mSize);
 
 	static Tx64Request tx = Tx64Request();						// pre-allocated, static objects to avoid dynamic memory issues
 	static XBeeAddress64  addrBroadcast = XBeeAddress64(0, 0xFFFF);
+	static XBeeAddress64  addr64 = XBeeAddress64(0, 0);
 
-	tx.setAddress64(addrBroadcast);								// since our XBee objects are pre-allocated, set parameters on the existing objects
-	tx.setOption(8);	// send multicast
+	if( nStation < MAX_STATIONS )
+	{
+		if( XBeeRF.arpTable[nStation].LSB != 0 )
+		{
+			addr64.setLsb(XBeeRF.arpTable[nStation].LSB);
+			addr64.setMsb(XBeeRF.arpTable[nStation].MSB);
+
+			tx.setAddress64(addr64);					
+			tx.setOption(0);
+
+			trace(F("Sending message as Unicast to station %lX:%lX\n"), XBeeRF.arpTable[nStation].MSB, XBeeRF.arpTable[nStation].LSB );
+		}
+		else
+		{
+			tx.setAddress64(addrBroadcast);								// since our XBee objects are pre-allocated, set parameters on the existing objects
+			tx.setOption(8);	// send multicast
+		}
+	}
+	else  // intended to be broadcast packet.
+	{
+		tx.setAddress64(addrBroadcast);								// since our XBee objects are pre-allocated, set parameters on the existing objects
+		tx.setOption(8);	// send multicast
+	}
+
 	tx.setPayload((uint8_t *)msg);
 	tx.setPayloadLength(mSize);
 
@@ -429,18 +488,18 @@ bool XBeeSendPacket(uint16_t netAddress, void *msg, uint8_t mSize)
 #else  //Regular (2.4GHz XBee)
 // For regular XBee we can use basic 16bit addressing
 
-bool XBeeSendPacket(uint16_t netAddress, void *msg, uint8_t mSize)
+bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 {
 	if( !XBeeRF.fXBeeReady )	// check that XBee is initialized and ready
 		return false;
 
-	trace(F("XBee - sending packet to station %d, len %u\n"), netAddress, (unsigned int)mSize);
+	trace(F("XBee - sending packet to station %d, len %u\n"), nStation, (unsigned int)mSize);
 
 //	Tx16Request tx = Tx16Request(netAddress, (uint8_t *)msg, mSize);	
 	static Tx16Request tx = Tx16Request();						// pre-allocated, static objects to avoid dynamic memory issues
 	static TxStatusResponse txStatus = TxStatusResponse();
 
-	tx.setAddress16(netAddress);								// since our XBee objects are pre-allocated, set parameters on the existing objects
+	tx.setAddress16(nStation);								// since our XBee objects are pre-allocated, set parameters on the existing objects
 	tx.setPayload((uint8_t *)msg);
 	tx.setPayloadLength(mSize);
 
@@ -500,7 +559,7 @@ void XBeeRFClass::loop(void)
 				}
 
 //				trace(F("XBee.loop - processing packet from station %d\n"), rx16.getRemoteAddress16());
-				rprotocol.ProcessNewFrame(msg+4, msg_len-4, rx16.getRemoteAddress16(), rx16.getRssi() );	// process incoming packet.
+				rprotocol.ProcessNewFrame(msg+4, msg_len-4, 0 );	// process incoming packet.
 																		// Note: we don't copy the packet, and just use pointer to the packet already in XBee library buffer
 				return;
 		} 
@@ -512,16 +571,16 @@ void XBeeRFClass::loop(void)
 				static ZBRxResponse rx64 = ZBRxResponse();		// Note: we are using 64bit addressing
 				xbee.getResponse().getZBRxResponse(rx64);
 				
-				uint16_t  r16Addr = rx64.getRemoteAddress64().getLsb();
+//				uint16_t  r16Addr = rx64.getRemoteAddress64().getLsb();
 
 //				trace(F("XBee.loop - received packed from %d, len=%d\n"), r16Addr, (int)msg_len);
 				if( msg_len < 12 )
 				{
-					trace(F("XBee.loop - incoming packet from station %d is too small\n"), r16Addr);
+					trace(F("XBee.loop - incoming packet is too small\n"));
 					return;
 				}
 
-				rprotocol.ProcessNewFrame(msg+11, msg_len-11, r16Addr, 0);	// process incoming packet.
+				rprotocol.ProcessNewFrame(msg+11, msg_len-11, msg);		// process incoming packet.
 																		// Note: we don't copy the packet, and just use pointer to the packet already in XBee library buffer
 				return;
 		} 

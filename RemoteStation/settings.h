@@ -18,6 +18,10 @@
 // This Remote station may have up to 8 sensors
 #define MAX_SENSORS	 8
 
+// max number of stations on RF network
+#define NETWORK_MAX_STATIONS 11
+
+
 #include <inttypes.h>
 
 #include "core.h"

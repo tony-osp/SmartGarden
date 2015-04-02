@@ -33,8 +33,6 @@ static unsigned long		tLastSync = millis()-DEFAULT_MAX_OFFLINE_TDELTA;		// reset
 
 // Local forward declarations
 
-//void SendErrorResponse(uint16_t netAddress, uint16_t transactionID, uint8_t fCode, uint8_t errorCode);
-//void SendResponse(uint16_t transactionID, uint8_t unitID, uint8_t fCode, uint8_t *dataPtr, size_t dataSize);
 uint8_t getZonesStatus(void);
 void 	setStationName( uint8_t *str, uint8_t length );
 void	registerEventsMaster( uint8_t eventsLevel, uint8_t eventsMask, uint8_t extFlags );
@@ -42,6 +40,13 @@ void	registerEventsMaster( uint8_t eventsLevel, uint8_t eventsMask, uint8_t extF
 inline uint16_t		getSingleSystemRegister(uint8_t regAddr);
 inline bool			setSingleSystemRegister(uint8_t regAddr, uint16_t value);
 inline uint16_t		getSingleSensor(uint8_t regAddr);
+
+
+RProtocolSlave::RProtocolSlave()
+{
+	_SendMessage = 0;
+	_ARPAddressUpdate = 0;
+}
 
 
 bool RProtocolSlave::begin(void)
@@ -52,7 +57,7 @@ bool RProtocolSlave::begin(void)
 
 // Helper routine - send Zones report
 
-bool RProtocolSlave::SendZonesReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t firstZone, uint8_t numZones)
+bool RProtocolSlave::SendZonesReport(uint8_t transactionID, uint8_t toUnitID, uint8_t firstZone, uint8_t numZones)
 {		
 		if( (firstZone+numZones) >  GetNumZones() )
 		{
@@ -82,13 +87,13 @@ bool RProtocolSlave::SendZonesReport(uint16_t netAddress, uint16_t transactionID
 		ReportMessage.NumZones = numZones;
 		ReportMessage.ZonesData[0] = zonesStatus;
 
-		return _SendMessage(netAddress, &ReportMessage, sizeof(ReportMessage));	// send response with requested zones status bits
+		return _SendMessage(toUnitID, &ReportMessage, sizeof(ReportMessage));	// send response with requested zones status bits
 }
 
 
 // Helper routine - send Sensors report
 
-bool RProtocolSlave::SendSensorsReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t firstSensor, uint8_t numSensors)
+bool RProtocolSlave::SendSensorsReport(uint8_t transactionID, uint8_t toUnitID, uint8_t firstSensor, uint8_t numSensors)
 {
 	if( ((firstSensor+numSensors) > MODBUSMAP_SENSORS_MAX) || (numSensors < 1) )
 	{
@@ -114,13 +119,13 @@ bool RProtocolSlave::SendSensorsReport(uint16_t netAddress, uint16_t transaction
 	pReportMessage->FirstSensor = firstSensor;
 	pReportMessage->NumSensors = numSensors;
 
-	return _SendMessage(netAddress, outbuf, sizeof(RMESSAGE_SENSORS_REPORT)+(numSensors-1)*2);	
+	return _SendMessage(toUnitID, outbuf, sizeof(RMESSAGE_SENSORS_REPORT)+(numSensors-1)*2);	
 }
 
 
 // Helper routine - send Sensors report
 
-bool RProtocolSlave::SendSystemRegisters(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t firstRegister, uint8_t numRegisters)
+bool RProtocolSlave::SendSystemRegisters(uint8_t transactionID, uint8_t toUnitID, uint8_t firstRegister, uint8_t numRegisters)
 {
 	if( (firstRegister+numRegisters) > MODBUSMAP_SYSTEM_MAX )
 	{
@@ -146,12 +151,12 @@ bool RProtocolSlave::SendSystemRegisters(uint16_t netAddress, uint16_t transacti
 	pReportMessage->FirstRegister = firstRegister;
 	pReportMessage->NumRegisters = numRegisters;
 
-	return _SendMessage(netAddress, outbuf, sizeof(RMESSAGE_SYSREGISTERS_REPORT)+numRegisters*2);
+	return _SendMessage(toUnitID, outbuf, sizeof(RMESSAGE_SYSREGISTERS_REPORT)+numRegisters*2);
 }
 
 // Helper routine - send EvtMaster registration report
 
-bool RProtocolSlave::SendEvtMasterReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID)
+bool RProtocolSlave::SendEvtMasterReport(uint8_t transactionID, uint8_t toUnitID)
 {
 	RMESSAGE_EVTMASTER_REPORT Message;
 
@@ -166,13 +171,13 @@ bool RProtocolSlave::SendEvtMasterReport(uint16_t netAddress, uint16_t transacti
 	Message.MasterStationID = GetEvtMasterStationID();
 	Message.MasterStationAddress = GetEvtMasterStationAddress();
 
-	return _SendMessage(netAddress, &Message, sizeof(Message));
+	return _SendMessage(toUnitID, &Message, sizeof(Message));
 }
 
 
 // Helper routine - send Ping reply
 
-bool RProtocolSlave::SendPingReply(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint32_t cookie)
+bool RProtocolSlave::SendPingReply(uint8_t transactionID, uint8_t toUnitID, uint32_t cookie)
 {
 	RMESSAGE_PING_REPLY Message;
 
@@ -185,13 +190,13 @@ bool RProtocolSlave::SendPingReply(uint16_t netAddress, uint16_t transactionID, 
 
 	Message.cookie = cookie;	
 
-	return _SendMessage(netAddress, &Message, sizeof(Message));
+	return _SendMessage(toUnitID, &Message, sizeof(Message));
 }
 	
 
 
 // Helper function - send generic OK response
-bool RProtocolSlave::SendOKResponse(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t FCode)
+bool RProtocolSlave::SendOKResponse(uint8_t transactionID, uint8_t toUnitID, uint8_t FCode)
 {
 	RMESSAGE_RESPONSE_OK  ResponseMessage;
 
@@ -203,13 +208,13 @@ bool RProtocolSlave::SendOKResponse(uint16_t netAddress, uint16_t transactionID,
 	ResponseMessage.Header.Length = 1;
 
 	ResponseMessage.SuccessFCode = FCode;
-	return _SendMessage(netAddress, &ResponseMessage, sizeof(ResponseMessage));	
+	return _SendMessage(toUnitID, &ResponseMessage, sizeof(ResponseMessage));	
 }
 
 //
 // Common helper - send error response packet
 //
-bool RProtocolSlave::SendErrorResponse(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t fCode, uint8_t errorCode)	// send error response with the same transaction ID, 
+bool RProtocolSlave::SendErrorResponse(uint8_t transactionID, uint8_t toUnitID, uint8_t fCode, uint8_t errorCode)	// send error response with the same transaction ID, 
 {																									// unit ID, FCode=1 and Exception Code=2 (Illegal Data Address)
 	RMESSAGE_RESPONSE_ERROR	Message;
 
@@ -218,12 +223,11 @@ bool RProtocolSlave::SendErrorResponse(uint16_t netAddress, uint16_t transaction
 	Message.Header.FCode = FCODE_RESPONSE_ERROR;
 	Message.Header.FromUnitID = rprotocol.myUnitID;
 	Message.Header.ToUnitID = toUnitID;
-	Message.Header.TransactionID = transactionID;
 	Message.Header.Length = 2;
 
 	Message.FailedFCode = fCode;
 	Message.ExceptionCode = errorCode;
-	return _SendMessage(netAddress, &Message, sizeof(Message));	
+	return _SendMessage(toUnitID, &Message, sizeof(Message));	
 }
 
 
@@ -240,13 +244,13 @@ bool RProtocolSlave::SendErrorResponse(uint16_t netAddress, uint16_t transaction
 //
 //	read EvtMaster registration status expects to receive no parameters in the Data area.
 //
-inline void MessageEvtMasterRead( void *ptr, uint16_t netAddress )
+inline void MessageEvtMasterRead( void *ptr )
 {
 	register RMESSAGE_EVTMASTER_READ	*pMessage = (RMESSAGE_EVTMASTER_READ *)ptr;
 
 // no parameters
 
-	rprotocol.SendEvtMasterReport(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID);
+	rprotocol.SendEvtMasterReport(pMessage->Header.TransactionID, pMessage->Header.FromUnitID);
 }
 
 //
@@ -261,7 +265,7 @@ inline void MessageEvtMasterRead( void *ptr, uint16_t netAddress )
 //	using common helpers
 //
 //
-inline void MessageEvtMasterSet( void *ptr, uint16_t netAddress )
+inline void MessageEvtMasterSet( void *ptr )
 {
 	register RMESSAGE_EVTMASTER_SET	*pMessage = (RMESSAGE_EVTMASTER_SET *)ptr;
 
@@ -278,21 +282,21 @@ inline void MessageEvtMasterSet( void *ptr, uint16_t netAddress )
 	if( pMessage->EvtFlags & EVTMASTER_FLAGS_REGISTER_SELF )	// flag indicating that we should register sender of this message as the master
 	{
 		SetEvtMasterStationID(pMessage->Header.FromUnitID);
-		SetEvtMasterStationAddress(netAddress);
+//		SetEvtMasterStationAddress(netAddress);
 	}
 	else
 	{
 		SetEvtMasterStationID(pMessage->MasterStationID);
-		SetEvtMasterStationAddress(pMessage->MasterStationAddress);
+//		SetEvtMasterStationAddress(pMessage->MasterStationAddress);
 	}
 
 	// All done, check the type of response requested and send response.
 
 	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_BRIEF ) 
-		rprotocol.SendOKResponse(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode);
+		rprotocol.SendOKResponse(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode);
 
 	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_REPORT ) 
-		rprotocol.SendEvtMasterReport(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID);
+		rprotocol.SendEvtMasterReport(pMessage->Header.TransactionID, pMessage->Header.FromUnitID);
 }
 
 
@@ -310,7 +314,7 @@ inline void MessageEvtMasterSet( void *ptr, uint16_t netAddress )
 //
 //		1.	Cookie
 //
-inline void MessagePing( void *ptr, uint16_t netAddress )
+inline void MessagePing( void *ptr )
 {
 	register RMESSAGE_PING	*pMessage = (RMESSAGE_PING *)ptr;
 
@@ -321,7 +325,7 @@ inline void MessagePing( void *ptr, uint16_t netAddress )
 		return;		
 	}
 	
-	rprotocol.SendPingReply(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->cookie);
+	rprotocol.SendPingReply(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->cookie);
 
 	return;
 }
@@ -345,7 +349,7 @@ inline void MessagePing( void *ptr, uint16_t netAddress )
 //		1.	First zone# to read
 //		2.	The total number of zones to read
 //
-inline void MessageZonesRead( void *ptr, uint16_t netAddress )
+inline void MessageZonesRead( void *ptr )
 {
 	register RMESSAGE_ZONES_READ	*pMessage = (RMESSAGE_ZONES_READ *)ptr;
 
@@ -365,12 +369,12 @@ inline void MessageZonesRead( void *ptr, uint16_t netAddress )
 	{
 		trace(F("MessageZonesRead - wrong data address or the number of zones to read\n"));
 	
-		rprotocol.SendErrorResponse(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, FCODE_ZONES_READ, 2);		// send error response with the same transaction ID, 
+		rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, FCODE_ZONES_READ, 2);		// send error response with the same transaction ID, 
 		return;																					// unit ID, FCode=1 and Exception Code=2 (Illegal Data Address)
 	}
 // OK, parameters are valid. Get the data and send response
 
-	rprotocol.SendZonesReport(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->FirstZone, pMessage->NumZones);
+	rprotocol.SendZonesReport(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->FirstZone, pMessage->NumZones);
 
 	return;
 }
@@ -442,7 +446,7 @@ inline uint16_t	getSingleSystemRegister(uint8_t regAddr)
 //		1.	FirstRegister to read 
 //		2.	The total number of registers to read 
 //
-inline void MessageSystemRegistersRead( void *ptr, uint16_t netAddress)
+inline void MessageSystemRegistersRead( void *ptr )
 {
 	register RMESSAGE_SYSREGISTERS_READ	*pMessage = (RMESSAGE_SYSREGISTERS_READ *)ptr;
 
@@ -459,12 +463,12 @@ inline void MessageSystemRegistersRead( void *ptr, uint16_t netAddress)
 	{
 		trace(F("MessageSystemRegistersRead - incorrect input parameters\n"));
 	
-		rprotocol.SendErrorResponse(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
+		rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
 		return;																										// unit ID, Exception Code=2 (Illegal Data Address)
 	}
 // OK, parameters are valid. Get the data and send response
 
-	rprotocol.SendSystemRegisters(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->FirstRegister, pMessage->NumRegisters);
+	rprotocol.SendSystemRegisters(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->FirstRegister, pMessage->NumRegisters);
 
 	return;
 }
@@ -480,7 +484,7 @@ inline void MessageSystemRegistersRead( void *ptr, uint16_t netAddress)
 //	using common helpers
 //
 //
-inline void MessageSensorsRead( void *ptr, uint16_t netAddress )
+inline void MessageSensorsRead( void *ptr )
 {
 	register RMESSAGE_SENSORS_READ	*pMessage = (RMESSAGE_SENSORS_READ *)ptr;
 
@@ -500,12 +504,12 @@ inline void MessageSensorsRead( void *ptr, uint16_t netAddress )
 	{
 		trace(F("MessageSensorsRead - wrong input parameters\n"));
 	
-		rprotocol.SendErrorResponse(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
+		rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
 		return;																										// unit ID, Exception Code=2 (Illegal Data Address)
 	}
 // OK, parameters are valid. Get the data and send response
 
-	rprotocol.SendSensorsReport(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->FirstSensor, pMessage->NumSensors);
+	rprotocol.SendSensorsReport(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->FirstSensor, pMessage->NumSensors);
 
 	return;
 }
@@ -546,7 +550,7 @@ inline uint16_t		getSingleSensor(uint8_t regAddr)
 //		1.	First zone 
 //		2.	New coil state to write (2 bytes). 0x00 means Off, other value means - minutes to run
 //
-inline void MessageZonesSet( void *ptr, uint16_t netAddress )
+inline void MessageZonesSet( void *ptr )
 {
 	register RMESSAGE_ZONES_SET	*pMessage = (RMESSAGE_ZONES_SET *)ptr;
 
@@ -563,7 +567,7 @@ inline void MessageZonesSet( void *ptr, uint16_t netAddress )
 	{
 		trace(F("MessageZonesSet - wrong parameters\n"));
 	
-		rprotocol.SendErrorResponse(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
+		rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
 		return;																						// unit ID, Exception Code=2 (Illegal Data Address)
 	}
 // OK, parameters are valid. Execute action and send response
@@ -584,10 +588,10 @@ inline void MessageZonesSet( void *ptr, uint16_t netAddress )
 	// All done, check the type of response requested and send response.
 
 	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_BRIEF ) 
-		rprotocol.SendOKResponse(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode);
+		rprotocol.SendOKResponse(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode);
 
 	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_REPORT ) 
-		rprotocol.SendZonesReport(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->FirstZone, pMessage->NumZones);
+		rprotocol.SendZonesReport(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->FirstZone, pMessage->NumZones);
 	
 	return;
 }
@@ -659,7 +663,7 @@ inline bool		setSingleSystemRegister(uint8_t regAddr, uint16_t value)
 //		3.	The number of registers to write 
 //		4.  RegistersData (two bytes each)
 //
-inline void MessageSystemRegistersSet( void *ptr, uint16_t netAddress)
+inline void MessageSystemRegistersSet( void *ptr )
 {
 	register RMESSAGE_SYSREGISTERS_SET	*pMessage = (RMESSAGE_SYSREGISTERS_SET *)ptr;
 
@@ -676,7 +680,7 @@ inline void MessageSystemRegistersSet( void *ptr, uint16_t netAddress)
 	{
 		trace(F("MessageSystemRegistersSet - incorrect input parameters\n"));
 	
-		rprotocol.SendErrorResponse(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
+		rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
 		return;																										// unit ID, Exception Code=2 (Illegal Data Address)
 	}
 
@@ -686,7 +690,7 @@ inline void MessageSystemRegistersSet( void *ptr, uint16_t netAddress)
 	{
 		if( setSingleSystemRegister(pMessage->FirstRegister+i, pMessage->RegistersData[i]) != true)
 		{
-				rprotocol.SendErrorResponse(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 4);	// send error response with the extended error code 4 (Device Slave Failure)				
+				rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 4);	// send error response with the extended error code 4 (Device Slave Failure)				
 				return;	// on any register failure don't continue, exit now
 		}
 	}
@@ -694,10 +698,10 @@ inline void MessageSystemRegistersSet( void *ptr, uint16_t netAddress)
 	// All done, check the type of response requested and send response.
 
 	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_BRIEF ) 
-		rprotocol.SendOKResponse(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode);
+		rprotocol.SendOKResponse(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->Header.FCode);
 
 	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_REPORT ) 
-		rprotocol.SendSystemRegisters(netAddress, pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->FirstRegister, pMessage->NumRegisters);
+		rprotocol.SendSystemRegisters(pMessage->Header.TransactionID, pMessage->Header.FromUnitID, pMessage->FirstRegister, pMessage->NumRegisters);
 	
 	return;
 }
@@ -721,7 +725,7 @@ inline void MessageSystemRegistersSet( void *ptr, uint16_t netAddress)
 //		  standard RProtocol response quotes the same FCode as the request, however in the SCAN case the station 
 //		  is replying wiht SCAN_REPLY - because the request in this case is broadcast but response is unicast (direct response to the sender).
 //
-inline void MessageStationsScan( void *ptr, uint16_t netAddress)
+inline void MessageStationsScan( void *ptr )
 {
 	register RMESSAGE_SCAN	*pMessage = (RMESSAGE_SCAN *)ptr;
 
@@ -741,7 +745,7 @@ inline void MessageStationsScan( void *ptr, uint16_t netAddress)
 //  
 //  Stations are not expected to respond to this message
 //
-void MessageTimeBroadcast( void *ptr, uint16_t netAddress, uint8_t rssi )
+void MessageTimeBroadcast( void *ptr )
 {
 	register RMESSAGE_TIME_BROADCAST  *pMessage = (RMESSAGE_TIME_BROADCAST *)ptr;
 
@@ -767,7 +771,7 @@ void MessageTimeBroadcast( void *ptr, uint16_t netAddress, uint8_t rssi )
 // ptr - pointer to the data block,
 // len - block length
 //
-void RProtocolSlave::ProcessNewFrame(uint8_t *ptr, uint8_t len, uint16_t netAddress, uint8_t rssi)
+void RProtocolSlave::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddress)
 {
 	register	RMESSAGE_GENERIC	*pMessage = (RMESSAGE_GENERIC *)ptr;	// for convenience of interpreting the packet
 	
@@ -790,6 +794,8 @@ void RProtocolSlave::ProcessNewFrame(uint8_t *ptr, uint8_t len, uint16_t netAddr
 		trace(F("Bad packet received, length does not match\n"));
 		return;
 	}
+
+	if( (_ARPAddressUpdate != 0) && (pNetAddress != 0) ) _ARPAddressUpdate(pMessage->Header.FromUnitID, pNetAddress);
 	
 // Check UnitID. It should be valid for all packets (except SCAN)
 
@@ -801,7 +807,7 @@ void RProtocolSlave::ProcessNewFrame(uint8_t *ptr, uint8_t len, uint16_t netAddr
 	
 // Record last StationID we received packet from and rssi (for radio link monitoring)
 
-	SetLastReceivedRssi(pMessage->Header.FromUnitID, rssi);
+	SetLastReceivedRssi(pMessage->Header.FromUnitID, 0);
 
 // OK, the packet seems to be valid, let's parse and dispatch it.
 	
@@ -810,43 +816,43 @@ void RProtocolSlave::ProcessNewFrame(uint8_t *ptr, uint8_t len, uint16_t netAddr
 // Standard RProtocol FCodes
 
 		case FCODE_TIME_BROADCAST:
-						MessageTimeBroadcast( ptr, netAddress, rssi );
+						MessageTimeBroadcast( ptr );
 						break;
 	
 		case FCODE_ZONES_READ:	
-						MessageZonesRead( ptr, netAddress );
+						MessageZonesRead( ptr );
 						break;
 	
 		case FCODE_ZONES_SET:	
-						MessageZonesSet( ptr, netAddress );
+						MessageZonesSet( ptr );
 						break;
 	
 		case FCODE_SENSORS_READ:	
-						MessageSensorsRead( ptr, netAddress );
+						MessageSensorsRead( ptr );
 						break;
 	
 		case FCODE_SYSREGISTERS_READ:	
-						MessageSystemRegistersRead( ptr, netAddress );
+						MessageSystemRegistersRead( ptr );
 						break;
 	
 		case FCODE_SYSREGISTERS_SET:	
-						MessageSystemRegistersSet( ptr, netAddress );
+						MessageSystemRegistersSet( ptr );
 						break;
 	
 		case FCODE_PING:	
-						MessagePing( ptr, netAddress );
+						MessagePing( ptr );
 						break;
 
 		case FCODE_SCAN:	
-						MessageStationsScan( ptr, netAddress );
+						MessageStationsScan( ptr );
 						break;
 
 		case FCODE_EVTMASTER_READ:
-						MessageEvtMasterRead( ptr, netAddress );
+						MessageEvtMasterRead( ptr );
 						break;
 
 		case FCODE_EVTMASTER_SET:
-						MessageEvtMasterSet( ptr, netAddress );
+						MessageEvtMasterSet( ptr );
 						break;
 
 	}

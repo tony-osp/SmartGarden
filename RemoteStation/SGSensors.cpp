@@ -173,7 +173,7 @@ char sensors_MinTimer(void)
            sdlog.LogSensorReading(SENSOR_TYPE_HUMIDITY, 1, hum);                   // DHT humidity sensor ID=1
 
                    if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SENSORS )
-                                rprotocol.SendSensorsReport(GetEvtMasterStationAddress(), 0, GetEvtMasterStationID(), 0, NUM_SENSORS);
+                                rprotocol.SendSensorsReport(0, GetEvtMasterStationID(), 0, NUM_SENSORS);
 
      }
 #endif  //   SENSOR_ENABLE_DHT

@@ -300,6 +300,7 @@ void runStateClass::ReportStationZonesStatus(uint8_t stationID, uint8_t z_status
 
 runStateClass::runStateClass() : m_bSchedule(false), m_bManual(false), m_iSchedule(-1), m_zone(-1), m_endTime(0), m_eventTime(0)
 {
+	for( int i=0; i<MAX_STATIONS; i++ ) sLastContactTime[i] = 0;
 }
 
 void runStateClass::LogSchedule()

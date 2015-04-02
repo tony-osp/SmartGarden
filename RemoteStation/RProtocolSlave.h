@@ -29,31 +29,35 @@ generic and can operate over multiple transports.
 
 #include "SGRProtocol.h"        // wire protocol definitions
 
-typedef bool (*PTransportCallback)(uint16_t netAddress, void *msg, size_t mSize);
-
+typedef bool (*PTransportCallback)(uint8_t nStation, void *msg, size_t mSize);
+typedef bool (*PARPCallback)(uint8_t nStation, uint8_t *pNetAddress);
 
 class RProtocolSlave {
 
 public:
+				RProtocolSlave();
+
                 bool            begin(void);
-                void            ProcessNewFrame(uint8_t *ptr, uint8_t len, uint16_t netAddress, uint8_t rssi);
+                void            ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddress);
 
                 void            RegisterTransport(PTransportCallback ptr);
 
-                bool            SendZonesReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t firstZone, uint8_t numZones);
-                bool            SendSensorsReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t firstSensor, uint8_t numSensors);
-                bool            SendSystemRegisters(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t firstRegister, uint8_t numRegisters);
-                bool            SendEvtMasterReport(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID);
+                bool            SendZonesReport(uint8_t transactionID, uint8_t toUnitID, uint8_t firstZone, uint8_t numZones);
+                bool            SendSensorsReport(uint8_t transactionID, uint8_t toUnitID, uint8_t firstSensor, uint8_t numSensors);
+                bool            SendSystemRegisters(uint8_t transactionID, uint8_t toUnitID, uint8_t firstRegister, uint8_t numRegisters);
+                bool            SendEvtMasterReport(uint8_t transactionID, uint8_t toUnitID);
 
-                bool            SendPingReply(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint32_t cookie);
-                bool            SendOKResponse(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t FCode);
-                bool            SendErrorResponse(uint16_t netAddress, uint16_t transactionID, uint8_t toUnitID, uint8_t fCode, uint8_t errorCode);
+                bool            SendPingReply(uint8_t transactionID, uint8_t toUnitID, uint32_t cookie);
+                bool            SendOKResponse(uint8_t transactionID, uint8_t toUnitID, uint8_t FCode);
+                bool            SendErrorResponse(uint8_t transactionID, uint8_t toUnitID, uint8_t fCode, uint8_t errorCode);
 
                 uint8_t         myUnitID;
                 uint16_t        PANId;
 
                 // transport callback, will be populated by the caller beforehand.
                 PTransportCallback _SendMessage;
+// ARP address update
+				PARPCallback		_ARPAddressUpdate;
 
 private:
 

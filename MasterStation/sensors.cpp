@@ -59,7 +59,7 @@ byte Sensors::begin(void)
 			
 				
 				SensorsList[i].lastReading = 0;
-				SensorsList[i].lastReadingTimestamp = 0;
+				SensorsList[i].lastReadingTimestamp = (time_t)(MAX_ULONG/2);
 			}
 		}
 
@@ -227,7 +227,7 @@ void Sensors::ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int
 				// we found our sensor. Store latest reading and log it.
 				
 				SensorsList[i].lastReading = sensorReading;
-				SensorsList[i].lastReadingTimestamp = nntpTimeServer.LocalNow();
+				SensorsList[i].lastReadingTimestamp = millis();
 
 				sdlog.LogSensorReading( SensorsList[i].config.sensorType, (int)i, sensorReading );
 				return;
@@ -281,7 +281,7 @@ bool Sensors::TableLastSensorsData(FILE* stream_file)
 
 			memcpy( tmp_buf, fullStation.name, 20 );
 			fprintf_P(stream_file, PSTR("\n\t\t \"stationID\": %u, \n\t\t \"stationName\": \"%s\","), (unsigned int)(fullSensor.sensorStationID), tmp_buf);
-			fprintf_P(stream_file, PSTR("\n\t\t \"sensorChannel\": %u, \n\t\t \"lastReading\": %i,\n\t\t \"timeStamp\": %lu"), fullSensor.sensorChannel, SensorsList[i].lastReading, SensorsList[i].lastReadingTimestamp);
+			fprintf_P(stream_file, PSTR("\n\t\t \"sensorChannel\": %u, \n\t\t \"lastReading\": %i,\n\t\t \"readingAge\": %lu"), fullSensor.sensorChannel, SensorsList[i].lastReading, (millis() - SensorsList[i].lastReadingTimestamp)/1000);
 		}
         fprintf_P(stream_file, PSTR("\n\t\t }\n\t ]\n"));    // close the last sensor if we emitted and the list
 

@@ -29,7 +29,8 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #include "SGRProtocol.h"        // wire protocol definitions
 
-typedef bool (*PTransportCallback)(uint16_t netAddress, void *msg, uint8_t mSize);
+typedef bool (*PTransportCallback)(uint8_t nStation, void *msg, uint8_t mSize);
+typedef bool (*PARPCallback)(uint8_t nStation, uint8_t *pNetAddress);
 
 class RProtocolMaster {
 
@@ -37,6 +38,7 @@ public:
                 RProtocolMaster();
 				bool    begin(void);
 				void	RegisterTransport(void *ptr);
+				void	RegisterARP(void *ptr);
 
 				bool	SendReadZonesStatus( uint8_t stationID, uint16_t transactionID );
 				bool	SendReadSystemRegisters( uint8_t stationID, uint8_t startRegister, uint8_t numRegisters, uint16_t transactionID );
@@ -46,14 +48,16 @@ public:
 				bool	SendSetName( uint8_t stationID, const char *str, uint16_t transactionID );
 				bool	SendRegisterEvtMaster( uint8_t stationID, uint8_t eventsMask, uint16_t transactionID);
 
-				void	ProcessNewFrame(uint8_t *ptr, int len, uint16_t netAddress, uint8_t rssi);
+				void	ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddress);
 
 				void	SendTimeBroadcast(void);
 
 
 private:
 // transport callback, will be populated by the caller beforehand.
-				PTransportCallback _SendMessage;
+				PTransportCallback	_SendMessage;
+// ARP address update
+				PARPCallback		_ARPAddressUpdate;
 };
 
 // Modbus holding registers area size

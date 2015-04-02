@@ -134,7 +134,7 @@ bool runStateClass::StartZone(bool bManual, int iSchedule, int8_t iValve_in, uin
 	RemoteStartZone(bManual, iSchedule, iValve_in, time2run );
 
 	if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
-			rprotocol.SendZonesReport(GetEvtMasterStationAddress(), 0, GetEvtMasterStationID(), 0, GetNumZones());
+			rprotocol.SendZonesReport(0, GetEvtMasterStationID(), 0, GetNumZones());
 }
 
 // Remote Start/Stop don't send report to EvtMaster (for now we are assuming remote control is coming form the master)
@@ -210,7 +210,7 @@ void	runStateClass::StopAllZones(void)
 	RemoteStopAllZones();
 
 	if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
-			rprotocol.SendZonesReport(GetEvtMasterStationAddress(), 0, GetEvtMasterStationID(), 0, GetNumZones());
+			rprotocol.SendZonesReport(0, GetEvtMasterStationID(), 0, GetNumZones());
 }
 
 
@@ -268,7 +268,7 @@ void ProcessEvents(void)
 				zones[i].runTime = 0;
 
 				if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
-					rprotocol.SendZonesReport(GetEvtMasterStationAddress(), 0, GetEvtMasterStationID(), 0, GetNumZones());
+					rprotocol.SendZonesReport(0, GetEvtMasterStationID(), 0, GetNumZones());
 			}
 		}
 	}

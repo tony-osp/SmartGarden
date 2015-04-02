@@ -61,6 +61,16 @@
             $('#' + sID).thermometer('setValue', val);
         };
 
+        setTempSens = function (sID, val, age) {
+
+            $('#' + sID).thermometer('setValue', val);
+            d = document.getElementById('ar_' + sID);
+            d.innerHTML = Math.round(age / 60); // update displayed reading age
+
+            d = document.getElementById('lv_' + sID);
+            d.innerHTML = val; // update last reading (in the text)
+        };
+
         setupPressureSens = function (sID, val) {
 
             $('#' + sID).highcharts({
@@ -169,10 +179,16 @@
 
         };
 
-        setPressureSens = function (sID, val) {
+        setPressureSens = function (sID, val, age) {
 
             var chart = $('#' + sID).highcharts();
             chart.series[0].setData([val]);
+
+            d = document.getElementById('ar_' + sID);
+            d.innerHTML = Math.round(age / 60); // update displayed reading age
+
+            d = document.getElementById('lv_' + sID);
+            d.innerHTML = val; // update last reading (in the text)
         }
 
         setupHumiditySens = function (sID, val) {
@@ -283,12 +299,17 @@
 
         };
 
-        setHumiditySens = function (sID, val) {
+        setHumiditySens = function (sID, val, age) {
 
             var chart = $('#' + sID).highcharts();
             chart.series[0].setData([val]);
-        }
 
+            d = document.getElementById('ar_' + sID);
+            d.innerHTML = Math.round(age / 60); // update displayed reading age
+
+            d = document.getElementById('lv_' + sID);
+            d.innerHTML = val; // update last reading (in the text)
+        }
 
 
         setupSensors = function () {
@@ -297,13 +318,13 @@
             function (data) {
 
                 var sensHtml = "";
-                // alert("refreshSensorsData callback"); 
+                // alert("setupSensors callback"); 
 
                 sensHtml += '<table><tr>\n';
 
                 for (var i = 0; i < data.sensors.length; i++) {
 
-                    if ((i%2) == 0) sensHtml += '</tr><tr>\n';    // four sensors in a row
+                    if ((i % 2) == 0) sensHtml += '</tr><tr>\n';    // four sensors in a row
 
                     sensHtml += '<td style="vertical-align: text-top;">\n';
                     if (data.sensors[i].sensorType == 'Temperature') {
@@ -313,11 +334,12 @@
                         sensHtml += '<br>SensorID: ' + data.sensors[i].sensorID;
                         sensHtml += '<br>Station : ' + data.sensors[i].stationName;
                         sensHtml += '<br>Sensor channel: ' + data.sensors[i].sensorChannel;
-                        sensHtml += '<br><b>Temperature: ' + data.sensors[i].lastReading + '</b>';
+                        sensHtml += '<br><b>Temperature: <span id="lv_sens' + i + '">' + data.sensors[i].lastReading + '</span></b>';
+                        sensHtml += '<br>Updated <span id="ar_sens' + i + '">' + Math.round(data.sensors[i].readingAge / 60) + '</span> min. ago';
                         sensHtml += '</td>';
 
                         sensHtml += '<td>';
-                        sensHtml += '<canvas id="sens'+ i +'" height="150" width="100"></canvas>';
+                        sensHtml += '<canvas id="sens' + i + '" height="150" width="100"></canvas>';
                         sensHtml += '</td>\n';
 
                         sensHtml += '</tr></table>\n';
@@ -329,7 +351,8 @@
                         sensHtml += '<br>SensorID: ' + data.sensors[i].sensorID;
                         sensHtml += '<br>Station : ' + data.sensors[i].stationName;
                         sensHtml += '<br>Sensor channel: ' + data.sensors[i].sensorChannel;
-                        sensHtml += '<br><b>Air Pressure: ' + data.sensors[i].lastReading + '</b>';
+                        sensHtml += '<br><b>Air Pressure: <span id="lv_sens' + i + '">' + data.sensors[i].lastReading + '</span></b>';
+                        sensHtml += '<br>Updated <span id="ar_sens' + i + '">' + Math.round(data.sensors[i].readingAge / 60) + '</span> min. ago';
                         sensHtml += '</td>';
 
                         sensHtml += '<td>';
@@ -345,7 +368,8 @@
                         sensHtml += '<br>SensorID: ' + data.sensors[i].sensorID;
                         sensHtml += '<br>Station : ' + data.sensors[i].stationName;
                         sensHtml += '<br>Sensor channel: ' + data.sensors[i].sensorChannel;
-                        sensHtml += '<br><b>Air Humidity: ' + data.sensors[i].lastReading + '</b>';
+                        sensHtml += '<br><b>Air Humidity: <span id="lv_sens' + i + '">' + data.sensors[i].lastReading + '</span></b>';
+                        sensHtml += '<br>Updated <span id="ar_sens' + i + '">' + Math.round(data.sensors[i].readingAge / 60) + '</span> min. ago';
                         sensHtml += '</td>';
 
                         sensHtml += '<td>';
@@ -362,7 +386,8 @@
                         sensHtml += '<br>SensorID: ' + data.sensors[i].sensorID;
                         sensHtml += '<br>Station : ' + data.sensors[i].stationName;
                         sensHtml += '<br>Sensor channel: ' + data.sensors[i].sensorChannel;
-                        sensHtml += '<br><b>' + data.sensors[i].sensorType + ': ' + data.sensors[i].lastReading + '</b>';
+                        sensHtml += '<br><b>' + data.sensors[i].sensorType + ': <span id="lv_sens' + i + '">' + data.sensors[i].lastReading + '</span></b>';
+                        sensHtml += '<br>Updated <span id="ar_sens' + i + '">' + Math.round(data.sensors[i].readingAge / 60) + '</span> min. ago';
                         sensHtml += '</td>';
                         sensHtml += '</tr></table>\n';
                     }
@@ -378,7 +403,25 @@
                     if (data.sensors[i].sensorType == 'Temperature') setupTempSens('sens' + i, data.sensors[i].lastReading);
                     else if (data.sensors[i].sensorType == 'Pressure') setupPressureSens('sens' + i, data.sensors[i].lastReading);
                     else if (data.sensors[i].sensorType == 'Humidity') setupHumiditySens('sens' + i, data.sensors[i].lastReading);
-            }
+                }
+
+            });
+        };
+
+
+        refreshSensorsData = function () {
+
+            $.getJSON("json/sensNow",
+            function (data) {
+
+                // alert("refreshSensorsData callback"); 
+
+                for (var i = 0; i < data.sensors.length; i++) {     // go through the list of sensors and activate sensors that need to be activated
+
+                    if (data.sensors[i].sensorType == 'Temperature') setTempSens('sens' + i, data.sensors[i].lastReading, data.sensors[i].readingAge);
+                    else if (data.sensors[i].sensorType == 'Pressure') setPressureSens('sens' + i, data.sensors[i].lastReading, data.sensors[i].readingAge);
+                    else if (data.sensors[i].sensorType == 'Humidity') setHumiditySens('sens' + i, data.sensors[i].lastReading, data.sensors[i].readingAge);
+                }
 
             });
         };
@@ -399,7 +442,7 @@
           $(document).ready(function () {
 
               setupSensors();                         // refresh it right away 
-//              setInterval(refreshSensorsData, 10000);       // also schedule data refresh every 10 sec
+              setInterval(refreshSensorsData, 10000);       // also schedule data refresh every 10 sec
           });
 
       });

@@ -25,6 +25,12 @@ This module handles XBee RF communication in SmartGarden system.
 #endif
 
 #include <XBee.h>
+#include "settings.h"
+
+struct LongXBeeAddress {    // note: we are storing long 64bit addresses in XBee format (big endian)
+	uint32_t	MSB;
+	uint32_t	LSB;
+};
 
 class XBeeRFClass
 {
@@ -39,6 +45,7 @@ class XBeeRFClass
 	bool		fXBeeReady;			// Flag indicating that XBee is initialized and ready
 	uint8_t		frameIDCounter;		// Rolling counter used to generate FrameID
 
+	LongXBeeAddress	arpTable[NETWORK_MAX_STATIONS];
 
 private:
 

@@ -15,7 +15,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define __STDC_FORMAT_MACROS
 #include "port.h"
 #include "settings.h"
-
+#include "XBeeRF.h"
 
 
 // Main SysInfo function
@@ -123,7 +123,7 @@ bool SysInfo(FILE* stream_file)
 
 	fprintf_P( stream_file, PSTR("<h3 class=\"auto-style1\">Stations</h3>\n<p>Number of Stations:&nbsp; %i</p>\n"), (int)GetNumStations());
 	fprintf_P( stream_file, PSTR("<table align=\"center\" border=\"1\" style=\"border:medium\"><tr class=\"auto-style2\">\n"
-								 "<td>&nbsp StationID&nbsp</td><td>&nbsp Name&nbsp</td><td>&nbsp Num Channels&nbsp</td><td>&nbsp NetworkID&nbsp</td><td>&nbsp NetworkAddress&nbsp</td>\n"
+		"<td>&nbsp StationID&nbsp</td><td>&nbsp Name&nbsp</td><td>&nbsp Num Channels&nbsp</td><td>&nbsp NetworkID&nbsp</td><td>&nbsp NetworkAddress&nbsp</td><td>Last Contact</td>\n"
 								 "</tr>\n"));
 
 	for( int i=0; i<MAX_STATIONS; i++ )
@@ -138,7 +138,27 @@ bool SysInfo(FILE* stream_file)
 			else if( fStation.networkID == NETWORK_ID_XBEE )			strcpy_P(tmp_buf, PSTR("Remote XBee"));
 			else														strcpy_P(tmp_buf, PSTR("Unknown!"));
 
-			fprintf_P( stream_file, PSTR("<tr class=\"auto-style3\"><td>%i</td><td>%s</td><td>%i</td><td>%s</td><td>%u</td></tr>\n"), i, fStation.name, fStation.numZoneChannels, tmp_buf, fStation.networkAddress);
+//			fprintf_P( stream_file, PSTR("<tr class=\"auto-style3\"><td>%i</td><td>%s</td><td>%i</td><td>%s</td><td>%u</td>\n"), i, fStation.name, fStation.numZoneChannels, tmp_buf, fStation.networkAddress);
+			fprintf_P( stream_file, PSTR("<tr class=\"auto-style3\"><td>%i</td><td>%s</td><td>%i</td><td>%s</td>"), i, fStation.name, fStation.numZoneChannels, tmp_buf );
+			
+			if(fStation.networkID == NETWORK_ID_XBEE )
+			{
+				fprintf_P( stream_file, PSTR("<td>%lX:%lX</td>"), XBeeRF.arpTable[i].MSB,XBeeRF.arpTable[i].LSB);
+
+				if( runState.sLastContactTime[i] != 0 )
+				{
+					unsigned long c_age = (millis()-runState.sLastContactTime[i]) / (time_t)60000;
+					fprintf_P( stream_file, PSTR("<td>%lu min. ago</td></tr>\n"), c_age);
+				}
+				else
+				{
+					fprintf_P( stream_file, PSTR("<td>No contact</td></tr>\n"));
+				}
+			}
+			else
+			{
+				fprintf_P( stream_file, PSTR("<td>%u</td><td>N/A</td></tr>\n"), fStation.networkAddress);
+			}
 		}
 	}
 

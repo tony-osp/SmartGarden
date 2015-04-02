@@ -20,6 +20,12 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #endif
 
 #include <XBee.h>
+#include "Defines.h"
+
+struct LongXBeeAddress {    // note: we are storing long 64bit addresses in XBee format (big endian)
+	uint32_t	MSB;
+	uint32_t	LSB;
+};
 
 class XBeeRFClass
 {
@@ -41,6 +47,8 @@ class XBeeRFClass
 	uint8_t	frameIDCounter;		// Rolling counter used to generate FrameID
 
 //	XBee	xbee;
+
+	LongXBeeAddress	arpTable[MAX_STATIONS];
 
 private:
 
