@@ -44,7 +44,7 @@ bool web::Init()
 	uint16_t port = GetWebPort();
 	if ((port > 65000) || (port < 80))
 		port = 80;
-	trace(F("Listening on Port %u\n"), port), 
+	trace(F("Listening on Port %u\n"), port);
 	m_server = new EthernetServer(port);
 #ifdef ARDUINO
 	m_server->begin();
@@ -873,6 +873,11 @@ static bool ParseHTTPHeader(EthernetClient & client, KVPairs * key_value_pairs, 
 
 				if ((c == '&') && (key_value_pairs->num_pairs >= NUM_KEY_VALUES - 1))
 				{
+
+// drop KV pairs that exceed our buffers (necessary for large number of zones support)
+
+					return true;
+
 					current_state = ERROR;
 					break;
 				}

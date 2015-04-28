@@ -11,7 +11,7 @@
 
 class EthernetServer;
 
-#define NUM_KEY_VALUES 30
+#define NUM_KEY_VALUES 60
 #define KEY_SIZE 10
 #define VALUE_SIZE 20
 

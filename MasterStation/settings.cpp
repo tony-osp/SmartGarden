@@ -497,44 +497,43 @@ bool SetZones(const KVPairs & key_value_pairs)
 {
 		uint8_t		n_zones = GetNumZones();
 		
-		FullZone	*zones;
-		zones = (FullZone*)malloc(sizeof(FullZone)*n_zones);
-		if( zones == 0 ){
+		FullZone	fullZone;
 
-			trace(F("SetZones - cannot allocate memory!\n"));
-			return  false;
-		}
-		memset(zones, 0, sizeof(FullZone)*n_zones);
+		for( int zn=0; zn<n_zones; zn++ )
+		{
+			char  zcode = 'b' + zn;
+			LoadZone(zn, &fullZone);
+			bool  fzChanged = false;
 
-        for (int i = 0; i < key_value_pairs.num_pairs; i++)
-        {
+			for (int i = 0; i < key_value_pairs.num_pairs; i++)
+			{
                 const char * key = key_value_pairs.keys[i];
                 const char * value = key_value_pairs.values[i];
-                if ((key[0] == 'z') && (key[1] >= 'b') && (key[1] <= ('a' + GetNumZones())))
+                
+				if( (key[0] == 'z') && (key[1] == zcode) )	// zone found in kvpairs
                 {
-                        int zone_num = key[1] - 'b';
-                        if (memcmp(key + 2, "name", 5) == 0)
-                                strncpy(zones[zone_num].name, value, sizeof(zones[zone_num].name));
+						fzChanged = true;
+                    
+						if (memcmp(key + 2, "name", 5) == 0)
+                                strncpy(fullZone.name, value, sizeof(fullZone.name));
                         else if ((key[2] == 'e') && (key[3] == 0))
                         {
                                 if (strcmp_P(value, PSTR("on")) == 0)
-                                        zones[zone_num].bEnabled = true;
+                                        fullZone.bEnabled = true;
                                 else
-                                        zones[zone_num].bEnabled = false;
+                                        fullZone.bEnabled = false;
                         }
                         else if ((key[2] == 'p') && (key[3] == 0))
                         {
                                 if (strcmp_P(value, PSTR("on")) == 0)
-                                        zones[zone_num].bPump = true;
+                                        fullZone.bPump = true;
                                 else
-                                        zones[zone_num].bPump = false;
+                                        fullZone.bPump = false;
                         }
                 }
-        }
-        for (int i = 0; i < n_zones; i++)
-                SaveZone(i, &zones[i]);
-
-		free(zones);
+			}
+			if( fzChanged ) SaveZone(zn, &fullZone);
+		}
 
         return true;
 }
@@ -1072,6 +1071,9 @@ skip_Sensor:;
 						zone.stationID = st;
 						zone.channel = j;
 						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), zoneIndex + 1, zone.stationID, zone.channel+1);
+						
+//						trace(F("Created zone %d, \"%s\"\n"), zoneIndex + 1, zone.name);
+						
 						SaveZone(zoneIndex, &zone);
 						zoneIndex++;
 				}
