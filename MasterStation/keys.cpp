@@ -46,18 +46,29 @@ byte get_keys_now(void)
 {
    byte  new_buttons = 0;
 
-#ifdef PIN_INVERTED_BUTTONS
+#ifdef PIN_INVERTED_BUTTON1
    if( digitalRead(PIN_BUTTON_1) != 0 ) new_buttons |= BUTTON_1;
-   if( digitalRead(PIN_BUTTON_2) != 0 ) new_buttons |= BUTTON_2;
-   if( digitalRead(PIN_BUTTON_3) != 0 ) new_buttons |= BUTTON_3;
-   if( digitalRead(PIN_BUTTON_4) != 0) new_buttons |= BUTTON_4;
-
-#else //PIN_INVERTED_BUTTONS
+#else //PIN_INVERTED_BUTTON1
    if( digitalRead(PIN_BUTTON_1) == 0 ) new_buttons |= BUTTON_1;
+#endif //PIN_INVERTED_BUTTON1
+
+#ifdef PIN_INVERTED_BUTTON2
+   if( digitalRead(PIN_BUTTON_2) != 0 ) new_buttons |= BUTTON_2;
+#else //PIN_INVERTED_BUTTON2
    if( digitalRead(PIN_BUTTON_2) == 0 ) new_buttons |= BUTTON_2;
+#endif //PIN_INVERTED_BUTTON2
+
+#ifdef PIN_INVERTED_BUTTON3
+   if( digitalRead(PIN_BUTTON_3) != 0 ) new_buttons |= BUTTON_3;
+#else //PIN_INVERTED_BUTTON3
    if( digitalRead(PIN_BUTTON_3) == 0 ) new_buttons |= BUTTON_3;
+#endif //PIN_INVERTED_BUTTON3
+
+#ifdef PIN_INVERTED_BUTTON4
+   if( digitalRead(PIN_BUTTON_4) != 0 ) new_buttons |= BUTTON_4;
+#else //PIN_INVERTED_BUTTON4
    if( digitalRead(PIN_BUTTON_4) == 0 ) new_buttons |= BUTTON_4;
-#endif
+#endif //PIN_INVERTED_BUTTON4
 
    return new_buttons;
 }

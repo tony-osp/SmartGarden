@@ -51,12 +51,12 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 //This is my large-screen LCD on MEGA
 
-#define PIN_LCD_D4         24    // LCD d4 pin - default = 2
-#define PIN_LCD_D5         25    // LCD d5 pin - default = 21
-#define PIN_LCD_D6         26    // LCD d6 pin - default = 22
-#define PIN_LCD_D7         27    // LCD d7 pin - default = 23
-#define PIN_LCD_RS         22    // LCD rs pin - default = 19
-#define PIN_LCD_EN         23    // LCD enable pin - default = 18
+#define PIN_LCD_D4         25    // LCD d4 pin
+#define PIN_LCD_D5         24    // LCD d5 pin
+#define PIN_LCD_D6         23    // LCD d6 pin
+#define PIN_LCD_D7         22    // LCD d7 pin
+#define PIN_LCD_RS         27    // LCD rs pin
+#define PIN_LCD_EN         26    // LCD enable pin
 
 // LCD size definitions
 
@@ -71,16 +71,19 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define KEY_ANALOG_CHANNEL 1
 
 
- #define PIN_BUTTON_1      A0    // button 1
- #define PIN_BUTTON_2      A2    // button 2
- #define PIN_BUTTON_3      A1    // button 3
- #define PIN_BUTTON_4      A3    // button 4
+ #define PIN_BUTTON_1      A8    // button 1
+ #define PIN_BUTTON_2      A10    // button 2
+ #define PIN_BUTTON_3      A9    // button 3
+ #define PIN_BUTTON_4      A11    // button 4
 
 #define KEY_DEBOUNCE_DELAY  50
 #define KEY_HOLD_DELAY             1200
 #define KEY_REPEAT_INTERVAL  200
 
-#define PIN_INVERTED_BUTTONS  1
+#define PIN_INVERTED_BUTTON1  1
+#define PIN_INVERTED_BUTTON2  1
+#define PIN_INVERTED_BUTTON3  1
+//#define PIN_INVERTED_BUTTON4  1
 
 // SD Card logging
 #define MAX_LOG_RECORD_SIZE    80
