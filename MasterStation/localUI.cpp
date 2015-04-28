@@ -270,7 +270,7 @@ byte OSLocalUI::callHandler(byte needs_refresh)
 	if( zn != -1 ){   // active zone will show up as a positive number
 			
 		ShortZone  zone;
-		LoadShortZone(zn, &zone);
+		LoadShortZone(zn-1, &zone);	// note zone number conversion (it starts from 1)
 
 		if( display_board != zone.stationID ){
 
@@ -527,9 +527,9 @@ void OSLocalUI::lcd_print_station(void) {
 
 	  for( pos=0; pos<sStation.numZoneChannels; pos++ )
 	  {
-		  register uint8_t  zst = GetZoneState(1+pos+sStation.startZone);
+		  register uint8_t  zst = GetZoneState(1+pos+sStation.startZone);	// note zone number correction - zones are numbered from 1.
 		  if( zst == ZONE_STATE_OFF )
-				lcd.print('_');    // note zone number correction - zones are numbered from 1.
+				lcd.print('_');    
 		  else if( zst == ZONE_STATE_RUNNING )
 				lcd.print(ui_anim_chars[step]); 
 		  else if( zst == ZONE_STATE_STARTING )
