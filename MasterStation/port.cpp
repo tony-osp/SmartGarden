@@ -7,6 +7,9 @@ static FILE serial;
 static Stream *_trace_serial;
 static bool bSerialSetup = false;
 
+
+#ifdef ENABLE_TRACE
+
 static int serial_putchar(char c, FILE *stream)
 {
         return _trace_serial->write(c);
@@ -42,6 +45,7 @@ void trace(const __FlashStringHelper * fmt, ...)
         va_end(parms);
 }
 
+#endif // ENABLE_TRACE
 
 extern int __bss_end;
 extern int *__brkval;

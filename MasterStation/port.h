@@ -21,6 +21,7 @@ void trace(const __FlashStringHelper * fmt, ...);
 #else	//ENABLE_TRACE
 
 #define trace(param, ...)
+#define trace_setup(param, ...)
 
 #endif	//ENABLE_TRACE
 
