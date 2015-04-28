@@ -28,3 +28,11 @@ The code of Remote station is written from scratch, Master station currently use
 
 I have a small blog dedicated to this project: http://tony-osp.dreamwidth.org, and I'm posting updates there as
 the project progresses.
+
+Note: to compile the project you need following libraries:
+
+1. IniFile (for Master Station) - https://github.com/stevemarple/IniFile
+2. BMP180 support library (if you are using BMP180 sensor) - https://github.com/sparkfun/BMP180_Breakout/tree/master/Libraries/Arduino/src
+3. XBee library - https://github.com/andrewrapp/xbee-arduino
+
+As well as standard Arduino libraries.
