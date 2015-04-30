@@ -35,5 +35,6 @@ Note: to compile the project you need following libraries:
 2. BMP180 support library (if you are using BMP180 sensor) - https://github.com/sparkfun/BMP180_Breakout/tree/master/Libraries/Arduino/src
 3. XBee library - https://github.com/andrewrapp/xbee-arduino
 4. SdFat library - https://github.com/greiman/SdFat/tree/master/SdFat
+5. Time library - https://github.com/PaulStoffregen/Time
 
 As well as standard Arduino libraries.
