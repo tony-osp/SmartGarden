@@ -51,7 +51,7 @@ using time-series pattern. Errors are reported using common Trace infrastructure
 #include <dht.h>
 #endif
 
-// when DHT sensor is connected, this defines the data ping
+// when DHT sensor is connected, this defines the data pin
 #define DHTPIN   3
 
 #define DHTTYPE DHT21   // DHT 21 (AM2301)
