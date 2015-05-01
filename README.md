@@ -36,5 +36,6 @@ Note: to compile the project you need following libraries:
 3. XBee library - https://github.com/andrewrapp/xbee-arduino
 4. SdFat library - https://github.com/greiman/SdFat/tree/master/SdFat
 5. Time library - https://github.com/PaulStoffregen/Time
+6. DHT library (if you are using DHT sensor) - https://github.com/adafruit/DHT-sensor-library
 
 As well as standard Arduino libraries.
