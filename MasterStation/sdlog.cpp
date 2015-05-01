@@ -317,7 +317,7 @@ bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int sensor_re
                return false;    // failed to open/create file
          }
 		 // write header line
-         sprintf_P(tmp_buf, PSTR("Day,Time,%S\n")); 
+         sprintf_P(tmp_buf, PSTR("Day,Time,%S\n"), sensorName); 
 		 lfile.write(tmp_buf, strlen(tmp_buf));
          
          trace(F("creating new log file for sensor:%S\n"), sensorName);
