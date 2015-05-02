@@ -40,14 +40,14 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 //
 //			Also LOCAL_NUM_CHANNELS must be equal or greater than LOCAL_NUM_DIRECT_CHANNELS
 //
-#define LOCAL_NUM_DIRECT_CHANNELS	16		// number of directly connected IO channels (positive or negative)
-#define LOCAL_NUM_CHANNELS			48		// total maximum number of IO channels
+#define LOCAL_NUM_DIRECT_CHANNELS	16		// number of directly connected (parallel connection) IO channels - positive or negative
+#define LOCAL_NUM_CHANNELS			48		// total maximum number of local IO channels
 
 #define NETWORK_ADDRESS_BROADCAST	0x0FFFF
 
 // LCD
 
-#define SHOW_MEMORY 0
+#define SHOW_MEMORY 0		// if set to 1 - LCD will show free memory 
 
 //This is my large-screen LCD on MEGA
 
@@ -71,15 +71,16 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define KEY_ANALOG_CHANNEL 1
 
 
- #define PIN_BUTTON_1      A8    // button 1
- #define PIN_BUTTON_2      A10    // button 2
- #define PIN_BUTTON_3      A9    // button 3
- #define PIN_BUTTON_4      A11    // button 4
+ #define PIN_BUTTON_1      A8    // button Next
+ #define PIN_BUTTON_2      A10   // button Up
+ #define PIN_BUTTON_3      A9    // button Down
+ #define PIN_BUTTON_4      A11   // button Select
 
-#define KEY_DEBOUNCE_DELAY  50
-#define KEY_HOLD_DELAY             1200
+#define KEY_DEBOUNCE_DELAY   50
+#define KEY_HOLD_DELAY       1200
 #define KEY_REPEAT_INTERVAL  200
 
+// Input buttons may be direct or inverted
 #define PIN_INVERTED_BUTTON1  1
 #define PIN_INVERTED_BUTTON2  1
 #define PIN_INVERTED_BUTTON3  1
@@ -92,6 +93,17 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 // Default sensors logging interval, minutes
 #define SENSORS_POLL_DEFAULT_REPEAT  60
 //#define SENSORS_POLL_DEFAULT_REPEAT  5
+
+// locally connected BMP180 (air pressure & temp) sensor
+#define SENSOR_ENABLE_BMP180	1
+// locally connected DHT (temp & humidity) sensor
+#define SENSOR_ENABLE_DHT		1
+
+// when DHT sensor is connected, this defines the data pin
+#define DHTPIN   A15
+// DHT sensor sub-type
+#define DHTTYPE DHT21   // DHT 21 (AM2301)
+
 
 // XBee
 

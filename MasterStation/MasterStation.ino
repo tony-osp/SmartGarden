@@ -40,6 +40,7 @@ This particular file (MasterStation.ino) is written by Tony-osp.
 #include "LocalUI.h"
 #include "sdlog.h"
 #include <SFE_BMP180.h>
+#include <DHT.h>
 #include <Wire.h>
 #include "LocalBoard.h"
 #include <IniFile.h>

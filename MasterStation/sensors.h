@@ -28,19 +28,24 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #endif
 
 #include <Time.h>
-#include <SFE_BMP180.h>
 #include <wire.h>
 #include "sdlog.h"
 #include "settings.h"
 #include "Defines.h"
 
-// Temporary I put sensors enable/disable flags here. (note: later on these flags will move to a config file)
-//
-//
-#define SENSOR_ENABLE_BMP180  1
+#ifdef SENSOR_ENABLE_BMP180
+#include <SFE_BMP180.h>
+#include <Wire.h>
+#endif
+
+#ifdef SENSOR_ENABLE_DHT
+#include <DHT.h>
+#endif
 
 #define SENSOR_CHANNEL_TEMPERATURE1 0	// when temp sensor is connected directly to the Master controller, assign it to channel 0
 #define SENSOR_CHANNEL_PRESSURE1	1	// when air pressure sensor is connected directly to the Master controller, assign it to channel 1
+#define SENSOR_CHANNEL_TEMPERATURE2 2	// second temp sensor connected to the master controller (if any)
+#define SENSOR_CHANNEL_HUMIDITY1	3	// humidity sensor
 
 struct SensorStruct 
 {

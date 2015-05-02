@@ -28,10 +28,15 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 // external reference
 extern Logging sdlog;
 
+#ifdef SENSOR_ENABLE_DHT
+// For DHT (AM2301 or similar) sensor we need to have an object, here called "dht"
+DHT dht_sensor(DHTPIN, DHTTYPE);
+#endif
 
+#ifdef SENSOR_ENABLE_BMP180
 // For BMP180 sensor we need SFE_BMP180 object, here called "bmp180":
-
 SFE_BMP180 bmp180;
+#endif
 
 // maximum ulong value
 #define MAX_ULONG       4294967295
@@ -86,14 +91,17 @@ byte Sensors::begin(void)
 
   // If we have local sensor, Initialize it (it is important to get calibration values stored on the device).
 
-#ifdef SENSOR_ENABLE_BMP180
+  // Initialize sensors (it is important to get calibration values stored on the device).
 
+#ifdef SENSOR_ENABLE_BMP180
      if( !bmp180.begin() ){
-           trace(F("BMP180 init failure.\n"));
-           
-           return false;
+           trace(F("BMP180 sensor init failure.\n"));
      }
 #endif  //   SENSOR_ENABLE_BMP180
+
+#ifdef SENSOR_ENABLE_DHT
+     dht_sensor.begin();
+#endif
 
      return true;
 }
@@ -114,10 +122,9 @@ byte Sensors::loop(void)
 }
 
 
-// timer worker for pressure sensors.
-// This function will be called once a minute, allowing pressure sensors code to read sensors if required.
+// timer worker for sensors polling.
+// This function will be called once a minute, allowing sensors code to read data if required.
 //
-// Currently we will read sensors once a minute, and will report it to the common pipeline.
 // The reporting sensors pipeline will update the dashboard (in-memory last values), and will log the data at the right frequency
 //
 void Sensors::poll_MinTimer(void)
@@ -136,19 +143,45 @@ void Sensors::poll_MinTimer(void)
 // Local sensors
 
 #ifdef SENSOR_ENABLE_BMP180
-			int  pressure, temperature;
-
-			// read BMP180 sensor           
-			if( bmp180_Read(&pressure, &temperature) == false ){
-            
-				trace(F("Failure reading pressure from BMP180.\n"));
-			}
-			else
 			{
-				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_TEMPERATURE1, temperature );	
-				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_PRESSURE1, pressure );	
+				int  pressure, temperature;
+
+				// read BMP180 sensor           
+				if( bmp180_Read(&pressure, &temperature) == false ){
+            
+					trace(F("Failure reading pressure from BMP180.\n"));
+				}
+				else
+				{
+					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_TEMPERATURE1, temperature );	
+					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_PRESSURE1, pressure );	
+				}
 			}
 #endif  //   SENSOR_ENABLE_BMP180
+
+#ifdef SENSOR_ENABLE_DHT
+			{
+				register int  hum, temp;
+
+				// now read DHT sensor
+				float h = dht_sensor.readHumidity();
+                float t = dht_sensor.readTemperature();
+
+				if( isnan(t) || isnan(h) )
+				{
+					trace(F("Failure reading temperature or humidity from DHT.\n"));
+				}
+				else
+				{
+					temp = (int) (dht_sensor.convertCtoF(t) + 0.5);      // convert to int with rounding
+					hum = (int) (h + 0.5);
+
+ 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_TEMPERATURE2, temp );	
+ 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_HUMIDITY1, hum );	
+				}
+			}
+#endif  //   SENSOR_ENABLE_DHT
+
 		}
 		else
 		{
