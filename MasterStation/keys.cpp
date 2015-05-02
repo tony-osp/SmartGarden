@@ -88,16 +88,16 @@ byte get_button_async(byte mode)
 {
   byte          key;
   static byte   oldkey=BUTTON_NONE;
-  static byte   autorepeat_sent = 0;    // internal flag to track auto-repeat
+  static byte   autorepeat_sent = 0;   // internal flag to track auto-repeat
 
-  static byte   state = 0;                              // internal state
-                                                                                // 0 - initial default, nothing pressed
-                                                                                //
-                                                                                // 1 - key pressed, waiting for debounce timeout.
-                                                                                //     old_millis will hold timestamp, oldkey will hold the old key value
-                                                                                //
-                                                                                // 2 - key pressed, debounce check OK, return key value, oldkey will hold the old key value and
-                                                                                //     old_millis will have the timestamp (used for HOLD detection)
+  static byte   state = 0;             // internal state
+                                       // 0 - initial default, nothing pressed
+                                       //
+                                       // 1 - key pressed, waiting for debounce timeout.
+                                       //     old_millis will hold timestamp, oldkey will hold the old key value
+                                       //
+                                       // 2 - key pressed, debounce check OK, return key value, oldkey will hold the old key value and
+                                       //     old_millis will have the timestamp (used for HOLD detection)
 
    static unsigned long old_millis = 0;
    static unsigned long autorepeat_millis = 0;
