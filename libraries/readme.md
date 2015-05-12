@@ -5,3 +5,4 @@ List of libraries:
 3. XBee library - https://github.com/andrewrapp/xbee-arduino
 4. SdFat library - https://github.com/greiman/SdFat/tree/master/SdFat
 5. Time library - https://github.com/PaulStoffregen/Time
+6. I2C LCD library (LCD_C0220BIZ - I'm using this LCD in Remote station) - https://bitbucket.org/fmalpartida/st7036-display-driver/src
