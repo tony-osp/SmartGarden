@@ -59,8 +59,8 @@ using time-series pattern. Errors are reported using common Trace infrastructure
 // default repeat intervals, in minutes
 #define SENSORS_PRESSURE_DEFAULT_REPEAT 60
 
-//#define SENSORS_TEMPERATURE_DEFAULT_REPEAT 60
-#define SENSORS_TEMPERATURE_DEFAULT_REPEAT 2
+#define SENSORS_TEMPERATURE_DEFAULT_REPEAT 60
+//#define SENSORS_TEMPERATURE_DEFAULT_REPEAT 2
 
 class Sensors {
 public:
