@@ -29,7 +29,7 @@
 
 #include "eepromMap.h"
 
-#define EEPROM_SHEADER "R2.3"
+#define EEPROM_SHEADER "R2.4"
 
 
 #define NETWORK_XBEE_DEFAULT_ENABLED	true
@@ -45,14 +45,19 @@
 #define NETWORK_FLAGS_ENABLED		1	// 1 - indicates that the network is enabled (config)
 #define NETWORK_FLAGS_ON			2	// 1 - indicates that the network is running (runtime state)
 
-#define NETWORK_XBEE_DEFAULTADDRESS	2
+#define NETWORK_XBEE_DEFAULTADDRESS	1
 #define DEFAULT_STATION_ID			1
 
 #define DEFAULT_TTR					99
 #define DEFAULT_MAX_OFFLINE_TDELTA  300000UL		// time (in milliseconds) since last time sync before indicator starts to show that the station is offline
 													// 300,000ms is 5minutes.
 
+#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284p__)
+#define	LOCAL_NUM_DIRECT_CHANNELS	8
+#else
 #define	LOCAL_NUM_DIRECT_CHANNELS	4
+#endif // (__AVR_ATmega1284P__) || defined(__AVR_ATmega1284p__)
+
 
 ////////////////////
 //  EEPROM Getter/Setters

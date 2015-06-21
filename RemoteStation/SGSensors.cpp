@@ -170,7 +170,7 @@ char sensors_MinTimer(void)
                    Sensors::Humidity = hum;
 
            sdlog.LogSensorReading(SENSOR_TYPE_TEMPERATURE, 2, temp);    // DHT temperature sensor has ID=2
-           sdlog.LogSensorReading(SENSOR_TYPE_HUMIDITY, 1, hum);                   // DHT humidity sensor ID=1
+           sdlog.LogSensorReading(SENSOR_TYPE_HUMIDITY, 1, hum);        // DHT humidity sensor ID=1
 
                    if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SENSORS )
                                 rprotocol.SendSensorsReport(0, GetEvtMasterStationID(), 0, NUM_SENSORS);

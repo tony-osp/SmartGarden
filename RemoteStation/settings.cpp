@@ -40,7 +40,7 @@ void ResetEEPROM()
 #else  // Mega or Moteino Mega (1284p)
 #if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284p__)
 
-		uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = {41, 40, 42, 43 };
+		uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = {12, 13, 14, 18, 19, 20, 21, 22 };
 
 #else // Uno or equivalent
 
