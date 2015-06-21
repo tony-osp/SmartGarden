@@ -29,6 +29,9 @@
     .thermometer-inner-v {
       width: 10px;
     }
+     .auto-style1 {
+         font-size: medium;
+     }
   </style>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
@@ -410,10 +413,11 @@
 
 
         refreshSensorsData = function () {
-
+            $('html,body,button').css('cursor', 'wait');
             $.getJSON("json/sensNow",
             function (data) {
 
+                $('html,body,button').css('cursor', 'auto');
                 // alert("refreshSensorsData callback"); 
 
                 for (var i = 0; i < data.sensors.length; i++) {     // go through the list of sensors and activate sensors that need to be activated
@@ -422,7 +426,6 @@
                     else if (data.sensors[i].sensorType == 'Pressure') setPressureSens('sens' + i, data.sensors[i].lastReading, data.sensors[i].readingAge);
                     else if (data.sensors[i].sensorType == 'Humidity') setHumiditySens('sens' + i, data.sensors[i].lastReading, data.sensors[i].readingAge);
                 }
-
             });
         };
     </script>
@@ -431,9 +434,12 @@
     
 <body>
   <div style="text-align: center"><h1>SmartGarden Sensors Dashboard</h1></div>
+  <p><div align="center" id="Div1"><button onclick="refreshSensorsData()" class="auto-style1"><strong>Refresh</strong></button></div></p>
   
   <div align="center" id="sens-list"></div>
   
+  <p><div align="center" id="page-controls"><button onclick="refreshSensorsData()" class="auto-style1"><strong>Refresh</strong></button></div></p>
+
   
   <script>
       $(function () {
