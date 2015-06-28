@@ -48,9 +48,12 @@ Logging::~Logging()
 
 bool Logging::begin(char *str)
 {
-//  SdFile  lfile;
+#ifndef HW_ENABLE_SD
+	return false;
+#endif //!HW_ENABLE_SD
+
   char    log_fname[20];
-  time_t  curr_time = nntpTimeServer.LocalNow();
+  time_t  curr_time = now();
 
 // Ensure log folders are there, if not - create it.
 
@@ -182,7 +185,7 @@ byte Logging::syslog_str_P(char evt_type, char *str)
 //
 byte Logging::syslog_str_internal(char evt_type, char *str, char flag)
 {
-   time_t t = nntpTimeServer.LocalNow();
+   time_t t = now();
 // temp buffer for log strings processing
    char tmp_buf[20];
 
@@ -237,7 +240,9 @@ byte Logging::syslog_str_internal(char evt_type, char *str, char flag)
 
 bool Logging::LogZoneEvent(time_t start, int zone, int duration, int schedule, int sadj, int wunderground)
 {
-      time_t t = nntpTimeServer.LocalNow();
+   if( !logger_ready ) return false;  //check if the logger is ready
+	
+	  time_t t = now();
 // temp buffer for log strings processing
       char tmp_buf[MAX_LOG_RECORD_SIZE];
 
@@ -275,7 +280,9 @@ bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int sensor_re
 {
 //	trace(F("LogSensorReading - enter, sensor_type=%i, sensor_id=%i, sensor_reading=%i\n"), (int)sensor_type, sensor_id, sensor_reading);
 
-	time_t  t = nntpTimeServer.LocalNow();
+	if( !logger_ready ) return false;  //check if the logger is ready
+
+	time_t  t = now();
 
 // temp buffer for log strings processing
       char	tmp_buf[MAX_LOG_RECORD_SIZE];					
@@ -368,7 +375,7 @@ bool Logging::GraphZone(FILE* stream_file, time_t start, time_t end, GROUPING gr
         long int bin_data[24];		// maximum bin size is 24
 
         if (start == 0)
-                start = nntpTimeServer.LocalNow();
+                start = now();
 
         int    nyear=year(start);
 
@@ -422,7 +429,7 @@ int Logging::getZoneBins( int zone, time_t start, time_t end, long int bin_data[
         memset( bin_data, 0, bins*sizeof(long int) );
 
         if (start == 0)
-                start = nntpTimeServer.LocalNow();
+                start = now();
 
         int    nyear=year(start);
 
@@ -531,7 +538,7 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
         char tmp_buf[MAX_LOG_RECORD_SIZE];
 
         if (start == 0)
-                start = nntpTimeServer.LocalNow();
+                start = now();
 
         unsigned int    nyear=year(start);
 
@@ -630,7 +637,7 @@ bool Logging::EmitSensorLog(FILE* stream_file, time_t start, time_t end, char se
         char *sensor_name;
 
         if (start == 0)
-                start = nntpTimeServer.LocalNow();
+                start = now();
 
         end = max(start,end) + 24*3600;  // add 1 day to end time.
 

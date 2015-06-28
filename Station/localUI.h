@@ -25,8 +25,25 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "WProgram.h"
 #endif
 
+#include "Defines.h"
 #include <Time.h>
+
+
+#ifdef USE_I2C_LCD
+#include "LCD_C0220BiZ.h"
+#else
 #include <LiquidCrystal.h>
+#endif
+
+#ifdef USE_I2C_LCD
+// I2C LCD library uses reverse parameters order for setcursor
+#define LCD_SETCURSOR(lcd, x, y)	lcd.setCursor(y,x)
+
+#else
+// Standard LCD library setcursor conventions
+#define LCD_SETCURSOR(lcd, x, y)	lcd.setCursor(x,y)
+
+#endif
 
 // global states definitions
 
@@ -95,7 +112,11 @@ public:
   static void lcd_print_2digit(int v);
 
 // Data
+#ifdef USE_I2C_LCD
+  static ST7036 lcd;
+#else
   static LiquidCrystal lcd;             // Main LCD object. We have to expose this object to allow custom code access to LCD bypassing UI
+#endif
 
   static byte osUI_State;
   static byte osUI_Mode;

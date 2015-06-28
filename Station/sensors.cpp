@@ -194,6 +194,7 @@ void Sensors::poll_MinTimer(void)
 	}
 }
 
+#ifdef SENSOR_ENABLE_BMP180
 
 // Worker function to read bmp180 pressure sensor.
 // Returns true if successful, false if failed.
@@ -239,6 +240,7 @@ byte bmp180_Read(int *pressure, int *temperature)
 
            return  true;
 }
+#endif //SENSOR_ENABLE_BMP180
 
 //
 // Sensor readings dispatch and handling

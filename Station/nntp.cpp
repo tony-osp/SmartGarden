@@ -26,6 +26,7 @@ byte nntp::GetNetworkStatus(void)
 	else               return false;
 }
 
+#ifdef HW_ENABLE_ETHERNET
 // NTP time stamp is in the first 48 bytes of the message
 #define NTP_PACKET_SIZE 48
 
@@ -124,8 +125,18 @@ void nntp::checkTime()
 	if(m_nextSyncTime <= now()){
 		time_t t = getNtpTime();
 		if( t != 0)
+		{
+			t += GetNTPOffset()*3600;
 			setTime(t);
+		}
 		m_nextSyncTime = now() + 300; //  300 = every 5 minutes
 	}  
 }
 
+void nntp::flagCheckTime(void)
+{
+	m_nextSyncTime = now();  // sync time on the next opportunity
+
+}
+
+#endif //HW_ENABLE_ETHERNET

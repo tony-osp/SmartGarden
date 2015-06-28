@@ -432,10 +432,13 @@ bool XBeeARPUpdate(uint8_t nStation, uint8_t *pNetAddress)
 
 
 #ifdef XBEE_TYPE_PRO900	
-// For XBee Pro 900 we cannot use 16bit addressing, but 64bit addressing is too must hassle to setup - have to 
-//   either pre-configure 64bit addresses for all stations, or have to use some form of dynamic discovery.
+// For XBee Pro 900 we cannot use 16bit addressing, but 64bit addressing is tricky. It is impractical to pre-configure 
+//   64bit addresses, and it is not possible to set 64bit address - it is hardcoded in Xbee module.
 //
-// Instead, we are using broadcast mode, relying on the RProtocol stack to filter out right packets.
+// Instead, we are using dynamic discovery. First we send the packet using broadcast mode, relying on the RProtocol stack to filter out right packets,
+//   and once remote station responds - we cache its 64bit address in arpTable and will subsequently use the cached 64bit address for directed send. 
+// The reason for this is the preference to use targeted RF send commands (more efficient and more reliable), but until we know remote address we have to use 
+//   broadcast mode.
 //
 bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 {

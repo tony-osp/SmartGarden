@@ -42,13 +42,6 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // Networks config
 
-// XBee RF network
-
-#define NETWORK_XBEE_DEFAULT_PANID	5520	
-#define NETWORK_XBEE_DEFAULT_CHAN	16
-#define NETWORK_XBEE_DEFAULT_PORT	3
-#define NETWORK_XBEE_DEFAULT_SPEED	57600
-
 
 #define	ADDR_NETWORK_XBEE_FLAGS		128		// XBee network status flags (enabled/on/etc)
 #define ADDR_NETWORK_XBEE_PORT		129		// Serial port to use

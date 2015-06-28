@@ -32,11 +32,12 @@ byte OSLocalUI::osUI_Page  = OSUI_PAGE_UNDEFINED;
 byte OSLocalUI::display_board = 0;                                                      // currently displayed board
 
 
-// this is 1284p version
-//LiquidCrystal OSLocalUI::lcd(23, 22, 27, 26, 25, 24);
-
+#ifdef USE_I2C_LCD
+ST7036 OSLocalUI::lcd( LOCAL_UI_LCD_Y, LOCAL_UI_LCD_X, 0x78 );
+#else
 // and this is Mega with big LCD version
 LiquidCrystal OSLocalUI::lcd(PIN_LCD_RS, PIN_LCD_EN, PIN_LCD_D4, PIN_LCD_D5, PIN_LCD_D6, PIN_LCD_D7);
+#endif
 
 
 // Local forward declarations
@@ -92,7 +93,12 @@ char* days_str[7] = {
 //
 byte OSLocalUI::begin(void)
 {
-     lcd.begin(LOCAL_UI_LCD_X, LOCAL_UI_LCD_Y);         // init LCD with desired dimensions
+#ifdef USE_I2C_LCD
+     lcd.init();         // I2C library uses different init conventions
+	 lcd.clear();
+#else
+	 lcd.begin(LOCAL_UI_LCD_X, LOCAL_UI_LCD_Y);         // init LCD with desired dimensions
+#endif
 
      osUI_State      = OSUI_STATE_SUSPENDED;
      osUI_Mode       = OSUI_MODE_HOME;                         // home screen by default
@@ -109,24 +115,44 @@ byte OSLocalUI::begin(void)
       B00101,
       B10101
     };
-    lcd.createChar(1, lcd_custom_char);
+#ifdef USE_I2C_LCD
+	lcd.load_custom_character(1, lcd_custom_char);
+#else
+	lcd.createChar(1, lcd_custom_char);
+#endif
     lcd_custom_char[1] = lcd_custom_char[2] = 0;
     lcd_custom_char[3]=1;
-    lcd.createChar(0, lcd_custom_char);
+#ifdef USE_I2C_LCD
+	lcd.load_custom_character(0, lcd_custom_char);
+#else
+	lcd.createChar(0, lcd_custom_char);
+#endif
 
 // Start/Stop animation chars
 
 	memset(lcd_custom_char, 0, sizeof(lcd_custom_char));
 	lcd_custom_char[6] = lcd_custom_char[5] = 0xFF;
-    lcd.createChar(2, lcd_custom_char);
+#ifdef USE_I2C_LCD
+	lcd.load_custom_character(2, lcd_custom_char);
+#else
+	lcd.createChar(2, lcd_custom_char);
+#endif
 
 	memset(lcd_custom_char, 0, sizeof(lcd_custom_char));
 	lcd_custom_char[3] = lcd_custom_char[4] = 0xFF;
-    lcd.createChar(3, lcd_custom_char);
+#ifdef USE_I2C_LCD
+	lcd.load_custom_character(3, lcd_custom_char);
+#else
+	lcd.createChar(3, lcd_custom_char);
+#endif
 
 	memset(lcd_custom_char, 0, sizeof(lcd_custom_char));
 	lcd_custom_char[1] = lcd_custom_char[2] = 0xFF;
-    lcd.createChar(4, lcd_custom_char);
+#ifdef USE_I2C_LCD
+	lcd.load_custom_character(4, lcd_custom_char);
+#else
+	lcd.createChar(4, lcd_custom_char);
+#endif
 
 // set button PINs mode
 
@@ -306,7 +332,7 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
   if( forceRefresh == 2 ){   // entering MANUAL mode, refresh things
 
           lcd.clear();
-          lcd.setCursor(0, 0);
+		  LCD_SETCURSOR(lcd, 0, 0);
           lcd_print_pgm(PSTR("Manual Start:"));
 
           man_state = 0;
@@ -348,7 +374,7 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
 
 // let's display the number of minutes prompt
                 lcd.clear();
-                lcd.setCursor(0, 0);
+				LCD_SETCURSOR(lcd, 0, 0);
                 lcd_print_pgm(PSTR("Minutes to run:"));
 
                 return  true;    // exit. Actual minutes display will happen on the next loop();
@@ -384,12 +410,12 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
 // start manual watering run on selected channel with selected number of minutes to run
 
                 lcd.clear();
-                lcd.setCursor(0, 0);
+				LCD_SETCURSOR(lcd, 0, 0);
                 lcd_print_pgm(PSTR("Starting Manual"));
 
 				ShortStation	sStation;
 				LoadShortStation(display_board, &sStation);	// load station information
-                lcd.setCursor(0, 1);
+				LCD_SETCURSOR(lcd, 0, 1);
                 lcd_print_pgm(PSTR("Ch: "));    lcd_print_2digit(sel_manual_ch+sStation.startZone+1);    //note: actual useful zones are numbered from 1, adjust it for display
                 lcd_print_pgm(PSTR(" Min: "));  lcd_print_2digit(num_min);
 
@@ -409,7 +435,7 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
 
            old_millis = new_millis;
 
-           lcd.setCursor(0, 1);
+		   LCD_SETCURSOR(lcd, 0, 1);
            lcd_print_2digit(num_min);
            if( (new_millis/333)%2 ) lcd_print_pgm(PSTR("   "));
            else						lcd_print_pgm(PSTR("#  "));
@@ -457,33 +483,33 @@ byte OSLocalUI::modeHandler_Viewconf(byte forceRefresh)
    if( forceRefresh != 0 ){   // entering VIEWCONF mode, refresh things
 
           lcd.clear();
-          lcd.setCursor(0, 0);
+		  LCD_SETCURSOR(lcd, 0, 0);
 
           if( osUI_Page == 0 ){
 
              lcd_print_pgm(PSTR("Conf: Version"));
-             lcd.setCursor(0,1);
+			 LCD_SETCURSOR(lcd, 0, 1);
              lcd_print_pgm(PSTR(VERSION));
           }
           else if( osUI_Page == 1 ){
              uint32_t ip = GetIP();
 
              lcd_print_pgm(PSTR("Conf: IP"));
-             lcd.setCursor(0,1);
+			 LCD_SETCURSOR(lcd, 0, 1);
              lcd_print_ip((byte *)&ip);
 
           }
           else if( osUI_Page == 2 ){
 
              lcd_print_pgm(PSTR("Conf: Port"));
-             lcd.setCursor(0,1);
+			 LCD_SETCURSOR(lcd, 0, 1);
              lcd.print(GetWebPort());
           }
           else if( osUI_Page == 3 ){
              uint32_t ip = GetGateway();
 
              lcd_print_pgm(PSTR("Conf: Gateway"));
-             lcd.setCursor(0,1);
+			 LCD_SETCURSOR(lcd, 0, 1);
              lcd_print_ip((byte *)&ip);
 
           }
@@ -505,7 +531,7 @@ byte OSLocalUI::modeHandler_Setup(byte forceRefresh)
  // Print station bits
 void OSLocalUI::lcd_print_station(void) {
 
-  lcd.setCursor(0, 1);
+  LCD_SETCURSOR(lcd, 0, 1);
   if (display_board == 0) {
     lcd_print_pgm(PSTR("MC:"));  // Master controller is display as 'MC'
   }
@@ -542,14 +568,14 @@ void OSLocalUI::lcd_print_station(void) {
 			lcd_print_pgm(PSTR(" "));
   }
   lcd_print_pgm(PSTR("    "));
-  lcd.setCursor(15, 1);
+  LCD_SETCURSOR(lcd, 15, 1);
   lcd.write(nntpTimeServer.GetNetworkStatus()?0:1);
 }
 
  // Print stations string using provided default char, and highlight specific station using provided alt char
 void OSLocalUI::lcd_print_station(char def_c, byte sel_stn, char sel_c, byte max_ch) {
   
-  lcd.setCursor(0, 1);
+  LCD_SETCURSOR(lcd, 0, 1);
   if (display_board == 0) {
     lcd_print_pgm(PSTR("MC:"));  // Master controller is display as 'MC'
   }
@@ -563,7 +589,7 @@ void OSLocalUI::lcd_print_station(char def_c, byte sel_stn, char sel_c, byte max
       lcd.print((s == sel_stn) ? sel_c : def_c);
   }
   lcd_print_pgm(PSTR("    "));
-  lcd.setCursor(15, 1);
+  LCD_SETCURSOR(lcd, 15, 1);
   lcd.write(nntpTimeServer.GetNetworkStatus()?0:1);
 }
 
@@ -578,7 +604,7 @@ void OSLocalUI::lcd_print_pgm(PGM_P PROGMEM str) {
 
 // Print a program memory string to a given line with clearing
 void OSLocalUI::lcd_print_line_clear_pgm(PGM_P PROGMEM str, byte line) {
-  lcd.setCursor(0, line);
+  LCD_SETCURSOR(lcd, 0, line);
   uint8_t c;
   int8_t cnt = 0;
   while((c=pgm_read_byte(str++))!= '\0') {
@@ -597,8 +623,8 @@ void OSLocalUI::lcd_print_2digit(int v)
 // Print time to a given line
 void OSLocalUI::lcd_print_time(byte line)
 {
-  time_t t=nntpTimeServer.LocalNow();
-  lcd.setCursor(0, line);
+  time_t t=now();
+  LCD_SETCURSOR(lcd, 0, line);
   lcd_print_2digit(hour(t));
 
   lcd_print_pgm( t%2 > 0 ? PSTR(":") : PSTR(" ") );                     // flashing ":" in the time display
@@ -622,13 +648,13 @@ int freeRam(void)
 // Print free memory
 void OSLocalUI::lcd_print_memory(byte line)
 {
-  OSLocalUI::lcd.setCursor(0, line);
+  LCD_SETCURSOR(lcd, 0, line);
   lcd_print_pgm(PSTR("Free RAM:        "));
 
-  lcd.setCursor(9, line);
+  LCD_SETCURSOR(lcd, 9, line);
   lcd.print(freeRam());
 
-  lcd.setCursor(15, line);
+  LCD_SETCURSOR(lcd, 15, line);
   lcd.write(nntpTimeServer.GetNetworkStatus()?0:1);
 }
 
@@ -645,7 +671,7 @@ void OSLocalUI::lcd_print_ip(const byte *ip) {
 
  // Index of today's weekday (Monday is 0)
 byte weekday_today() {
-  return ((byte)weekday(nntpTimeServer.LocalNow())+5)%7; // Time::weekday() assumes Sunday is 1
+  return ((byte)weekday(now())+5)%7; // Time::weekday() assumes Sunday is 1
 }
 
 // Local wrapper for manual valve control.

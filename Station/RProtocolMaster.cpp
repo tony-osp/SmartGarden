@@ -492,7 +492,7 @@ void RProtocolMaster::SendTimeBroadcast(void)
         Message.Header.Length = sizeof(RMESSAGE_TIME_BROADCAST)-sizeof(RMESSAGE_HEADER);
 		Message.Header.TransactionID = 0;
 
-		Message.timeNow = nntpTimeServer.LocalNow();
+		Message.timeNow = now();
 
 		_SendMessage(255, (void *)(&Message), sizeof(Message));
 }

@@ -307,7 +307,7 @@ void runStateClass::LogSchedule()
 {
 #ifdef LOGGING
         if ((m_eventTime > 0) && (m_zone >= 0))
-                sdlog.LogZoneEvent(m_eventTime, m_zone, nntpTimeServer.LocalNow() - m_eventTime, m_bSchedule ? m_iSchedule+1:-1, m_adj.seasonal, m_adj.wunderground);
+                sdlog.LogZoneEvent(m_eventTime, m_zone, now() - m_eventTime, m_bSchedule ? m_iSchedule+1:-1, m_adj.seasonal, m_adj.wunderground);
 #endif
 }
 
@@ -319,7 +319,7 @@ void runStateClass::SetSchedule(bool val, int8_t iSched, const runStateClass::Du
         m_zone = -1;
         m_endTime = 0;
         m_iSchedule = val?iSched:-1;
-        m_eventTime = nntpTimeServer.LocalNow();
+        m_eventTime = now();
         m_adj = adj?*adj:DurationAdjustments();
 }
 
@@ -330,7 +330,7 @@ void runStateClass::ContinueSchedule(int8_t zone, short endTime)
         m_bManual = false;
         m_zone = zone;
         m_endTime = endTime;
-        m_eventTime = nntpTimeServer.LocalNow();
+        m_eventTime = now();
 }
 
 void runStateClass::SetManual(bool val, int8_t zone)
@@ -341,7 +341,7 @@ void runStateClass::SetManual(bool val, int8_t zone)
         m_zone = zone;
         m_endTime = 0;
         m_iSchedule = -1;
-        m_eventTime = nntpTimeServer.LocalNow();
+        m_eventTime = now();
         m_adj=DurationAdjustments();
 }
 
@@ -428,7 +428,7 @@ void LoadSchedTimeEvents(int8_t sched_num, bool bQuickSchedule)
         else
                 sched = quickSchedule;
 
-        const time_t local_now = nntpTimeServer.LocalNow();
+        const time_t local_now = now();
         short start_time = (local_now - previousMidnight(local_now)) / 60;
 
 		uint8_t	n_zones = GetNumZones();
@@ -485,7 +485,7 @@ void ReloadEvents(bool bAllEvents)
         if (!GetRunSchedules())
                 return;
 
-        const time_t time_now = nntpTimeServer.LocalNow();
+        const time_t time_now = now();
         const uint8_t iNumSchedules = GetNumSchedules();
         for (uint8_t i = 0; i < iNumSchedules; i++)
         {
@@ -523,7 +523,7 @@ void ReloadEvents(bool bAllEvents)
 // Check to see if there are any events that need to be processed.
 void ProcessEvents()
 {
-        const time_t local_now = nntpTimeServer.LocalNow();
+        const time_t local_now = now();
         const short time_check = (local_now - previousMidnight(local_now)) / 60;
         for (uint8_t i = 0; i < iNumEvents; i++)
         {
@@ -586,17 +586,20 @@ void mainLoop()
                 runState.TurnOffZones();
                 ClearEvents();
 
+#ifdef HW_ENABLE_ETHERNET
                 //Init the web server
                 if (!webServer.Init())
                         exit(EXIT_FAILURE);
 
 #ifdef ARDUINO
                 //Init the TFTP server
-                tftpServer.Init();
+				trace(F("Skipping TFPT\n"));
+//                tftpServer.Init();
 #endif
-
                 // Set the clock.
+//				trace(F("Skipping NNTP time\n"));
                 nntpTimeServer.checkTime();
+#endif //HW_ENABLE_ETHERNET
 
                 ReloadEvents();
                 //ShowSockStatus();
@@ -631,9 +634,11 @@ void mainLoop()
 			if( (tick_counter%10) == 0 )	// one-second block1
 			{
 				 // Check to see if we need to set the clock and do so if necessary.
+#ifdef HW_ENABLE_ETHERNET
 				nntpTimeServer.checkTime();
+#endif //HW_ENABLE_ETHERNET
 
-				const time_t timeNow = nntpTimeServer.LocalNow();
+				const time_t timeNow = now();
 				// One shot at midnight
 				if ((hour(timeNow) == 0) && !bDoneMidnightReset)
 				{
@@ -647,7 +652,9 @@ void mainLoop()
 			}  
 			else if( (tick_counter%10) == 3 )	// one-second block2
 			{
+#ifdef SG_STATION_MASTER	// if this is Master station, send time broadcasts
 				XBeeRF.SendTimeBroadcast();
+#endif //SG_STATION_MASTER
 			}
 			else if( (tick_counter%10) == 6 )	// one-second block3
 			{
@@ -657,15 +664,19 @@ void mainLoop()
 	   }
 
         
+#ifdef HW_ENABLE_ETHERNET
         //  See if any web clients have connected
         webServer.ProcessWebClients();
+#endif //HW_ENABLE_ETHERNET
 
         // Process any pending events.
         ProcessEvents();
 
 #ifdef ARDUINO
+#ifdef HW_ENABLE_ETHERNET
         // Process the TFTP Server
         tftpServer.Poll();
+#endif //HW_ENABLE_ETHERNET
 #else
         // if we've changed the settings, store them to disk
         EEPROM.Store();

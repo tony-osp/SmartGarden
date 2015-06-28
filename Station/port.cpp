@@ -16,9 +16,10 @@ static int serial_putchar(char c, FILE *stream)
 }
 
 
-void trace_setup(Stream &tser)
+void trace_setup(Stream &tser, unsigned long speed)
 {
-        _trace_serial = &tser;
+        Serial.begin(speed); 
+		_trace_serial = &tser;
         fdev_setup_stream(&serial, serial_putchar, NULL, _FDEV_SETUP_WRITE);
 		bSerialSetup = true;
 }

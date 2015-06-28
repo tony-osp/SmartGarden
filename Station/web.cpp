@@ -452,12 +452,12 @@ static void JSONState(const KVPairs & key_value_pairs, FILE * stream_file)
 	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
 	fprintf_P(stream_file,
 			PSTR("{\n\t\"version\" : \"%s\",\n\t\"run\" : \"%s\",\n\t\"zones\" : \"%d\",\n\t\"schedules\" : \"%d\",\n\t\"timenow\" : \"%lu\",\n\t\"events\" : \"%d\""),
-			VERSION, GetRunSchedules() ? "on" : "off", GetNumEnabledZones(), GetNumSchedules(), nntpTimeServer.LocalNow(), iNumEvents);
+			VERSION, GetRunSchedules() ? "on" : "off", GetNumEnabledZones(), GetNumSchedules(), now(), iNumEvents);
 	if (runState.isSchedule() || runState.isManual())
 	{
 		FullZone zone;
 		LoadZone(runState.getZone() - 1, &zone);
-		long time_check = runState.getEndTime() * 60L - (nntpTimeServer.LocalNow() - previousMidnight(nntpTimeServer.LocalNow()));
+		long time_check = runState.getEndTime() * 60L - (now() - previousMidnight(now()));
 		if (runState.isManual())
 			time_check = 99999;
 		fprintf_P(stream_file, PSTR(",\n\t\"onzone\" : \"%s\",\n\t\"offtime\" : \"%ld\""), zone.name, time_check);
@@ -565,7 +565,7 @@ static void ServeEventPage(FILE * stream_file)
 {
 	ServeHeader(stream_file, 200, PSTR("OK"), false);
 	freeMemory();
-	const time_t timeNow = nntpTimeServer.LocalNow();
+	const time_t timeNow = now();
 	fprintf_P(stream_file, PSTR("<h1>%d Events</h1><h3>%02d:%02d:%02d %d/%d/%d (%d)</h3>"), iNumEvents, hour(timeNow), minute(timeNow), second(timeNow),
 			year(timeNow), month(timeNow), day(timeNow), weekday(timeNow));
 	for (uint8_t i = 0; i < iNumEvents; i++)

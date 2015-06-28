@@ -575,6 +575,8 @@ bool SetSettings(const KVPairs & key_value_pairs)
                 else if (strcmp_P(key, PSTR("NTPoffset")) == 0)
                 {
                         SetNTPOffset(atoi(value));
+						nntpTimeServer.flagCheckTime();
+
                 }
                 else if (strcmp_P(key, PSTR("ot")) == 0)
                 {
@@ -618,8 +620,6 @@ void ResetEEPROM()
 	char buffer[bufferLen];			// Temp buffer for ini file processing. Must be big enough to hold one line
 	char		tmpb[16];			// worker buffer
 
-//	const char *filename = EEPROM_INI_FILE;	// predefiled INI file name
-
 	strcpy_P(buffer, PSTR(EEPROM_INI_FILE));	// to avoid wasting space use common buffer for the file name init
 	IniFile ini(buffer);
 
@@ -661,7 +661,7 @@ void ResetEEPROM()
 			SetIP(ip);
 		else 
 		{
-			SetIP(IPAddress(10, 0, 1, 35));		// default IP address
+			SetIP(IPAddress(10, 0, 1, 36));		// default IP address
 			retcode = false;
 		}
   
@@ -735,12 +735,16 @@ void ResetEEPROM()
 // Local channels
 
 		uint16_t	parChannels = 0;
-		if( ini.getValue_P(PSTR("LocalChannels"), PSTR("NumParallel"), buffer, bufferLen, parChannels) )
-			SetNumIOChannels(parChannels);
-		else
+#ifdef HW_ENABLE_SD
+		if( !ini.getValue_P(PSTR("LocalChannels"), PSTR("NumParallel"), buffer, bufferLen, parChannels) )
 		{
-			SetNumIOChannels(0);
+			parChannels = 0;
 		}
+#else
+		parChannels = LOCAL_NUM_DIRECT_CHANNELS;
+#endif //HW_ENABLE_SD
+		trace(F("LoadIniEEPROM - %d parallel channels\n"), parChannels );
+		SetNumIOChannels(parChannels);
 
 		if( parChannels > LOCAL_NUM_DIRECT_CHANNELS ) 
 		{
@@ -751,22 +755,31 @@ void ResetEEPROM()
 		if( parChannels != 0 ){
 
 			uint16_t	ioPin;
-			uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = {41, 40, 42, 43, 44, 45, 46, 47, 38, 37, 36, 35, 34, 33, 32, 31};
+			uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = PARALLEL_PIN_OUT_MAP;
 
+#ifdef HW_ENABLE_SD
 			for( int i=0; i<parChannels; i++ )
 			{
 				sprintf_P(tmpb, PSTR("Chan%d"), i+1);	// In ini file channels are numbered from 1
 				if( ini.getValue("ParallelIOMap", tmpb, buffer, bufferLen, ioPin) )
 					zoneToIOMap[i] = ioPin;
 			}
+#endif //HW_ENABLE_SD
+
 			SaveZoneIOMap( zoneToIOMap );
 
+#ifdef HW_ENABLE_SD
 			if( ini.getValue_P(PSTR("LocalChannels"), PSTR("ParallelPolarity"), buffer, bufferLen, tmpb, sizeof(tmpb)-1) )
 			{
 				if( strcmp_P(tmpb, PSTR("Negative")) == 0 )
 					SetOT(OT_DIRECT_NEG);		
 				else if( strcmp_P(tmpb, PSTR("Positive")) == 0 )
 					SetOT(OT_DIRECT_POS);		
+			}
+			else
+#endif //HW_ENABLE_SD
+			{
+				SetOT(OT_DIRECT_POS);		
 			}
 		}
 		
@@ -817,6 +830,7 @@ void ResetEEPROM()
 
 
 		uint16_t	numStations = 0;
+#ifdef HW_ENABLE_SD
 		if( ini.getValue_P(PSTR("Stations"), PSTR("NumStations"), buffer, bufferLen, numStations) )
 		{
 			if( numStations >= MAX_STATIONS )
@@ -826,6 +840,7 @@ void ResetEEPROM()
 			}
 		}
 		else
+#else //HW_ENABLE_SD
 		{
 			memset(&fullStation,0,sizeof(fullStation));
 			fullStation.stationFlags = STATION_FLAGS_VALID | STATION_FLAGS_ENABLED;
@@ -838,7 +853,11 @@ void ResetEEPROM()
 			SaveStation(0, &fullStation);	// save default station as #0
 
 			trace(F("No stations defined in the ini file, creating default station\n"));
+
+			numStations = 1;
+			goto hardcoded_station;
 		}
+#endif //HW_ENABLE_SD
 
 #ifdef VERBOSE_TRACE
 		trace(F("LoadIniEEPROM - numStations=%d\n"), numStations);
@@ -937,7 +956,9 @@ skip_Station:;
 				SetOT(OT_DIRECT_POS);		
 		}
 
-// Sensors definitions
+hardcoded_station:;
+		
+		// Sensors definitions
 		uint16_t	numSensors = 0;
 		SetNumSensors(0);	// initial default
 
@@ -1072,7 +1093,7 @@ skip_Sensor:;
 						zone.channel = j;
 						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), zoneIndex + 1, zone.stationID, zone.channel+1);
 						
-//						trace(F("Created zone %d, \"%s\"\n"), zoneIndex + 1, zone.name);
+//						trace(F("Created zone %d, \"%s\"\n"), (uint8_t)(zoneIndex + 1), zone.name);
 						
 						SaveZone(zoneIndex, &zone);
 						zoneIndex++;
@@ -1085,8 +1106,8 @@ skip_Sensor:;
 
 // Load XBee config
 
+#ifdef HW_ENABLE_SD
 		SetXBeeFlags(0);	// XBee disabled by default
-
 		if( ini.getValue_P(PSTR("XBee"), PSTR("Enabled"), buffer, bufferLen, tmpb, sizeof(tmpb)-1) )
 		{
 			if( !strcmp_P(tmpb, PSTR("Yes")) || !strcmp_P(tmpb, PSTR("yes")) ){
@@ -1114,6 +1135,14 @@ skip_Sensor:;
 					SetXBeeChan(NETWORK_XBEE_DEFAULT_CHAN);
 			}
 		}
+#else //HW_ENABLE_SD
+// XBee enabled by default
+		SetXBeeFlags(NETWORK_FLAGS_ENABLED);
+		SetXBeePort(NETWORK_XBEE_DEFAULT_PORT);
+		SetXBeePortSpeed(NETWORK_XBEE_DEFAULT_SPEED);
+		SetXBeePANID(NETWORK_XBEE_DEFAULT_PANID);
+		SetXBeeChan(NETWORK_XBEE_DEFAULT_CHAN);
+#endif //HW_ENABLE_SD
 
 		localUI.lcd_print_line_clear_pgm(PSTR("EEPROM reloaded"), 0);
 		localUI.lcd_print_line_clear_pgm(PSTR("Rebooting..."), 1);

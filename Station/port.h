@@ -14,7 +14,7 @@
 
 #ifdef ENABLE_TRACE
 
-void trace_setup(Stream &tser);
+void trace_setup(Stream &tser, unsigned long speed);
 void trace(const char * fmt, ...);
 void trace(const __FlashStringHelper * fmt, ...);
 

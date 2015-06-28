@@ -2,7 +2,7 @@
 
 Core SmartGarden Master controller file.
 
-This project was inspired by Ray's OpenSprinkler project, and by Sprinklers_pi program (Richard Zimmerman)
+This project was inspired by Ray's OpenSprinkler project, and by Sprinklers_pi program from Richard Zimmerman
 
 Some of the modules used in this project came from Sprinklers_pi code and are covered by Richard's (c),
 other parts of the code are written by Tony-osp (http://tony-osp.dreamwidth.org/)
@@ -10,6 +10,7 @@ other parts of the code are written by Tony-osp (http://tony-osp.dreamwidth.org/
 This particular file (MasterStation.ino) is written by Tony-osp.
 
 */
+#include "Defines.h"
 
 #include <SdVolume.h>
 #include <SdStream.h>
@@ -37,6 +38,7 @@ This particular file (MasterStation.ino) is written by Tony-osp.
 #include <Time.h>
 #include <SDFat.h>
 #include <LiquidCrystal.h>
+#include "LCD_C0220BiZ.h"
 #include "LocalUI.h"
 #include "sdlog.h"
 #include <SFE_BMP180.h>
@@ -47,19 +49,21 @@ This particular file (MasterStation.ino) is written by Tony-osp.
 #include <XBee.h>
 #include "XBeeRF.h"
 #include "port.h"
-#include "Defines.h"
 
 OSLocalUI localUI;
+//#ifdef HW_ENABLE_SD
 SdFat sd;
+//#endif //HW_ENABLE_SD
 
+#ifdef HW_ENABLE_ETHERNET
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xAD};
+#endif //HW_ENABLE_ETHERNET
 
 void	RegisterRemoteEvents(void);
 
 
 void setup() {
-    Serial.begin(115200); 
-	trace_setup(Serial);
+	trace_setup(Serial, 115200);
     
 	trace(F("Start!\n"));
 
@@ -71,7 +75,9 @@ void setup() {
 //		 To get around this dependency we initialize Ethernet with a dummy address and initialize SD card. 
 //		 Anyway after EEPROM reset we will have to reboot the controller.
 
+#ifdef HW_ENABLE_ETHERNET
 		Ethernet.begin(mac, IPAddress(1,1,1,2), INADDR_NONE, IPAddress(1,1,1,1), IPAddress(255,255,255,0));
+#ifdef HW_ENABLE_SD
 		if (!sd.begin(4, SPI_HALF_SPEED)) 
 		{
 			trace(F("Could not Initialize SDCard"));
@@ -80,17 +86,32 @@ void setup() {
 			delay(10000);
 			sysreset();
 		}
+#endif //HW_ENABLE_SD
+#endif //HW_ENABLE_ETHERNET
 		ResetEEPROM();	// note: ResetEEPROM will also reset the controller.
 	}
 
     localUI.lcd_print_line_clear_pgm(PSTR("XBee RF init..."), 1);
 	XBeeRF.begin();
 
-    localUI.lcd_print_line_clear_pgm(PSTR("Ethernet init..."), 1);
+#ifdef HW_ENABLE_ETHERNET
+
+	pinMode(SS, OUTPUT); digitalWrite(SS, HIGH);	// prep SDI port and turn Off Moteino Mega receiver (it is sitting on SS)
+	pinMode(SD_SS, OUTPUT); digitalWrite(SD_SS, HIGH);
+	pinMode(W5500_SS, OUTPUT); digitalWrite(W5500_SS, HIGH);
+
+	localUI.lcd_print_line_clear_pgm(PSTR("Ethernet init..."), 1);
 	// start the Ethernet connection and the server:
     Ethernet.begin(mac, GetIP(), INADDR_NONE, GetGateway(), GetNetmask());
+	trace(F("Assigned IP:")); Serial.println(Ethernet.localIP());
+#endif //HW_ENABLE_ETHERNET
 
+#ifdef HW_ENABLE_SD
+#ifdef SD_USE_CUSOM_SS
+	if (!sd.begin(SD_SS, SPI_HALF_SPEED)) 
+#else //SD_USE_CUSOM_SS
 	if (!sd.begin(4, SPI_HALF_SPEED)) 
+#endif //SD_USE_CUSOM_SS
 	{
 		trace(F("Could not Initialize SDCard\n"));
 	}
@@ -98,6 +119,7 @@ void setup() {
 	{
 		trace(F("SDCard init success\n"));
 	}
+#endif //HW_ENABLE_SD
 
 	RegisterRemoteEvents();
 

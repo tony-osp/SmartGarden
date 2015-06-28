@@ -16,7 +16,9 @@ public:
 	~nntp(void);
 	time_t LocalNow();
 	void checkTime();
-        uint8_t GetNetworkStatus();
+    uint8_t GetNetworkStatus();
+	void flagCheckTime(void);
+
         
 private:
 	time_t m_nextSyncTime;
