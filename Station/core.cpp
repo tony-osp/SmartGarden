@@ -593,8 +593,8 @@ void mainLoop()
 
 #ifdef ARDUINO
                 //Init the TFTP server
-				trace(F("Skipping TFPT\n"));
-//                tftpServer.Init();
+//				trace(F("Skipping TFPT\n"));
+                tftpServer.Init();
 #endif
                 // Set the clock.
 //				trace(F("Skipping NNTP time\n"));
