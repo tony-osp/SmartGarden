@@ -24,7 +24,9 @@ void W5500Class::init(void)
     delay(300);
     SPI.begin();
 
-//    writeMR(1<<RST);    // SmartGarden - experimental fix for W5500 reset issue
+	SPI.detachInterrupt();	// SmartGarden - experimental, to check if it fixes issues that seems to be related to interrupts.
+    writeMR(1<<RST);		// SmartGarden - experimental fix for W5500 reset issue on Arduino soft-reboot
+	delay(300);				//
 
 
     for (int i=0; i<MAX_SOCK_NUM; i++) {

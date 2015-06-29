@@ -334,10 +334,10 @@ private:
 private:
 #if defined(W5500_USE_CUSOM_SS)
 
-  inline static void initSS()    { pinMode(W5500_SS, OUTPUT); \
+  inline static void initSS()   { pinMode(W5500_SS, OUTPUT); \
                                    digitalWrite(W5500_SS, HIGH); };
-  inline static void setSS()     { digitalWrite(W5500_SS, LOW); };
-  inline static void resetSS()   { digitalWrite(W5500_SS, HIGH); };
+inline static void setSS()		{ PORTB &= ~_BV(1); };
+inline static void resetSS()	{ PORTB |=  _BV(1); };
 
 #elif defined(REL_GR_KURUMI) || defined(REL_GR_KURUMI_PROTOTYPE)
   inline static void initSS()    { pinMode(SS, OUTPUT); \
