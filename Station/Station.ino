@@ -108,7 +108,7 @@ void setup() {
 
 #ifdef HW_ENABLE_SD
 #ifdef SD_USE_CUSOM_SS
-	if (!sd.begin(SD_SS, SPI_HALF_SPEED)) 
+	if (!sd.begin(SD_SS, SPI_FULL_SPEED)) 
 #else //SD_USE_CUSOM_SS
 	if (!sd.begin(4, SPI_HALF_SPEED)) 
 #endif //SD_USE_CUSOM_SS
