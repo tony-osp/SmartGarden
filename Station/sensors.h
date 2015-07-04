@@ -73,10 +73,10 @@ public:
 
 	int				Temperature;		// latest known readings
 	int				Humidity;
+	SensorStruct	SensorsList[MAX_SENSORS];
 
 private:
 
-	SensorStruct	SensorsList[MAX_SENSORS];
 	int				pollMinutesCounter;    
 	byte			fPollRemote;
 	uint8_t			numStationsToPoll;

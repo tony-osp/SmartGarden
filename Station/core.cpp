@@ -17,6 +17,7 @@
 #include "sensors.h"
 #include "XBeeRF.h"
 #include "localUI.h"
+#include "RProtocolMS.h"
 #ifdef ARDUINO
 #include "tftp.h"
 static tftp tftpServer;
@@ -257,6 +258,27 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 //
 bool runStateClass::RemoteStartZone(int iSchedule, uint8_t stationID, uint8_t channel, uint8_t time2run )
 {
+	StartZoneWorker( iSchedule, stationID, channel, time2run );
+}
+
+//
+// Start individual zone. Technically it is done by creating quick schedule.
+//
+bool runStateClass::StartZone(int iSchedule, uint8_t stationID, uint8_t channel, uint8_t time2run )
+{
+	if( StartZoneWorker(iSchedule, stationID, channel, time2run) )
+	{
+		if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
+			rprotocol.SendZonesReport(0, stationID, GetEvtMasterStationID(), 0, GetNumZones());	// Note: this would work correctly only on Remote station, with only one station defined
+	}
+}
+//
+// Start individual zone. Technically it is done by creating quick schedule.
+//
+// Note: this is a local worker for this operation. remote Start/Stop don't send report to EvtMaster (for now we are assuming remote control is coming form the master)
+//
+bool runStateClass::StartZoneWorker(int iSchedule, uint8_t stationID, uint8_t channel, uint8_t time2run )
+{
 		uint8_t		ch;
 		{
 			ShortStation	sStation;
@@ -280,7 +302,7 @@ bool runStateClass::RemoteStartZone(int iSchedule, uint8_t stationID, uint8_t ch
 
         if( ActiveZoneNum() != -1 ){    // something is currently running, turn it off
 
-                runState.TurnOffZones();
+                runState.TurnOffZonesWorker();
                 runState.SetManual(false);
         }
 
@@ -300,11 +322,21 @@ bool runStateClass::RemoteStartZone(int iSchedule, uint8_t stationID, uint8_t ch
 
 void runStateClass::RemoteStopAllZones(void)
 {
-		TurnOffZones();
+		TurnOffZonesWorker();
         SetManual(false);
 }
 
 void runStateClass::TurnOffZones()
+{
+		TurnOffZonesWorker();
+		if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
+		{
+			rprotocol.SendZonesReport(0, GetMyStationID(), GetEvtMasterStationID(), 0, GetNumZones());	// Note: this would work correctly only on Remote station, with only one station defined
+//			trace(F("TurnOffZones - reporting event to Master\n"));
+		}
+}
+
+void runStateClass::TurnOffZonesWorker()
 {
         trace(F("Turning Off All Zones\n"));
 

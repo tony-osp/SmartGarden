@@ -101,20 +101,15 @@ inline uint16_t	getSingleSystemRegister(uint8_t regAddr)
 //
 //  Input - RProtocol address of the required register (addresses start from 0).
 //
-inline uint16_t		getSingleSensor(uint8_t regAddr)
+inline uint16_t		getSingleSensor(uint8_t sensorID)
 {
-	switch( regAddr )
+	if( sensorID >= GetNumSensors() ) 
 	{
-		case MREGISTER_TEMP_SENSOR1:
-									return  sensorsModule.Temperature;
-	
-		case MREGISTER_HUMIDITY_SENSOR1:
-									return  sensorsModule.Humidity;
-	
-	default:
-			trace(F("getSingleSensorRegister - error, wrong register address %d\n"), regAddr);
-			return 0;
+		trace(F("getSingleSensorRegister - error, wrong sensorID %d\n"), sensorID);
+		return 0;
 	}
+
+	return sensorsModule.SensorsList[sensorID].lastReading;
 }
 
 //
@@ -288,7 +283,7 @@ bool RProtocolMaster::SendZonesReport(uint8_t transactionID, uint8_t fromUnitID,
 		LoadShortStation(fromUnitID, &sStation);	// load station information
 		if( sStation.stationFlags & STATION_FLAGS_ENABLED )
 		{
-			if( (firstZone+numZones) >= sStation.numZoneChannels )
+			if( (firstZone+numZones) > sStation.numZoneChannels )
 			{
 				trace(F("SendZonesReport - wrong zones input parameters\n"));
 				return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
@@ -318,13 +313,15 @@ bool RProtocolMaster::SendZonesReport(uint8_t transactionID, uint8_t fromUnitID,
 
 bool RProtocolMaster::SendSensorsReport(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t firstSensor, uint8_t numSensors)
 {
-	if( ((firstSensor+numSensors) > MODBUSMAP_SENSORS_MAX) || (numSensors < 1) )
+	if( ((firstSensor+numSensors) > GetNumSensors()) || (numSensors < 1) )
 	{
-		trace(F("SendSensorsReport - wrong input parameters\n"));
+		trace(F("SendSensorsReport - wrong input parameters, firstSensor=%d, numSensors=%d\n"), uint16_t(firstSensor), uint16_t(numSensors));
 		return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
 	}
+	
+//	trace(F("Sending sensors data to station %d\n"), uint16_t(toUnitID));
 
-	uint8_t		outbuf[sizeof(RMESSAGE_SENSORS_REPORT)+(MODBUSMAP_SENSORS_MAX-1)*2];
+	uint8_t		outbuf[sizeof(RMESSAGE_SENSORS_REPORT)+(MAX_SENSORS-1)*2];
 	RMESSAGE_SENSORS_REPORT *pReportMessage = (RMESSAGE_SENSORS_REPORT*) outbuf;
 
 	pReportMessage->Header.ProtocolID = RPROTOCOL_ID;
@@ -943,6 +940,117 @@ inline void MessageTimeBroadcast( void *ptr )
 	nntpTimeServer.SetLastUpdateTime();
 }
 
+//
+//	packets processing routines - Read EvtMaster Status
+//
+//	Input - pointer to the input packet (packet includes header)
+// 			It is assumed that basic input packet structure is already validated
+//
+//			Second parameter is the sender network address, it will be used to send response.
+//	
+//	The routine will process input, execute required action(s), and will generate output packet
+//	using common helpers
+//
+//	read EvtMaster registration status expects to receive no parameters in the Data area.
+//
+inline void MessageEvtMasterRead( void *ptr )
+{
+	register RMESSAGE_EVTMASTER_READ	*pMessage = (RMESSAGE_EVTMASTER_READ *)ptr;
+
+// no parameters
+
+	rprotocol.SendEvtMasterReport(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID);
+}
+
+//
+//	packets processing routines - Set EvtMaster Status
+//
+//	Input - pointer to the input packet (packet includes header)
+// 			It is assumed that basic input packet structure is already validated
+//
+//			Second parameter is the sender network address, it will be used to send response.
+//	
+//	The routine will process input, execute required action(s), and will generate output packet
+//	using common helpers
+//
+//
+inline void MessageEvtMasterSet( void *ptr )
+{
+	register RMESSAGE_EVTMASTER_SET	*pMessage = (RMESSAGE_EVTMASTER_SET *)ptr;
+
+	// parameters length check
+	if( pMessage->Header.Length != (sizeof(RMESSAGE_EVTMASTER_SET) - sizeof(RMESSAGE_HEADER)) )
+	{
+		trace(F("MessageEvtMasterSet - bad parameters length\n"));
+		return;		
+	}
+	
+// OK, parameters are valid. Execute action and send response
+
+//	trace(F("MessageEvtMasterSet - Setting EvtMaster, stationID=%d\n"), uint8_t(pMessage->Header.FromUnitID));
+
+	SetEvtMasterFlags(pMessage->EvtFlags);
+	if( pMessage->EvtFlags & EVTMASTER_FLAGS_REGISTER_SELF )	// flag indicating that we should register sender of this message as the master
+	{
+		SetEvtMasterStationID(pMessage->Header.FromUnitID);
+//		SetEvtMasterStationAddress(netAddress);
+	}
+	else
+	{
+		SetEvtMasterStationID(pMessage->MasterStationID);
+//		SetEvtMasterStationAddress(pMessage->MasterStationAddress);
+	}
+
+	// All done, check the type of response requested and send response.
+
+	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_BRIEF ) 
+		rprotocol.SendOKResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode);
+
+	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_REPORT ) 
+		rprotocol.SendEvtMasterReport(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID);
+}
+
+//
+//	RProtocol packets processing routines - FCODE_SENSORS_READ
+//
+//	Input - pointer to the input packet 
+// 			and sender network address
+//	
+//	The routine will process input, execute required action(s), and will generate output packet
+//	using common helpers
+//
+//
+inline void MessageSensorsRead( void *ptr )
+{
+	register RMESSAGE_SENSORS_READ	*pMessage = (RMESSAGE_SENSORS_READ *)ptr;
+
+	// parameters length check
+	if( pMessage->Header.Length != (sizeof(RMESSAGE_SENSORS_READ)-sizeof(RMESSAGE_HEADER)) )
+	{
+		trace(F("MessageSensorsRead - bad parameters length\n"));
+		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
+	}
+
+	if( (pMessage->FirstSensor == 0) && (pMessage->NumSensors == 0x0FF) )	// check for the special "magic" value of 0xFF, which means "read all sensors"
+		pMessage->NumSensors = GetNumSensors();
+
+// Parameters validity check. 
+
+	if( (pMessage->FirstSensor+pMessage->NumSensors) > GetNumSensors() )
+	{
+		trace(F("MessageSensorsRead - wrong input parameters\n"));
+	
+		rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
+		return;																										// unit ID, Exception Code=2 (Illegal Data Address)
+	}
+// OK, parameters are valid. Get the data and send response
+
+	rprotocol.SendSensorsReport(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->FirstSensor, pMessage->NumSensors);
+
+	return;
+}
+
+
 
 // Process new data frame coming from the network
 // ptr			- pointer to the data block,
@@ -1033,6 +1141,18 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 				case FCODE_ZONES_SET:	
 								MessageZonesSet( ptr );
 								break;
+
+				case FCODE_EVTMASTER_READ:
+								MessageEvtMasterRead( ptr );
+								break;
+
+				case FCODE_EVTMASTER_SET:
+								MessageEvtMasterSet( ptr );
+								break;
+				case FCODE_SENSORS_READ:	
+								MessageSensorsRead( ptr );
+								break;
+	
 #endif //SG_STATION_SLAVE	
 
 				default: 

@@ -9,8 +9,7 @@
 #include <EEPROM.h>
 #include <Ethernet.h>
 
-#define ENABLE_TRACE 1
-
+#include "Defines.h"
 
 #ifdef ENABLE_TRACE
 

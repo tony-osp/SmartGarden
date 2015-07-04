@@ -24,6 +24,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include <SFE_BMP180.h>
 #include <Wire.h>
 #include "XBeeRF.h"
+#include "RProtocolMS.h"
 
 // external reference
 extern Logging sdlog;
@@ -138,7 +139,7 @@ void Sensors::poll_MinTimer(void)
 
 	if( nPoll < numStationsToPoll  )			// we will poll remote sensors next minute after the local sensors. Signal to poll remote sensors will be set by the poll minutes counter logic above.
 	{
-		if( stationsToPollList[nPoll] == 0 )	// poll local sensors
+		if( stationsToPollList[nPoll] == GetMyStationID() )	// poll local sensors
 		{
 // Local sensors
 
@@ -153,8 +154,8 @@ void Sensors::poll_MinTimer(void)
 				}
 				else
 				{
-					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_TEMPERATURE1, temperature );	
-					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_PRESSURE1, pressure );	
+					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_BMP180_TEMPERATURE, temperature );	
+					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_BMP180_PRESSURE, pressure );	
 				}
 			}
 #endif  //   SENSOR_ENABLE_BMP180
@@ -170,14 +171,19 @@ void Sensors::poll_MinTimer(void)
 				if( isnan(t) || isnan(h) )
 				{
 					trace(F("Failure reading temperature or humidity from DHT.\n"));
+
+//					// debugging - temporary hardcode some value here
+//					temp = 10; hum = 20;
+// 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_DHT_TEMPERATURE, temp );	
+// 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_DHT_HUMIDITY, hum );	
 				}
 				else
 				{
 					temp = (int) (dht_sensor.convertCtoF(t) + 0.5);      // convert to int with rounding
 					hum = (int) (h + 0.5);
 
- 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_TEMPERATURE2, temp );	
- 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_HUMIDITY1, hum );	
+ 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_DHT_TEMPERATURE, temp );	
+ 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_DHT_HUMIDITY, hum );	
 				}
 			}
 #endif  //   SENSOR_ENABLE_DHT
@@ -264,6 +270,10 @@ void Sensors::ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int
 				SensorsList[i].lastReading = sensorReading;
 				SensorsList[i].lastReadingTimestamp = millis();
 
+				if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SENSORS )
+				{
+					rprotocol.SendSensorsReport(0, GetMyStationID(), GetEvtMasterStationID(), i, 1);
+				}
 				sdlog.LogSensorReading( SensorsList[i].config.sensorType, (int)i, sensorReading );
 				return;
 			}

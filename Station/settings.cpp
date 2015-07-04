@@ -985,9 +985,69 @@ hardcoded_station:;
 			}
 		}
 
+#ifndef HW_ENABLE_SD
+		{
+			uint8_t			sensID = 0;
+
+#ifdef SENSOR_ENABLE_DHT
+			{
+				FullSensor  fullSens;
+
+				fullSens.sensorType = SENSOR_TYPE_TEMPERATURE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_DHT_TEMPERATURE;
+				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_DHT_TEMPERATURE);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+
+				fullSens.sensorType = SENSOR_TYPE_HUMIDITY;
+				fullSens.sensorChannel = SENSOR_CHANNEL_DHT_HUMIDITY;
+				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_DHT_HUMIDITY);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+			}
+#endif // SENSOR_ENABLE_DHT
+
+#ifdef SENSOR_ENABLE_BMP180
+			{
+				FullSensor  fullSens;
+
+				fullSens.sensorType = SENSOR_TYPE_TEMPERATURE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_BMP180_TEMPERATURE;
+				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_BMP180_TEMPERATURE);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+
+				fullSens.sensorType = SENSOR_TYPE_PRESSURE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_BMP180_PRESSURE;
+				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_BMP180_PRESSURE);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+			}
+#endif // SENSOR_ENABLE_BMP180
+
+			SetNumSensors(sensID);
+#ifdef VERBOSE_TRACE
+			trace(F("LoadIniEEPROM - saved %d sensors\n"), sensID);
+#endif
+		}
+#else // HW_ENABLE_SD
+
 #ifdef VERBOSE_TRACE
 		trace(F("numSensors=%d\n"), numSensors);
 #endif
+
 		if( numSensors != 0 )	// We have at least one Sensor defined in the ini file
 		{
 
@@ -1081,6 +1141,7 @@ skip_Sensor:;
 			trace(F("LoadIniEEPROM - saved %d sensors\n"), sensID);
 #endif
 		}
+#endif // HW_ENABLE_SD
 
 // Now let's iterate through Stations and fill in Zones list
 

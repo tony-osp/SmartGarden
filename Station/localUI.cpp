@@ -237,7 +237,7 @@ byte OSLocalUI::callHandler(byte needs_refresh)
 
    if( forceRefresh == 2 ){     // entering this Mode
 
-     display_board = 0;         // set initial view to board 0;
+     display_board = GetMyStationID();         // set initial view to board 0;
    }
 
    char btn = get_button_async(0);
@@ -425,7 +425,8 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
 
 //					trace(F("Starting manual. Display_board %d, channel %d, zone %d, number of minutes %d\n"), display_board, sel_manual_ch, sel_manual_ch+sStation.startZone, num_min);
 
-					manual_station_on((byte)(sel_manual_ch+sStation.startZone), num_min);        // start required station in manual mode for num_min only if required time is != 0
+					runState.StartZone(100, display_board, sel_manual_ch, num_min );			// start required station in manual mode for num_min only if required time is != 0
+//					manual_station_on((byte)(sel_manual_ch+sStation.startZone), num_min);        // start required station in manual mode for num_min only if required time is != 0
                 }
                 set_mode( OSUI_MODE_HOME ); // Manual watering started, exit current UI mode changing it to HOME
                 return true;
