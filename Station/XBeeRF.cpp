@@ -11,7 +11,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include <XBee.h>
 #include "settings.h"
 #include "port.h"
-#include "RProtocolMaster.h"
+#include "RProtocolMS.h"
 
 
 //// Global core XBee object
@@ -86,13 +86,6 @@ void XBeeRFClass::begin()
 
 	trace(F("Setting XBeeAddr: %X, PANID:%X, Chan:%X\n"), GetXBeeAddr(), GetXBeePANID(), (int)GetXBeeChan() );
 
-#ifndef XBEE_TYPE_PRO900		// Pro 900 does not support MY addressing command
-	if( !sendAtCommandParam(PSTR("MY"), GetXBeeAddr()) )
-	{
-		trace(F("XBee init - failed to set Xbee Addr\n"));
-		goto failed_ex1;
-	}
-#endif
 	if( !sendAtCommandParam(PSTR("ID"), GetXBeePANID()) )
 	{
 		trace(F("XBee init - failed to set Xbee PAN ID\n"));
@@ -431,9 +424,7 @@ bool XBeeARPUpdate(uint8_t nStation, uint8_t *pNetAddress)
 //
 
 
-#ifdef XBEE_TYPE_PRO900	
-// For XBee Pro 900 we cannot use 16bit addressing, but 64bit addressing is tricky. It is impractical to pre-configure 
-//   64bit addresses, and it is not possible to set 64bit address - it is hardcoded in Xbee module.
+// It is impractical to pre-configure 64bit addresses, and it is not possible to set 64bit address - it is hardcoded in Xbee module.
 //
 // Instead, we are using dynamic discovery. First we send the packet using broadcast mode, relying on the RProtocol stack to filter out right packets,
 //   and once remote station responds - we cache its 64bit address in arpTable and will subsequently use the cached 64bit address for directed send. 
@@ -487,39 +478,6 @@ bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 
 	return true;
 }
-
-#else  //Regular (2.4GHz XBee)
-// For regular XBee we can use basic 16bit addressing
-
-bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
-{
-	if( !XBeeRF.fXBeeReady )	// check that XBee is initialized and ready
-		return false;
-
-	trace(F("XBee - sending packet to station %d, len %u\n"), nStation, (unsigned int)mSize);
-
-//	Tx16Request tx = Tx16Request(netAddress, (uint8_t *)msg, mSize);	
-	static Tx16Request tx = Tx16Request();						// pre-allocated, static objects to avoid dynamic memory issues
-	static TxStatusResponse txStatus = TxStatusResponse();
-
-	tx.setAddress16(nStation);								// since our XBee objects are pre-allocated, set parameters on the existing objects
-	tx.setPayload((uint8_t *)msg);
-	tx.setPayloadLength(mSize);
-
-	XBeeRF.frameIDCounter++;	// increment rolling counter
-//	tx.setFrameId(XBeeRF.frameIDCounter);
-	tx.setFrameId(0);			// set FrameID to 0, which means that XBee will not give us TX confirmation response.
-
-    xbee.send(tx);
-
-//	freeMemory();
-
-// We don't read XBee resonse here, instead response is delivered to the common receive routine (together with incoming data packets).
-
-	return true;
-}
-
-#endif  //XBEE_TYPE_PRO900
 
 
 // Mail XBee loop poller. loop() should be called frequently, to allow processing of incoming packets

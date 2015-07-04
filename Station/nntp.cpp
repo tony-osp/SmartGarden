@@ -9,7 +9,8 @@
 #include <Arduino.h>
 #include <EthernetUdp.h>
 
-static uint8_t cNntpSync = 0;
+//static uint8_t cNntpSync = 0;
+static unsigned long		tLastSync = millis()-DEFAULT_MAX_OFFLINE_TDELTA;		// reset timestamp of the last sync time
 
 nntp::nntp(void) : m_nextSyncTime(0)
 {
@@ -22,9 +23,17 @@ nntp::~nntp(void)
 
 byte nntp::GetNetworkStatus(void)
 {
-	if( cNntpSync > 0 )return true;
-	else               return false;
+	if( (millis()-tLastSync) < DEFAULT_MAX_OFFLINE_TDELTA)
+		return true;
+	else
+		return false;
 }
+
+void nntp::SetLastUpdateTime(void)
+{
+	tLastSync  = millis();
+}
+
 
 #ifdef HW_ENABLE_ETHERNET
 // NTP time stamp is in the first 48 bytes of the message
@@ -56,11 +65,11 @@ static unsigned long sendNTPpacket(EthernetUDP & Udp, const IPAddress& address, 
 
 static unsigned long getNtpTime()
 {
-	trace(F("Syncing Time\n"));
+//	trace(F("Syncing Time\n"));
 	EthernetUDP Udp;
     if (!Udp.begin(8888))
 	{
-        trace(F("No Sockets Available!\n"));
+        trace(F("getNtpTime: No Sockets Available!\n"));
 		return 0;
 	}
 	byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets 
@@ -89,10 +98,12 @@ static unsigned long getNtpTime()
 			// subtract seventy years:
 			unsigned long epoch = secsSince1900 - seventyYears;  
 			// print Unix time:
-			trace(F("Unix time = %lu\n"), epoch);
+//			trace(F("Unix time = %lu\n"), epoch);
 			Udp.stop();
-                        cNntpSync = 5;		// Success. Set counter.
-											// Note: we allow up to 5 NNTP errors before flagging it as a lost connectivity
+
+			tLastSync  = millis();			// save last update timestamp (in millis)
+//                        cNntpSync = 5;		// Success. Set counter.
+//											// Note: we allow up to 5 NNTP errors before flagging it as a lost connectivity
 
 			return epoch;                        
 		}
@@ -105,8 +116,8 @@ static unsigned long getNtpTime()
 			sendNTPpacket(Udp, GetGateway(), packetBuffer, 9990);  // 9990 is a random port.
 			Udp.stop();
 
-                        if( cNntpSync > 0 )		// NNTP sync failure. Decrease the counter.
-							cNntpSync--;
+//                        if( cNntpSync > 0 )		// NNTP sync failure. Decrease the counter.
+//							cNntpSync--;
 
 			return 0;
 		}
@@ -114,22 +125,20 @@ static unsigned long getNtpTime()
 	}
 }
 
-time_t nntp::LocalNow()
-{
-	return now() + GetNTPOffset()*3600;
-}
-
 
 void nntp::checkTime()
 {
-	if(m_nextSyncTime <= now()){
+	if( (millis()-tLastSync) > (DEFAULT_MAX_OFFLINE_TDELTA/5UL) ){
+
+//	if(m_nextSyncTime <= now()){
 		time_t t = getNtpTime();
 		if( t != 0)
 		{
 			t += GetNTPOffset()*3600;
 			setTime(t);
 		}
-		m_nextSyncTime = now() + 300; //  300 = every 5 minutes
+//		m_nextSyncTime = now() + 300; //  300 = every 5 minutes
+		tLastSync = millis();
 	}  
 }
 

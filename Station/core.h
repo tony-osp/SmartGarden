@@ -84,6 +84,8 @@ public:
 	void TurnOnZone(uint8_t nZone, uint8_t ttr);
 	void TurnOffZone(uint8_t nZone);
 	void TurnOffZones();
+	void RemoteStopAllZones(void);
+	bool RemoteStartZone(int iSchedule, uint8_t stationID, uint8_t channel, uint8_t time2run );
 
 	void ReportZoneStatus(uint8_t stationID, uint8_t channel, uint8_t z_status);
 	void ReportStationZonesStatus(uint8_t stationID, uint8_t z_status);

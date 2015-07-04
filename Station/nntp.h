@@ -6,17 +6,17 @@
 
 #pragma once
 #include <Time.h>
-#include <DateTime.h>
-#include <DateTimeStrings.h>
+//#include <DateTime.h>
+//#include <DateTimeStrings.h>
 
 class nntp
 {
 public:
 	nntp(void);
 	~nntp(void);
-	time_t LocalNow();
 	void checkTime();
     uint8_t GetNetworkStatus();
+	void SetLastUpdateTime(void);
 	void flagCheckTime(void);
 
         

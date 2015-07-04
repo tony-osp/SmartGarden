@@ -71,6 +71,9 @@ public:
 
 // Data
 
+	int				Temperature;		// latest known readings
+	int				Humidity;
+
 private:
 
 	SensorStruct	SensorsList[MAX_SENSORS];
@@ -81,7 +84,6 @@ private:
 	uint8_t			nPoll;
     
 	void			poll_MinTimer(void);
-
 };
 
 extern Sensors sensorsModule;

@@ -52,6 +52,15 @@ public:
 
 				void	SendTimeBroadcast(void);
 
+// Client routines
+				bool SendZonesReport(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t firstZone, uint8_t numZones);
+				bool SendSensorsReport(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t firstSensor, uint8_t numSensors);
+				bool SendSystemRegisters(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t firstRegister, uint8_t numRegisters);
+				bool SendEvtMasterReport(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID);
+				bool SendPingReply(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint32_t cookie);
+				bool SendOKResponse(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t FCode);
+				bool SendErrorResponse(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t fCode, uint8_t errorCode);
+
 
 private:
 // transport callback, will be populated by the caller beforehand.
@@ -63,7 +72,7 @@ private:
 // Modbus holding registers area size
 //
 // Currently we support up to 8 zones (can be changed if necessary)
-#define         MODBUSMAP_HOLDING_MAX   (MREGISTER_ZONE_COUNTDOWN + 8)
+#define         MODBUSMAP_SYSTEM_MAX   (MREGISTER_ZONE_COUNTDOWN + 8)
 
 extern RProtocolMaster rprotocol;
 

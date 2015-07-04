@@ -331,6 +331,17 @@ void SetXBeeAddr(uint16_t addr)
 	EEPROM.write(ADDR_NETWORK_XBEE_ADDR16+1, addrh);
 }
 
+uint8_t GetMyStationID(void)
+{
+	return EEPROM.read(ADDR_MY_STATION_ID);
+}
+
+void SetMyStationID(uint8_t stationID)
+{
+	EEPROM.write(ADDR_MY_STATION_ID, stationID);
+}
+
+
 
 // Decode an IP address in dotted decimal format.
 static IPAddress decodeIP(const char * value)
@@ -643,6 +654,8 @@ void ResetEEPROM()
                 EEPROM.write(i, sHeader[i]);
         
 		SetNumSchedules(0);
+		SetEvtMasterFlags(0);
+		SetEvtMasterStationID(0);
 
 // Validate ini file to ensure we can successfully read it (check max string length)
 
@@ -843,14 +856,15 @@ void ResetEEPROM()
 #else //HW_ENABLE_SD
 		{
 			memset(&fullStation,0,sizeof(fullStation));
-			fullStation.stationFlags = STATION_FLAGS_VALID | STATION_FLAGS_ENABLED;
+			fullStation.stationFlags = STATION_FLAGS_VALID | STATION_FLAGS_ENABLED | STATION_FLAGS_RSTATUS | STATION_FLAGS_RCONTROL;
 			fullStation.networkID = DEFAULT_STATION_NETWORK_TYPE;
 			fullStation.networkAddress = DEFAULT_STATION_NETWORK_ADDRESS;
 			fullStation.numZoneChannels = DEFAULT_STATION_NUM_ZONES;
 
-			sprintf_P(fullStation.name, PSTR("Station 1"));
+			sprintf_P(fullStation.name, PSTR("Default Station"));
 
-			SaveStation(0, &fullStation);	// save default station as #0
+			SaveStation(DEFAULT_STATION_ID, &fullStation);	// save default station as #0
+			SetMyStationID(DEFAULT_STATION_ID);
 
 			trace(F("No stations defined in the ini file, creating default station\n"));
 
@@ -1415,6 +1429,37 @@ uint8_t GetNumStations(void)
 
 	return numS;
 }
+
+uint16_t GetEvtMasterFlags(void)
+{
+	uint16_t flags;
+
+	flags = EEPROM.read(ADDR_EVTMASTER_FLAGS+1) << 8;
+	flags += EEPROM.read(ADDR_EVTMASTER_FLAGS);
+
+	return flags;
+}
+
+uint8_t  GetEvtMasterStationID(void)
+{
+	return EEPROM.read(ADDR_EVTMASTER_STATIONID);
+}
+
+void SetEvtMasterFlags(uint16_t flags)
+{
+	uint8_t flagsH = flags >> 8;
+	uint8_t flagsL = flags & 0x0FF;
+
+	EEPROM.write(ADDR_EVTMASTER_FLAGS+1, flagsH);
+	EEPROM.write(ADDR_EVTMASTER_FLAGS, flagsL);
+}
+
+void SetEvtMasterStationID(uint8_t stationID)
+{
+	EEPROM.write(ADDR_EVTMASTER_STATIONID, stationID);
+}
+
+
 
 Schedule quickSchedule;
 

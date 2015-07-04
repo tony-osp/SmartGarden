@@ -25,6 +25,10 @@ static tftp tftpServer;
 #include <unistd.h>
 #endif
 
+// Local forward declarations
+void ProcessEvents();
+
+
 // Core modules
 
 #ifdef LOGGING
@@ -246,6 +250,59 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 		}
 }
 
+//
+// Start individual zone. Technically it is done by creating quick schedule.
+//
+// Note: remote Start/Stop don't send report to EvtMaster (for now we are assuming remote control is coming form the master)
+//
+bool runStateClass::RemoteStartZone(int iSchedule, uint8_t stationID, uint8_t channel, uint8_t time2run )
+{
+		uint8_t		ch;
+		{
+			ShortStation	sStation;
+
+			LoadShortStation(stationID, &sStation);
+
+			if( !(sStation.stationFlags & STATION_FLAGS_ENABLED) || !(sStation.stationFlags & STATION_FLAGS_VALID) )
+				return false;
+
+			if( channel > sStation.numZoneChannels )
+				return false;
+
+			ch = sStation.startZone+channel;
+		}
+
+		uint8_t	n_zones = GetNumZones();
+        if( ch >= n_zones ) return	false;    // basic protection, ensure that required zone number is within acceptable range
+
+        // So, we first end any schedule that's currently running by turning things off then on again.
+        ReloadEvents();
+
+        if( ActiveZoneNum() != -1 ){    // something is currently running, turn it off
+
+                runState.TurnOffZones();
+                runState.SetManual(false);
+        }
+
+        for( uint8_t n=0; n<n_zones; n++ ){
+
+                quickSchedule.zone_duration[n] = 0;  // clear up QuickSchedule to zero out run time for all zones
+        }
+
+// set run time for required zone.
+//
+        quickSchedule.zone_duration[ch] = time2run;
+        LoadSchedTimeEvents(0, true);
+		ProcessEvents();
+
+		return true;
+}
+
+void runStateClass::RemoteStopAllZones(void)
+{
+		TurnOffZones();
+        SetManual(false);
+}
 
 void runStateClass::TurnOffZones()
 {
@@ -463,6 +520,8 @@ void LoadSchedTimeEvents(int8_t sched_num, bool bQuickSchedule)
         events[iNumEvents].data[2] = 0;
         iNumEvents++;
         runState.SetSchedule(true, bQuickSchedule?99:sched_num, &adj);
+
+		ProcessEvents();
 }
 
 void ClearEvents()
@@ -653,7 +712,8 @@ void mainLoop()
 			else if( (tick_counter%10) == 3 )	// one-second block2
 			{
 #ifdef SG_STATION_MASTER	// if this is Master station, send time broadcasts
-				XBeeRF.SendTimeBroadcast();
+				if( nntpTimeServer.GetNetworkStatus() )		// if we have reliable time data
+					XBeeRF.SendTimeBroadcast();				// broadcast time on RF network
 #endif //SG_STATION_MASTER
 			}
 			else if( (tick_counter%10) == 6 )	// one-second block3

@@ -147,6 +147,8 @@ struct ShortStation
 
 #define STATION_FLAGS_VALID  		1	// 1 - indicates that this Station structure is filled in and valid
 #define STATION_FLAGS_ENABLED		2	// 1 - indicates that this Station is enabled
+#define STATION_FLAGS_RSTATUS		4	// 1 - indicates that this station status could be queried remotely (via RF network)
+#define STATION_FLAGS_RCONTROL		8	// 1 - indicates that this station status could be queried remotely (via RF network)
 
 #define DEFAULT_STATION_NETWORK_TYPE	NETWORK_ID_LOCAL_PARALLEL
 #define DEFAULT_STATION_NETWORK_ADDRESS	0
@@ -201,6 +203,14 @@ void LoadSchedule(uint8_t num, Schedule * pSched);
 void LoadZone(uint8_t num, FullZone * pZone);
 void LoadShortZone(uint8_t index, ShortZone * pZone);
 
+uint16_t GetEvtMasterFlags(void);
+uint8_t  GetEvtMasterStationID(void);
+void SetEvtMasterFlags(uint16_t flags);
+void SetEvtMasterStationID(uint8_t stationID);
+uint8_t GetMyStationID(void);
+void SetMyStationID(uint8_t stationID);
+
+
 // IO maps and hardware channels
 
 void LoadZoneIOMap(uint8_t *ptr);
@@ -231,11 +241,6 @@ void LoadShortStation(uint8_t num, ShortStation *pStation);
 void SaveStation(uint8_t num, FullStation *pStation);
 void SaveShortStation(uint8_t num, ShortStation *pStation);
 uint8_t GetNumStations(void);
-
-inline uint8_t GetMyStationID(void)
-{
-	return MY_STATION_ID;
-}
 
 // Sensors
 void LoadSensor(uint8_t num, FullSensor *pSensor);

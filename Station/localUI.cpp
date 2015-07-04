@@ -536,7 +536,7 @@ void OSLocalUI::lcd_print_station(void) {
     lcd_print_pgm(PSTR("MC:"));  // Master controller is display as 'MC'
   }
   else {
-    lcd_print_pgm(PSTR("E"));
+    lcd_print_pgm(PSTR("S"));
     lcd.print((int)display_board, HEX);
     lcd_print_pgm(PSTR(":"));   // extension boards are displayed as E1, E2...
   }

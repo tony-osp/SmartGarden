@@ -33,7 +33,10 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define ADDR_OTYPE                              78
 #define ADDR_WEB                                79
 #define ADDR_SADJ                               81
-#define ADDR_PWS                                82
+#define ADDR_PWS                                82	// 11 bytes long field
+#define ADDR_MY_STATION_ID						95
+#define ADDR_EVTMASTER_FLAGS					96	// 2 bytes
+#define ADDR_EVTMASTER_STATIONID				98
 
 #define ADDR_NUM_OT_DIRECT_IO					100
 #define	ADDR_OT_DIRECT_IO						101		// Local direct IO map (positive or negative), maximum of 16 GPIO pins

@@ -12,13 +12,14 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 */
 
 
-#include "RProtocolMaster.h"
+#include "RProtocolMS.h"
 #include "core.h"
 #include "settings.h"
 #include "sensors.h"
 
 
 // Local forward declarations
+inline uint16_t		getSingleSensor(uint8_t regAddr);
 
 
 RProtocolMaster::RProtocolMaster()
@@ -41,6 +42,418 @@ void RProtocolMaster::RegisterARP(void *ptr)
 {
 	_ARPAddressUpdate = (PARPCallback)ptr;
 }
+
+// Local helper routines
+//
+// Helper funciton - read single holding register. 
+// This routine is used to get actual system data (represented in holding registers).
+//
+//  Input - RProtocol address of the required register (addresses start from 0).
+//
+inline uint16_t	getSingleSystemRegister(uint8_t regAddr)
+{
+	switch( regAddr )
+	{
+		case MREGISTER_STATION_TYPE:
+									return  DEFAULT_STATION_TYPE;
+	
+		case MREGISTER_HARDWARE_VERSION:
+									return  SG_HARDWARE;
+
+		case MREGISTER_FIRMWARE_VERSION:
+									return  SG_FIRMWARE_VERSION;
+	
+		case MREGISTER_SLAVE_ID:
+									return  GetMyStationID();
+	
+		case MREGISTER_PAN_ID:
+									return  GetXBeePANID();
+	
+		case MREGISTER_STATION_STATUS:
+									return   RPROTOCOL_STATUS_ENABLED;			
+	
+		case MREGISTER_TIMEDATE_LOW:
+									return   now() & 0xFFFF;
+	
+		case MREGISTER_TIMEDATE_HIGH:
+									return   (now()>>16) & 0xFFFF;
+	
+		case MREGISTER_MAX_DURATION:
+									return   DEFAULT_MAX_DURATION;
+	
+	default:
+			if( (regAddr >= MREGISTER_ZONE_COUNTDOWN) && (regAddr < (MREGISTER_ZONE_COUNTDOWN+ GetNumZones())) )
+			{
+			// this is request to read specific zone countdown counter
+			
+					return 0;		// stub for now
+			}
+			else	// default response
+			{
+					return 0;
+			}
+	}
+}
+
+//
+// Helper funciton - read single input register. 
+// This routine is used to get actual sensors (represented by input registers).
+//
+//  Input - RProtocol address of the required register (addresses start from 0).
+//
+inline uint16_t		getSingleSensor(uint8_t regAddr)
+{
+	switch( regAddr )
+	{
+		case MREGISTER_TEMP_SENSOR1:
+									return  sensorsModule.Temperature;
+	
+		case MREGISTER_HUMIDITY_SENSOR1:
+									return  sensorsModule.Humidity;
+	
+	default:
+			trace(F("getSingleSensorRegister - error, wrong register address %d\n"), regAddr);
+			return 0;
+	}
+}
+
+//
+//	packets processing routines - Read Zones Status
+//
+//	Input - pointer to the input packet (packet includes header)
+// 			It is assumed that basic input packet structure is already validated
+//
+//			Second parameter is the sender network address, it will be used to send response.
+//	
+//	The routine will process input, execute required action(s), and will generate output packet
+//	using common helpers
+//
+//	read zones status expects to receive two parameters in the Data area:
+//
+//		1.	First zone# to read
+//		2.	The total number of zones to read
+//
+inline void MessageZonesRead( void *ptr )
+{
+	register RMESSAGE_ZONES_READ	*pMessage = (RMESSAGE_ZONES_READ *)ptr;
+
+	// parameters length check
+	if( pMessage->Header.Length != (sizeof(RMESSAGE_ZONES_READ)-sizeof(RMESSAGE_HEADER)) )
+	{
+		trace(F("MessageZonesRead - bad parameters length\n"));
+		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
+	}
+	
+	if( pMessage->Header.ToUnitID >= MAX_STATIONS )
+	{
+			trace(F("MessageZonesRead - wrong station ID\n"));
+			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, FCODE_ZONES_READ, 2);
+			return;																					// unit ID, FCode=1 and Exception Code=2 (Illegal Data Address)
+	}
+	
+	{
+		ShortStation	sStation;
+		LoadShortStation(pMessage->Header.ToUnitID, &sStation);
+		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_RSTATUS) )
+		{
+			trace(F("MessageZonesRead - station is not valid or not enabled for remote query\n"));
+			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, FCODE_ZONES_READ, 2);
+			return;																					// unit ID, FCode=1 and Exception Code=2 (Illegal Data Address)
+		}
+		if( (pMessage->FirstZone == 0) && (pMessage->NumZones == 0x0FF) )		// check for the special "magic" number of 0x0FF, which means "read all zones"
+			pMessage->NumZones =  sStation.numZoneChannels;
+
+		if( ((pMessage->FirstZone+pMessage->NumZones) >  sStation.numZoneChannels) || (pMessage->NumZones < 1)  )
+		{
+			trace(F("MessageZonesRead - wrong data address or the number of zones to read\n"));
+	
+			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, FCODE_ZONES_READ, 2);		// send error response with the same transaction ID, 
+			return;																					// unit ID, FCode=1 and Exception Code=2 (Illegal Data Address)
+		}
+	}
+
+// OK, parameters are valid. Get the data and send response
+
+	rprotocol.SendZonesReport(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->FirstZone, pMessage->NumZones);
+	return;
+}
+
+//
+//	RProtocol packets processing routines - FCODE_ZONES_SET
+//
+//	Input - pointer to the input packet 
+// 			It is assumed that basic input packet structure is already validated
+//	
+//	The routine will process input, execute required action(s), and will generate output packet
+//	using common helpers
+//
+//	Expects to receive  parameters in the message:
+//
+//		1.	First zone 
+//		2.	New coil state to write (2 bytes). 0x00 means Off, other value means - minutes to run
+//
+inline void MessageZonesSet( void *ptr )
+{
+	register RMESSAGE_ZONES_SET	*pMessage = (RMESSAGE_ZONES_SET *)ptr;
+
+	// parameters length check
+	if( pMessage->Header.Length != (sizeof(RMESSAGE_ZONES_SET) - sizeof(RMESSAGE_HEADER)) )		// we assume that this station has no more than 8 zones, so zones flags will be in one byte
+	{
+		trace(F("MessageZonesSet - bad parameters length\n"));
+		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
+	}
+	
+// Parameters validity check. 
+
+	if( pMessage->Header.ToUnitID >= MAX_STATIONS )  //Check bounds
+	{
+		trace(F("MessageZonesSet - requested station number is outside of bounds\n"));
+	
+		rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
+		return;																						// unit ID, Exception Code=2 (Illegal Data Address)
+	}
+
+	{
+		ShortStation	sStation;
+
+		LoadShortStation(pMessage->Header.ToUnitID, &sStation);
+
+		if( !(sStation.stationFlags & STATION_FLAGS_ENABLED) || !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_RCONTROL) )
+		{
+			trace(F("MessageZonesSet - station %d is not enabled\n"), uint16_t(pMessage->Header.ToUnitID) );
+	
+			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
+			return;																						// unit ID, Exception Code=2 (Illegal Data Address)
+		}
+
+		if(	((pMessage->NumZones+pMessage->FirstZone) >  sStation.numZoneChannels) || (pMessage->NumZones < 1) )
+		{
+			trace(F("MessageZonesSet - wrong parameters. NumZones=%d, FirstZone=%d, numZoneChannels=%d\n"), uint16_t(pMessage->NumZones), uint16_t(pMessage->FirstZone), uint16_t(sStation.numZoneChannels) );
+	
+			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
+			return;																						// unit ID, Exception Code=2 (Illegal Data Address)
+		}
+	}
+
+// OK, parameters are valid. Execute action and send response
+
+	if( pMessage->Ttr == 0 ) 
+	{
+		runState.RemoteStopAllZones();	
+	}
+	else
+	{
+		for( uint8_t i=pMessage->FirstZone; i<(pMessage->FirstZone+pMessage->NumZones); i++ )
+		{
+			if( pMessage->ZonesData[0] & (1 << i) )
+				runState.RemoteStartZone(pMessage->ScheduleID, pMessage->Header.ToUnitID, i, pMessage->Ttr); 
+		}
+	}
+
+	// All done, check the type of response requested and send response.
+
+	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_BRIEF ) 
+		rprotocol.SendOKResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode);
+
+	if( pMessage->Flags & RMESSAGE_FLAGS_ACK_REPORT ) 
+		rprotocol.SendZonesReport(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->FirstZone, pMessage->NumZones);
+	
+	return;
+}
+
+
+// Helper routine - send Zones report
+
+bool RProtocolMaster::SendZonesReport(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t firstZone, uint8_t numZones)
+{		
+		if( fromUnitID >= MAX_STATIONS )
+		{
+			trace(F("SendZonesReport - wrong station number\n"));
+			return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
+		}
+	
+		RMESSAGE_ZONES_REPORT ReportMessage;
+
+		ReportMessage.Header.ProtocolID = RPROTOCOL_ID;
+		ReportMessage.Header.FCode = FCODE_ZONES_REPORT;
+		ReportMessage.Header.FromUnitID = fromUnitID;
+		ReportMessage.Header.ToUnitID = toUnitID;
+		ReportMessage.Header.TransactionID = transactionID;
+		ReportMessage.Header.Length = 4;	// we assume that we have no more than 8 zones, hence status data is 1 byte
+// Note: since currently we have no more than 8 zones in the Remote station, we hardcode response size
+
+		uint8_t	zonesStatus = 0;
+		ShortStation	sStation;
+
+		LoadShortStation(fromUnitID, &sStation);	// load station information
+		if( sStation.stationFlags & STATION_FLAGS_ENABLED )
+		{
+			if( (firstZone+numZones) >= sStation.numZoneChannels )
+			{
+				trace(F("SendZonesReport - wrong zones input parameters\n"));
+				return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
+			}
+
+			for( uint8_t pos=firstZone; pos<(firstZone+numZones); pos++ )
+			{
+				register uint8_t  zst = GetZoneState(1+pos+sStation.startZone);	// note zone number correction - zones are numbered from 1.
+
+				if( (zst == ZONE_STATE_RUNNING) || (zst == ZONE_STATE_STARTING) )
+				{
+					zonesStatus |= 1 << pos;
+				}
+			}
+		}
+
+		ReportMessage.StationFlags = ZONES_REPFLAG_STATION_ENABLED;
+		ReportMessage.FirstZone = firstZone;
+		ReportMessage.NumZones = numZones;
+		ReportMessage.ZonesData[0] = zonesStatus;
+
+		return _SendMessage(toUnitID, &ReportMessage, sizeof(ReportMessage));	// send response with requested zones status bits
+}
+
+
+// Helper routine - send Sensors report
+
+bool RProtocolMaster::SendSensorsReport(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t firstSensor, uint8_t numSensors)
+{
+	if( ((firstSensor+numSensors) > MODBUSMAP_SENSORS_MAX) || (numSensors < 1) )
+	{
+		trace(F("SendSensorsReport - wrong input parameters\n"));
+		return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
+	}
+
+	uint8_t		outbuf[sizeof(RMESSAGE_SENSORS_REPORT)+(MODBUSMAP_SENSORS_MAX-1)*2];
+	RMESSAGE_SENSORS_REPORT *pReportMessage = (RMESSAGE_SENSORS_REPORT*) outbuf;
+
+	pReportMessage->Header.ProtocolID = RPROTOCOL_ID;
+	pReportMessage->Header.FCode = FCODE_SENSORS_REPORT;
+	pReportMessage->Header.FromUnitID = fromUnitID;
+	pReportMessage->Header.ToUnitID = toUnitID;
+	pReportMessage->Header.TransactionID = transactionID;
+	pReportMessage->Header.Length = 2+numSensors*2;	
+
+	for( uint8_t i=0; i<numSensors; i++ )
+	{
+		pReportMessage->SensorsData[i] = getSingleSensor(i+firstSensor);
+	}
+
+	pReportMessage->FirstSensor = firstSensor;
+	pReportMessage->NumSensors = numSensors;
+
+	return _SendMessage(toUnitID, outbuf, sizeof(RMESSAGE_SENSORS_REPORT)+(numSensors-1)*2);	
+}
+
+
+// Helper routine - send Sensors report
+
+bool RProtocolMaster::SendSystemRegisters(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t firstRegister, uint8_t numRegisters)
+{
+	if( (firstRegister+numRegisters) > MODBUSMAP_SYSTEM_MAX )
+	{
+		trace(F("SendSystemRegisters - wrong input parameters\n"));
+		return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
+	}
+	uint8_t		outbuf[sizeof(RMESSAGE_SYSREGISTERS_REPORT)+MODBUSMAP_SYSTEM_MAX*2];
+	RMESSAGE_SYSREGISTERS_REPORT *pReportMessage = (RMESSAGE_SYSREGISTERS_REPORT*) outbuf;
+
+	pReportMessage->Header.ProtocolID = RPROTOCOL_ID;
+	pReportMessage->Header.FCode = FCODE_SYSREGISTERS_REPORT;
+	pReportMessage->Header.FromUnitID = fromUnitID;
+	pReportMessage->Header.ToUnitID = toUnitID;
+	pReportMessage->Header.TransactionID = transactionID;
+	pReportMessage->Header.Length = 2+numRegisters;	
+
+	
+	for( uint8_t i=0; i<numRegisters; i++ )
+	{
+		pReportMessage->RegistersData[i] = getSingleSystemRegister(i+firstRegister);
+	}
+
+	pReportMessage->FirstRegister = firstRegister;
+	pReportMessage->NumRegisters = numRegisters;
+
+	return _SendMessage(toUnitID, outbuf, sizeof(RMESSAGE_SYSREGISTERS_REPORT)+numRegisters*2);
+}
+
+// Helper routine - send EvtMaster registration report
+
+bool RProtocolMaster::SendEvtMasterReport(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID)
+{
+	RMESSAGE_EVTMASTER_REPORT Message;
+
+	Message.Header.ProtocolID = RPROTOCOL_ID;
+	Message.Header.FCode = FCODE_EVTMASTER_REPORT;
+	Message.Header.FromUnitID = fromUnitID;
+	Message.Header.ToUnitID = toUnitID;
+	Message.Header.TransactionID = transactionID;
+	Message.Header.Length = sizeof(RMESSAGE_EVTMASTER_REPORT)-sizeof(RMESSAGE_HEADER);	
+
+	Message.EvtFlags = GetEvtMasterFlags();
+	Message.MasterStationID = GetEvtMasterStationID();
+	Message.MasterStationAddress = 0;
+
+	return _SendMessage(toUnitID, &Message, sizeof(Message));
+}
+
+
+// Helper routine - send Ping reply
+
+bool RProtocolMaster::SendPingReply(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint32_t cookie)
+{
+	RMESSAGE_PING_REPLY Message;
+
+	Message.Header.ProtocolID = RPROTOCOL_ID;
+	Message.Header.FCode = FCODE_PING_REPLY;
+	Message.Header.FromUnitID = fromUnitID;
+	Message.Header.ToUnitID = toUnitID;
+	Message.Header.TransactionID = transactionID;
+	Message.Header.Length = sizeof(RMESSAGE_PING_REPLY)-sizeof(RMESSAGE_HEADER);	
+
+	Message.cookie = cookie;	
+
+	return _SendMessage(toUnitID, &Message, sizeof(Message));
+}
+	
+
+
+// Helper function - send generic OK response
+bool RProtocolMaster::SendOKResponse(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t FCode)
+{
+	RMESSAGE_RESPONSE_OK  ResponseMessage;
+
+	ResponseMessage.Header.ProtocolID = RPROTOCOL_ID;
+	ResponseMessage.Header.FCode = FCODE_RESPONSE_OK;
+	ResponseMessage.Header.FromUnitID = fromUnitID;
+	ResponseMessage.Header.ToUnitID = toUnitID;
+	ResponseMessage.Header.TransactionID = transactionID;
+	ResponseMessage.Header.Length = 1;
+
+	ResponseMessage.SuccessFCode = FCode;
+	return _SendMessage(toUnitID, &ResponseMessage, sizeof(ResponseMessage));	
+}
+
+//
+// Common helper - send error response packet
+//
+bool RProtocolMaster::SendErrorResponse(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t fCode, uint8_t errorCode)	// send error response with the same transaction ID, 
+{																									// unit ID, FCode=1 and Exception Code=2 (Illegal Data Address)
+	RMESSAGE_RESPONSE_ERROR	Message;
+
+	Message.Header.ProtocolID = RPROTOCOL_ID;
+	Message.Header.TransactionID = transactionID;
+	Message.Header.FCode = FCODE_RESPONSE_ERROR;
+	Message.Header.FromUnitID = fromUnitID;
+	Message.Header.ToUnitID = toUnitID;
+	Message.Header.Length = 2;
+
+	Message.FailedFCode = fCode;
+	Message.ExceptionCode = errorCode;
+	return _SendMessage(toUnitID, &Message, sizeof(Message));	
+}
+
+
 
 //
 // To reduce RAM overhead we declare some of the response handling functions as inline, since these functions are used just once,
@@ -497,6 +910,39 @@ void RProtocolMaster::SendTimeBroadcast(void)
 		_SendMessage(255, (void *)(&Message), sizeof(Message));
 }
 
+//
+//	Client packets
+//
+//
+//	RProtocol packets processing routines - FCODE_TIME_BROADCAST
+//
+//	Input - pointer to the input packet 
+// 			It is assumed that basic input packet structure is already validated
+//	
+//	FCODE_TIME_BROADCAST expects to receive one parameter - timeNow (4 bytes)
+//	Note: FCODE_TIME_BROADCAST message is broadcast, and does not have valid ToUnitID (it will be 0x0FF).
+//  
+//  Stations are not expected to respond to this message
+//
+inline void MessageTimeBroadcast( void *ptr )
+{
+	register RMESSAGE_TIME_BROADCAST  *pMessage = (RMESSAGE_TIME_BROADCAST *)ptr;
+
+//	trace(F("MessageTimeBroadcast - entering\n"));
+
+// parameters length check
+	if( pMessage->Header.Length != (sizeof(RMESSAGE_TIME_BROADCAST)-sizeof(RMESSAGE_HEADER)) )
+	{
+		trace(F("MessageTimeBroadcast - bad parameters length\n"));
+		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
+	}
+
+// OK, message seems to be valid, set new time
+
+	setTime((time_t) (pMessage->timeNow));
+	nntpTimeServer.SetLastUpdateTime();
+}
+
 
 // Process new data frame coming from the network
 // ptr			- pointer to the data block,
@@ -571,8 +1017,28 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 				case FCODE_EVTMASTER_REPORT:
 								MessageEvtMasterReport( ptr );
 								break;
+//
+// Packets used when acting as a client
+//
+#ifdef SG_RF_TIME_CLIENT
+				case FCODE_TIME_BROADCAST:
+								MessageTimeBroadcast( ptr );
+								break;
+#endif //SG_RF_TIME_CLIENT
+#ifdef SG_STATION_SLAVE
+				case FCODE_ZONES_READ:	
+								MessageZonesRead( ptr );
+								break;
+	
+				case FCODE_ZONES_SET:	
+								MessageZonesSet( ptr );
+								break;
+#endif //SG_STATION_SLAVE	
 
-        }
+				default: 
+								trace(F("Unknown packet received\n"));
+								break;
+		}
 
         return;
 }

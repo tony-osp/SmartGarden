@@ -8,15 +8,23 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 */
 
-#define HW_V15_MASTER			1	// compile for Master station, hardware version 1.5 (Moteino Mega-based)
-//#define HW_V15_REMOTE			1	// compile for Remote station, hardware version 1.5 (Moteino Mega-based)
-//#define HW_V10_MASTER			1	// compile for Master station, hardware version 1.0 (Mega 2560-based)
+// Supported hardware version definitions
 
-#ifdef HW_V15_MASTER
+#define HW_V10_MASTER			1	// compile for Master station, hardware version 1.0 (Mega 2560-based)
+#define HW_V15_MASTER			2	// compile for Master station, hardware version 1.5 (Moteino Mega-based)
+#define HW_V15_REMOTE			3	// compile for Remote station, hardware version 1.5 (Moteino Mega-based)
+
+// Uncomment the line that corresponds to the actual hardware
+
+#define SG_HARDWARE				HW_V15_REMOTE
+//#define SG_HARDWARE				HW_V15_MASTER
+//#define SG_HARDWARE				HW_V10_MASTER
+
+#if SG_HARDWARE == HW_V15_MASTER
 
 #define HW_ENABLE_ETHERNET		1
 #define HW_ENABLE_SD			1
-//#define SG_STATION_MASTER		1
+#define SG_STATION_MASTER		1
 
 #define W5500_USE_CUSOM_SS		1	// special keyword for W5500 ethernet library, to force use of custom SS
 #define W5500_SS				1	// define W5500 SS as D1
@@ -24,16 +32,23 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SD_USE_CUSOM_SS			1	// special keyword for SD card library, to force use of custom SS
 #define SD_SS					3	// define SD card SS as D3
 
+#define DEFAULT_STATION_ID		0	// for Master default station ID is 0
+
 #endif //HW_V15_MASTER
 
-#ifdef HW_V15_REMOTE
-#define USE_I2C_LCD				1
+#if SG_HARDWARE == HW_V15_REMOTE
+
+#define USE_I2C_LCD				1	// Use I2C LCD (instead of the parallel-connected LCD)
+#define SG_RF_TIME_CLIENT		1	// accept time broadcast messages on XBee network
+
+#define DEFAULT_STATION_ID		2	// for Remote default station ID is 1
+
 #endif //HW_V15_REMOTE
 
 #define HW_ENABLE_XBEE			1
 
-#define SG_STATION_SLAVE		1
-
+#define SG_STATION_SLAVE		1	// allow acting as a slave (allow remote access via RF network)
+#define DEFAULT_MAX_DURATION	99	// default maximum runtime - 99 minutes
 #define VERBOSE_TRACE 1
 
 
@@ -51,11 +66,15 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define MAX_STATTION_NAME_LENGTH	20
 #define MAX_SENSOR_NAME_LENGTH		20
 
-#define EEPROM_SHEADER "T2.8"
+#define EEPROM_SHEADER "T2.9"
+#define SG_FIRMWARE_VERSION	27
 
 #define EEPROM_INI_FILE	"/device.ini"
 
 #define DEFAULT_MANUAL_RUNTIME	5
+
+#define DEFAULT_MAX_OFFLINE_TDELTA  1500000UL		// time (in milliseconds) since last time sync before indicator starts to show that the station is offline
+													// 1,500,000ms is 25minutes.
 
 // Locally connected channels
 
@@ -85,7 +104,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SHOW_MEMORY 0		// if set to 1 - LCD will show free memory 
 
 //Large-screen LCD on MEGA
-#ifdef HW_V10_MASTER
+#if SG_HARDWARE == HW_V10_MASTER
 #define PIN_LCD_D4         25    // LCD d4 pin
 #define PIN_LCD_D5         24    // LCD d5 pin
 #define PIN_LCD_D6         23    // LCD d6 pin
@@ -95,7 +114,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #endif //HW_V10_MASTER
 
 //Large-screen LCD on Master V1.5
-#ifdef HW_V15_MASTER
+#if SG_HARDWARE == HW_V15_MASTER
 #define PIN_LCD_D4         18    // LCD d4 pin
 #define PIN_LCD_D5         14    // LCD d5 pin
 #define PIN_LCD_D6         13    // LCD d6 pin
@@ -174,10 +193,14 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 // XBee RF network
 
 // Indicator that this node is using XBee Pro 900 (Pro 900 uses different channel conventions and addressing)
-#define XBEE_TYPE_PRO900	1
+//#define XBEE_TYPE_PRO900	1
 
 #define NETWORK_XBEE_DEFAULT_PANID	5520	
+#ifdef XBEE_TYPE_PRO900		// For XBee Pro 900 we are using channel 7
 #define NETWORK_XBEE_DEFAULT_CHAN	7
+#else // and for regular 2.4 GHz XBee we must use channels in the range 0xB-0x1A
+#define NETWORK_XBEE_DEFAULT_CHAN	15
+#endif //XBEE_TYPE_PRO900
 
 #if defined(__AVR_ATmega2560__)
 #define NETWORK_XBEE_DEFAULT_PORT	3
