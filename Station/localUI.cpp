@@ -39,6 +39,18 @@ ST7036 OSLocalUI::lcd( LOCAL_UI_LCD_Y, LOCAL_UI_LCD_X, 0x78 );
 LiquidCrystal OSLocalUI::lcd(PIN_LCD_RS, PIN_LCD_EN, PIN_LCD_D4, PIN_LCD_D5, PIN_LCD_D6, PIN_LCD_D7);
 #endif
 
+extern uint8_t		LastReceivedStationID;
+
+
+inline uint8_t GetLastReceivedStationID(void)
+{
+	return LastReceivedStationID;
+}
+
+inline uint32_t GetLastReceivedTime(uint8_t stationID)
+{
+	return 	runState.sLastContactTime[stationID];
+}
 
 // Local forward declarations
 
@@ -190,7 +202,7 @@ byte OSLocalUI::callHandler(byte needs_refresh)
 {
    if( osUI_Mode == OSUI_MODE_HOME )					return modeHandler_Home(needs_refresh);
         else if( osUI_Mode == OSUI_MODE_MANUAL )		return modeHandler_Manual(needs_refresh);
-        else if( osUI_Mode == OSUI_MODE_VIEWCONF )		return modeHandler_Viewconf(needs_refresh);
+        else if( osUI_Mode == OSUI_MODE_STATUS )		return modeHandler_Status(needs_refresh);
         else if( osUI_Mode == OSUI_MODE_SETUP )			return modeHandler_Setup(needs_refresh);
 
         return false;   // incorrect UI mode - exit with failure
@@ -364,7 +376,7 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
          }
          else if( btn == BUTTON_MODE ){
 
-            set_mode( OSUI_MODE_VIEWCONF ); // change mode to "view settings" which is the next mode
+            set_mode( OSUI_MODE_STATUS ); // change mode to "view settings" which is the next mode
             return true;
          }
          else if( btn == BUTTON_CONFIRM ){
@@ -403,7 +415,7 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
          }
          else if( btn == BUTTON_MODE ){
 
-            set_mode( OSUI_MODE_VIEWCONF ); // exit current mode, changing it to "view settings" which is the next mode
+            set_mode( OSUI_MODE_STATUS ); // exit current mode, changing it to "view settings" which is the next mode
                 return true;
          }
          else if( btn == BUTTON_CONFIRM ){
@@ -450,79 +462,280 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
   Local config viewer. Supports multiple pages
 
 */
-byte OSLocalUI::modeHandler_Viewconf(byte forceRefresh)
+byte OSLocalUI::modeHandler_Status(byte forceRefresh)
 {
 // assert
-   if( osUI_Mode != OSUI_MODE_VIEWCONF )  return false;  // Basic protection to ensure current UI mode is correct
+   if( osUI_Mode != OSUI_MODE_STATUS )  return false;  // Basic protection to ensure current UI mode is correct
 
 // initial setup, start from page 0
-   if( forceRefresh == 2 ) osUI_Page = 0;
+   if( forceRefresh == 2 ){
+	   
+	   osUI_Page = 0;
+       lcd.clear();
+   }
 
    char btn = get_button_async(0);
 
 // handle input
    if( btn == BUTTON_MODE ){
 
-       set_mode( OSUI_MODE_HOME); // change mode back to HOME (skip SETUP for now)
+       set_mode( OSUI_MODE_SETUP); // next mode - SETUP
        return true;
    }
    else if( btn == BUTTON_UP ){
 
-       if( osUI_Page < 3 ) osUI_Page++;
-       else                         osUI_Page = 0;
+       if( osUI_Page < 4 ) osUI_Page++;
+       else                osUI_Page = 0;
 
        forceRefresh = 1;
    }
    else if( btn == BUTTON_DOWN ){
 
        if( osUI_Page > 0 ) osUI_Page--;
-       else                         osUI_Page = 3;
+       else                osUI_Page = 4;
 
        forceRefresh = 1;
    }
 
-   if( forceRefresh != 0 ){   // entering VIEWCONF mode, refresh things
+//   if( forceRefresh != 0 ){   // entering VIEWCONF mode, refresh things
+   if( 1 ){   // always refresh
 
-          lcd.clear();
 		  LCD_SETCURSOR(lcd, 0, 0);
 
           if( osUI_Page == 0 ){
 
-             lcd_print_pgm(PSTR("Conf: Version"));
+             lcd_print_pgm(PSTR("Status: Version "));
 			 LCD_SETCURSOR(lcd, 0, 1);
              lcd_print_pgm(PSTR(VERSION));
+             lcd_print_pgm(PSTR("        "));
           }
           else if( osUI_Page == 1 ){
              uint32_t ip = GetIP();
 
-             lcd_print_pgm(PSTR("Conf: IP"));
+             lcd_print_pgm(PSTR("Status: IP      "));
 			 LCD_SETCURSOR(lcd, 0, 1);
+#if HW_ENABLE_ETHERNET
              lcd_print_ip((byte *)&ip);
-
+#else // HW_ENABLE_ETHERNET
+ 			 lcd_print_pgm(PSTR("No Ethernet    "));
+#endif // HW_ENABLE_ETHERNET
           }
           else if( osUI_Page == 2 ){
 
-             lcd_print_pgm(PSTR("Conf: Port"));
+             lcd_print_pgm(PSTR("Status: Port    "));
 			 LCD_SETCURSOR(lcd, 0, 1);
-             lcd.print(GetWebPort());
+#if HW_ENABLE_ETHERNET
+			 lcd.print(GetWebPort());
+ 			 lcd_print_pgm(PSTR("         "));
+#else // HW_ENABLE_ETHERNET
+ 			 lcd_print_pgm(PSTR("No Ethernet    "));
+#endif // HW_ENABLE_ETHERNET
           }
           else if( osUI_Page == 3 ){
-             uint32_t ip = GetGateway();
-
-             lcd_print_pgm(PSTR("Conf: Gateway"));
+             lcd_print_pgm(PSTR("Status: GW      "));
 			 LCD_SETCURSOR(lcd, 0, 1);
+#if HW_ENABLE_ETHERNET
+             uint32_t ip = GetGateway();
              lcd_print_ip((byte *)&ip);
+#else // HW_ENABLE_ETHERNET
+ 			 lcd_print_pgm(PSTR("No Ethernet    "));
+#endif // HW_ENABLE_ETHERNET
+          }
+          else if( osUI_Page == 4 ){
 
+			 if( GetLastReceivedStationID() == 255 ){
+				lcd_print_pgm(PSTR("Last received     "));
+				LCD_SETCURSOR(lcd, 0, 1);
+				lcd_print_pgm(PSTR("No signal       "));
+			 }
+			 else {
+
+				lcd_print_pgm(PSTR("Last received:"));
+				lcd_print_2digit(GetLastReceivedStationID());
+				LCD_SETCURSOR(lcd, 0, 1);
+				lcd_print_pgm(PSTR(" T:-"));
+				lcd_print_3digit((millis()-GetLastReceivedTime(GetLastReceivedStationID()))/1000);
+				lcd_print_pgm(PSTR("         "));
+			 }
           }
    }
 
   return true;
 }
 
+#ifndef HW_ENABLE_SD
+
+// Setup pages/values are used only with hardcoded config. When SD card is available, device.ini is used instead.
+
+prog_char str_sname1[] PROGMEM = "Station#";
+
+#define SETUP_NUM_SETTINGS	1
+
+struct SetupIndex
+{
+	char*		name;
+	uint8_t		val;
+	uint8_t		minval;
+	uint8_t		maxval;
+};
+
+static SetupIndex setupIndex[SETUP_NUM_SETTINGS] = 
+{   {str_sname1, 1, 1, 9},
+};
+
+// Helper funciton. This code separated into a helper funciton just for clarity.
+inline void SetupLoadValues(void)
+{
+	setupIndex[0].val = GetMyStationID();
+}
+
+// Helper funciton. This code separated into a helper funciton just for clarity.
+inline void SetupSaveValues(void)
+{
+	ResetEEPROM_NoSD( setupIndex[0].val );	// reset EEPROM with the new stationID
+}
+#endif // HW_ENABLE_SD
+
+
+#ifndef HW_ENABLE_SD
 byte OSLocalUI::modeHandler_Setup(byte forceRefresh)
 {
+  static unsigned long old_millis = 0;
+  static uint16_t	curr_value;			// use 16bit variable to avoid problems with edge conditions
+  static byte		state = 0;              // this flag indicates the UI state within Setup mode. Valid states are:
+                                            // 0 - viewing conf, osUI_Page provides the index of parameter to display
+                                            // 1 - editing setting, osUI_Page provides the index of the parameter we are editing
+
+// assert
+  if( osUI_Mode != OSUI_MODE_SETUP )  return false;  // Basic protection to ensure current UI mode is actually HOME mode.
+
+setup_top:
+  if( forceRefresh == 2 ){   // entering Setup mode, refresh things
+
+          lcd.clear();
+//		  LCD_SETCURSOR(lcd, 0, 0);
+//		  lcd_print_pgm(PSTR("Entering Setup mode"));
+//		  delay(2000);
+
+          state = 0;
+		  osUI_Page = 0;
+		  SetupLoadValues();
+
+          forceRefresh == 1;    // need to update the screen
+  }
+  unsigned long new_millis = millis();
+
+  char btn = get_button_async(1);    // Note: we allow Autorepeat in this mode, to help enter data quickly
+
+  if( state == 0)
+  {          // view config
+
+         if( btn == BUTTON_MODE ){
+
+            set_mode( OSUI_MODE_HOME ); // exit Setup mode and switch back to Home
+            return true;
+         }
+#if SETUP_NUM_SETTINGS > 1
+         else if( btn == BUTTON_UP ){
+
+                if( osUI_Page < (SETUP_NUM_SETTINGS-1) )	osUI_Page++;
+                else									    osUI_Page = 0;
+                forceRefresh = 1;
+         }
+         else if( btn == BUTTON_DOWN ){
+
+				if( osUI_Page > 0 ) osUI_Page--;
+                else                osUI_Page = (SETUP_NUM_SETTINGS-1);
+                forceRefresh = 1;
+         }
+#endif // SETUP_NUM_SETTINGS > 1
+         else if( btn == BUTTON_CONFIRM ){
+
+				state = 1;									// Entering edit mode, osUI_Page is the index of the setting to edit
+				curr_value = setupIndex[osUI_Page].val;   // copy current value from the index 
+
+// display input prompt
+                lcd.clear();
+                LCD_SETCURSOR(lcd, 0, 0);
+                lcd_print_pgm(PSTR("Edit:"));
+                lcd_print_pgm(setupIndex[osUI_Page].name);
+
+                return  true;    // exit. Actual current value display will happen on the next loop();
+         }
+// Display current page (value from the index)
+
+		 if( forceRefresh )
+		 {
+			LCD_SETCURSOR(lcd, 0, 0);
+			lcd_print_pgm(PSTR("Conf:"));
+			lcd_print_pgm(setupIndex[osUI_Page].name);
+			lcd_print_pgm(PSTR("          "));
+			LCD_SETCURSOR(lcd, 0, 1);
+			lcd_print_3digit(setupIndex[osUI_Page].val);
+		 }
+  }
+
+  if( state == 1){          // edit current value
+
+         if( btn == BUTTON_UP ){
+
+				curr_value++;
+                if( curr_value > setupIndex[osUI_Page].maxval ) curr_value = setupIndex[osUI_Page].minval;  // rollover
+
+				forceRefresh = 1;
+         }
+         else if( btn == BUTTON_DOWN ){
+
+				if( curr_value > setupIndex[osUI_Page].minval ) curr_value--;
+				else											curr_value = setupIndex[osUI_Page].maxval;
+                forceRefresh = 1;
+         }
+         else if( btn == BUTTON_MODE ){
+
+				set_mode( OSUI_MODE_HOME ); // exit Setup mode and switch back to Home, discarding current value changes
+				return true;
+         }
+         else if( btn == BUTTON_CONFIRM ){
+// Save changes
+
+				setupIndex[osUI_Page].val = curr_value;
+				SetupSaveValues();
+
+				LCD_SETCURSOR(lcd, 0, 0);
+		        lcd_print_pgm(PSTR("Conf:"));
+				lcd_print_pgm(setupIndex[osUI_Page].name);
+				LCD_SETCURSOR(lcd, 0, 1);
+		        lcd_print_pgm(PSTR("New value saved!"));
+
+                delay(1000);
+                
+				state = 0;
+                forceRefresh = 1;
+  	            lcd.clear();
+
+                goto setup_top;
+     }
+// now screen update and blinking cursor
+     if( ((new_millis - old_millis) >= 333) || (forceRefresh != 0) ){   // update UI three times a second (for blinking), OR if explicit refresh is required
+
+           old_millis = new_millis;
+
+ 		   LCD_SETCURSOR(lcd, 0, 1);
+           lcd_print_3digit(curr_value);
+           if( (new_millis/333)%2 ) lcd_print_pgm(PSTR("    "));
+           else						lcd_print_pgm(PSTR("#   "));
+     }
+
+  }
   return true;
 }
+#else // HW_ENABLE_SD  - dummy Setup
+byte OSLocalUI::modeHandler_Setup(byte forceRefresh)
+{
+	set_mode( OSUI_MODE_HOME ); // exit Setup mode and switch back to Home
+	return true;
+}
+#endif // HW_ENABLE_SD
 
 
 
@@ -618,6 +831,13 @@ void OSLocalUI::lcd_print_line_clear_pgm(PGM_P PROGMEM str, byte line) {
 void OSLocalUI::lcd_print_2digit(int v)
 {
   lcd.print((int)(v/10));
+  lcd.print((int)(v%10));
+}
+
+void OSLocalUI::lcd_print_3digit(int v)
+{
+  lcd.print((int)(v/100));
+  lcd.print((int)((v%100))/10);
   lcd.print((int)(v%10));
 }
 

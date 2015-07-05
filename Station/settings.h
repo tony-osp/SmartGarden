@@ -277,6 +277,7 @@ bool SetSettings(const KVPairs & key_value_pairs);
 // Misc
 bool IsFirstBoot();
 void ResetEEPROM();
+void 	ResetEEPROM_NoSD(uint8_t  defStationID);
 
 // For storing info related to the Quick Schedule
 extern Schedule quickSchedule;

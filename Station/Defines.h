@@ -9,8 +9,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 */
 
 #ifndef _DEFINES_H
-
-#define _DEFINES_H 1
+#define _DEFINES_H 
 
 #define ENABLE_TRACE 1
 #define VERBOSE_TRACE 1

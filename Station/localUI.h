@@ -52,7 +52,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define OSUI_MODE_UNDEFINED             255             // undefined
 #define OSUI_MODE_HOME                  0               // Home screen
 #define OSUI_MODE_MANUAL                1               // Manual mode
-#define OSUI_MODE_VIEWCONF              2               // View Config mode
+#define OSUI_MODE_STATUS	            2               // View status
 #define OSUI_MODE_SETUP                 3               // Setup mode
 
 // Pages
@@ -110,6 +110,7 @@ public:
   static void lcd_print_pgm(PGM_P PROGMEM str);
   static void lcd_print_line_clear_pgm(PGM_P PROGMEM str, byte line);    // Print a program memory string to a given line with clearing
   static void lcd_print_2digit(int v);
+  static void lcd_print_3digit(int v);
 
 // Data
 #ifdef USE_I2C_LCD
@@ -142,7 +143,7 @@ private:
 //
   static byte modeHandler_Home(byte forceRefresh);
   static byte modeHandler_Manual(byte forceRefresh);
-  static byte modeHandler_Viewconf(byte forceRefresh);
+  static byte modeHandler_Status(byte forceRefresh);
   static byte modeHandler_Setup(byte forceRefresh);
 
   static byte callHandler(byte needs_refresh);

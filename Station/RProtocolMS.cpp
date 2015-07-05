@@ -17,6 +17,9 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "settings.h"
 #include "sensors.h"
 
+uint8_t		LastReceivedStationID;
+uint32_t	LastReceivedTime;
+
 
 // Local forward declarations
 inline uint16_t		getSingleSensor(uint8_t regAddr);
@@ -1050,6 +1053,62 @@ inline void MessageSensorsRead( void *ptr )
 	return;
 }
 
+//
+//	packets processing routines - Ping
+//
+//	Input - pointer to the input packet (packet includes header)
+// 			It is assumed that basic input packet structure is already validated
+//
+//			Second parameter is the sender network address, it will be used to send response.
+//	
+//	The routine will process input and will reply with an output packet
+//
+//	Ping expects to receive one parameter in the Data area:
+//
+//		1.	Cookie
+//
+inline void MessagePing( void *ptr )
+{
+	register RMESSAGE_PING	*pMessage = (RMESSAGE_PING *)ptr;
+
+	// parameters length check
+	if( pMessage->Header.Length != (sizeof(RMESSAGE_PING)-sizeof(RMESSAGE_HEADER)) )
+	{
+		trace(F("MessagePing - bad parameters length\n"));
+		return;		
+	}
+	
+	rprotocol.SendPingReply(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->cookie);
+
+	return;
+}
+
+//
+//	RProtocol packets processing routines - SCAN
+//
+//	Input - pointer to the input packet (packet includes MBAP header)
+// 			It is assumed that basic input packet structure is already validated
+//	
+//	The routine will process input, execute required action(s), and will generate output packet
+//	using common helpers
+//
+//	SCAN (extended FCode - discover stations on RF network) expects to receive no parameters.
+//	Note: SCAN message is broadcast, and does not have valid UnitID.
+//  
+//  Stations are expected to respond to this message with SCAN_REPLY. 
+//
+//	Note: the sequence of SCAN->SCAN_REPLY does not follow standard RProtocol response conventions - 
+//		  standard RProtocol response quotes the same FCode as the request, however in the SCAN case the station 
+//		  is replying wiht SCAN_REPLY - because the request in this case is broadcast but response is unicast (direct response to the sender).
+//
+inline void MessageStationsScan( void *ptr )
+{
+	register RMESSAGE_SCAN	*pMessage = (RMESSAGE_SCAN *)ptr;
+
+//	rprotocol.SendResponse(pMessage->Header.TransactionID, rprotocol.myUnitID, FCODE_SCAN_REPLY, 0, 0);	// send confirmation response 
+	
+	return;
+}
 
 
 // Process new data frame coming from the network
@@ -1083,6 +1142,9 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
         }
 
 // OK, the packet seems to be valid
+
+		LastReceivedStationID = pMessage->Header.FromUnitID;
+
 // first update timestamp of the last contact for the station
 
 		if( pMessage->Header.FromUnitID < MAX_STATIONS ){	// basic protection check to ensure we don't go outside of range
@@ -1125,6 +1187,11 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 				case FCODE_EVTMASTER_REPORT:
 								MessageEvtMasterReport( ptr );
 								break;
+
+				case FCODE_PING:	
+								MessagePing( ptr );
+								break;
+
 //
 // Packets used when acting as a client
 //
@@ -1149,8 +1216,13 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 				case FCODE_EVTMASTER_SET:
 								MessageEvtMasterSet( ptr );
 								break;
+
 				case FCODE_SENSORS_READ:	
 								MessageSensorsRead( ptr );
+								break;
+
+				case FCODE_SCAN:	
+								MessageStationsScan( ptr );
 								break;
 	
 #endif //SG_STATION_SLAVE	

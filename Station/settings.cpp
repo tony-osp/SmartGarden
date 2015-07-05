@@ -636,6 +636,13 @@ void ResetEEPROM()
 
 	localUI.lcd_print_line_clear_pgm(PSTR("Resetting EEPROM"), 1);
 
+#ifndef HW_ENABLE_SD
+//
+// SD is not enabled, so we have to create default config. 
+//
+	ResetEEPROM_NoSD(DEFAULT_STATION_ID);
+
+#else // HW_ENABLE_SD
 	if( !ini.open() )
 	{
 		trace(F("LoadIniEEPROM - error opening device ini file.\n"));
@@ -748,14 +755,10 @@ void ResetEEPROM()
 // Local channels
 
 		uint16_t	parChannels = 0;
-#ifdef HW_ENABLE_SD
 		if( !ini.getValue_P(PSTR("LocalChannels"), PSTR("NumParallel"), buffer, bufferLen, parChannels) )
 		{
 			parChannels = 0;
 		}
-#else
-		parChannels = LOCAL_NUM_DIRECT_CHANNELS;
-#endif //HW_ENABLE_SD
 		trace(F("LoadIniEEPROM - %d parallel channels\n"), parChannels );
 		SetNumIOChannels(parChannels);
 
@@ -770,18 +773,15 @@ void ResetEEPROM()
 			uint16_t	ioPin;
 			uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = PARALLEL_PIN_OUT_MAP;
 
-#ifdef HW_ENABLE_SD
 			for( int i=0; i<parChannels; i++ )
 			{
 				sprintf_P(tmpb, PSTR("Chan%d"), i+1);	// In ini file channels are numbered from 1
 				if( ini.getValue("ParallelIOMap", tmpb, buffer, bufferLen, ioPin) )
 					zoneToIOMap[i] = ioPin;
 			}
-#endif //HW_ENABLE_SD
 
 			SaveZoneIOMap( zoneToIOMap );
 
-#ifdef HW_ENABLE_SD
 			if( ini.getValue_P(PSTR("LocalChannels"), PSTR("ParallelPolarity"), buffer, bufferLen, tmpb, sizeof(tmpb)-1) )
 			{
 				if( strcmp_P(tmpb, PSTR("Negative")) == 0 )
@@ -790,7 +790,6 @@ void ResetEEPROM()
 					SetOT(OT_DIRECT_POS);		
 			}
 			else
-#endif //HW_ENABLE_SD
 			{
 				SetOT(OT_DIRECT_POS);		
 			}
@@ -843,7 +842,6 @@ void ResetEEPROM()
 
 
 		uint16_t	numStations = 0;
-#ifdef HW_ENABLE_SD
 		if( ini.getValue_P(PSTR("Stations"), PSTR("NumStations"), buffer, bufferLen, numStations) )
 		{
 			if( numStations >= MAX_STATIONS )
@@ -853,25 +851,6 @@ void ResetEEPROM()
 			}
 		}
 		else
-#else //HW_ENABLE_SD
-		{
-			memset(&fullStation,0,sizeof(fullStation));
-			fullStation.stationFlags = STATION_FLAGS_VALID | STATION_FLAGS_ENABLED | STATION_FLAGS_RSTATUS | STATION_FLAGS_RCONTROL;
-			fullStation.networkID = DEFAULT_STATION_NETWORK_TYPE;
-			fullStation.networkAddress = DEFAULT_STATION_NETWORK_ADDRESS;
-			fullStation.numZoneChannels = DEFAULT_STATION_NUM_ZONES;
-
-			sprintf_P(fullStation.name, PSTR("Default Station"));
-
-			SaveStation(DEFAULT_STATION_ID, &fullStation);	// save default station as #0
-			SetMyStationID(DEFAULT_STATION_ID);
-
-			trace(F("No stations defined in the ini file, creating default station\n"));
-
-			numStations = 1;
-			goto hardcoded_station;
-		}
-#endif //HW_ENABLE_SD
 
 #ifdef VERBOSE_TRACE
 		trace(F("LoadIniEEPROM - numStations=%d\n"), numStations);
@@ -970,8 +949,6 @@ skip_Station:;
 				SetOT(OT_DIRECT_POS);		
 		}
 
-hardcoded_station:;
-		
 		// Sensors definitions
 		uint16_t	numSensors = 0;
 		SetNumSensors(0);	// initial default
@@ -985,64 +962,6 @@ hardcoded_station:;
 			}
 		}
 
-#ifndef HW_ENABLE_SD
-		{
-			uint8_t			sensID = 0;
-
-#ifdef SENSOR_ENABLE_DHT
-			{
-				FullSensor  fullSens;
-
-				fullSens.sensorType = SENSOR_TYPE_TEMPERATURE;
-				fullSens.sensorChannel = SENSOR_CHANNEL_DHT_TEMPERATURE;
-				fullSens.sensorStationID = DEFAULT_STATION_ID;
-				fullSens.flags = 0;	
-				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_DHT_TEMPERATURE);	
-
-				SaveSensor(sensID, &fullSens);	// save the sensor
-				sensID++;
-
-				fullSens.sensorType = SENSOR_TYPE_HUMIDITY;
-				fullSens.sensorChannel = SENSOR_CHANNEL_DHT_HUMIDITY;
-				fullSens.sensorStationID = DEFAULT_STATION_ID;
-				fullSens.flags = 0;	
-				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_DHT_HUMIDITY);	
-
-				SaveSensor(sensID, &fullSens);	// save the sensor
-				sensID++;
-			}
-#endif // SENSOR_ENABLE_DHT
-
-#ifdef SENSOR_ENABLE_BMP180
-			{
-				FullSensor  fullSens;
-
-				fullSens.sensorType = SENSOR_TYPE_TEMPERATURE;
-				fullSens.sensorChannel = SENSOR_CHANNEL_BMP180_TEMPERATURE;
-				fullSens.sensorStationID = DEFAULT_STATION_ID;
-				fullSens.flags = 0;	
-				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_BMP180_TEMPERATURE);	
-
-				SaveSensor(sensID, &fullSens);	// save the sensor
-				sensID++;
-
-				fullSens.sensorType = SENSOR_TYPE_PRESSURE;
-				fullSens.sensorChannel = SENSOR_CHANNEL_BMP180_PRESSURE;
-				fullSens.sensorStationID = DEFAULT_STATION_ID;
-				fullSens.flags = 0;	
-				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_BMP180_PRESSURE);	
-
-				SaveSensor(sensID, &fullSens);	// save the sensor
-				sensID++;
-			}
-#endif // SENSOR_ENABLE_BMP180
-
-			SetNumSensors(sensID);
-#ifdef VERBOSE_TRACE
-			trace(F("LoadIniEEPROM - saved %d sensors\n"), sensID);
-#endif
-		}
-#else // HW_ENABLE_SD
 
 #ifdef VERBOSE_TRACE
 		trace(F("numSensors=%d\n"), numSensors);
@@ -1141,7 +1060,6 @@ skip_Sensor:;
 			trace(F("LoadIniEEPROM - saved %d sensors\n"), sensID);
 #endif
 		}
-#endif // HW_ENABLE_SD
 
 // Now let's iterate through Stations and fill in Zones list
 
@@ -1181,7 +1099,6 @@ skip_Sensor:;
 
 // Load XBee config
 
-#ifdef HW_ENABLE_SD
 		SetXBeeFlags(0);	// XBee disabled by default
 		if( ini.getValue_P(PSTR("XBee"), PSTR("Enabled"), buffer, bufferLen, tmpb, sizeof(tmpb)-1) )
 		{
@@ -1210,22 +1127,198 @@ skip_Sensor:;
 					SetXBeeChan(NETWORK_XBEE_DEFAULT_CHAN);
 			}
 		}
-#else //HW_ENABLE_SD
-// XBee enabled by default
-		SetXBeeFlags(NETWORK_FLAGS_ENABLED);
-		SetXBeePort(NETWORK_XBEE_DEFAULT_PORT);
-		SetXBeePortSpeed(NETWORK_XBEE_DEFAULT_SPEED);
-		SetXBeePANID(NETWORK_XBEE_DEFAULT_PANID);
-		SetXBeeChan(NETWORK_XBEE_DEFAULT_CHAN);
-#endif //HW_ENABLE_SD
 
 		localUI.lcd_print_line_clear_pgm(PSTR("EEPROM reloaded"), 0);
 		localUI.lcd_print_line_clear_pgm(PSTR("Rebooting..."), 1);
 		delay(2000);
 
 		sysreset();
+#endif // HW_ENABLE_SD
 
 }
+
+void 	ResetEEPROM_NoSD(uint8_t  defStationID)
+{
+#ifndef HW_ENABLE_SD
+		trace(F("Loading EEPROM using default config (no device.ini file).\n"));
+
+// First we need to write signature and zero out various configs (that are not loaded from ini file)
+
+		const char * const sHeader = EEPROM_SHEADER;
+
+        for (int i = 0; i <= 3; i++)				// write current signature
+                EEPROM.write(i, sHeader[i]);
+        
+		SetNumSchedules(0);
+		SetEvtMasterFlags(0);
+		SetEvtMasterStationID(0);
+
+		SetIP(IPAddress(10, 0, 1, 36));				// default IP address  
+		SetNetmask(IPAddress(255, 255, 255, 0));	// default Subnet
+		SetGateway(IPAddress(10, 0, 1, 1));			// default gateway
+		SetWebPort(80);								// default HTTP port
+		SetNTPIP(IPAddress(204,9,54,119));			// default NTP server
+
+		SetWUIP(INADDR_NONE);						// we don't pre-populate Weather Underground IP address
+		SetApiKey("");								// we don't pre-populate API key for WU
+        SetPWS("");
+        SetUsePWS(false);
+
+		SetNTPOffset(-8);
+		SetZip(0);
+		SetSeasonalAdjust(100);
+		SetRunSchedules(false);		// no schedules
+		SetOT(OT_NONE);	
+
+// Local channels
+
+		uint16_t	parChannels = LOCAL_NUM_DIRECT_CHANNELS;
+
+		trace(F("LoadIniEEPROM - %d parallel channels\n"), parChannels );
+		SetNumIOChannels(parChannels);
+
+		uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = PARALLEL_PIN_OUT_MAP;
+		SaveZoneIOMap( zoneToIOMap );
+		SetOT(OT_DIRECT_POS);		
+		
+		SetNumOSChannels(0);
+
+// Load Stations info
+// First let's zero out stations block
+
+		FullStation  fullStation;
+		memset(&fullStation,0,sizeof(fullStation));
+
+		for( uint8_t u=0; u<MAX_STATIONS; u++ )
+				SaveStation(u, &fullStation);
+
+		uint16_t	numStations = 1;
+		memset(&fullStation,0,sizeof(fullStation));
+		fullStation.stationFlags = STATION_FLAGS_VALID | STATION_FLAGS_ENABLED | STATION_FLAGS_RSTATUS | STATION_FLAGS_RCONTROL;
+		fullStation.networkID = DEFAULT_STATION_NETWORK_TYPE;
+		fullStation.networkAddress = DEFAULT_STATION_NETWORK_ADDRESS;
+		fullStation.numZoneChannels = DEFAULT_STATION_NUM_ZONES;
+
+		sprintf_P(fullStation.name, PSTR("Default Station"));
+
+		SaveStation(defStationID, &fullStation);
+		SetMyStationID(defStationID);
+
+		trace(F("Creating default station\n"));
+
+		// Sensors definitions
+		SetNumSensors(0);	// initial default
+
+		{
+			uint8_t			sensID = 0;
+
+#ifdef SENSOR_ENABLE_DHT
+			{
+				FullSensor  fullSens;
+
+				fullSens.sensorType = SENSOR_TYPE_TEMPERATURE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_DHT_TEMPERATURE;
+				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_DHT_TEMPERATURE);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+
+				fullSens.sensorType = SENSOR_TYPE_HUMIDITY;
+				fullSens.sensorChannel = SENSOR_CHANNEL_DHT_HUMIDITY;
+				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_DHT_HUMIDITY);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+			}
+#endif // SENSOR_ENABLE_DHT
+
+#ifdef SENSOR_ENABLE_BMP180
+			{
+				FullSensor  fullSens;
+
+				fullSens.sensorType = SENSOR_TYPE_TEMPERATURE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_BMP180_TEMPERATURE;
+				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_BMP180_TEMPERATURE);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+
+				fullSens.sensorType = SENSOR_TYPE_PRESSURE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_BMP180_PRESSURE;
+				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_BMP180_PRESSURE);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+			}
+#endif // SENSOR_ENABLE_BMP180
+
+			SetNumSensors(sensID);
+			trace(F("LoadIniEEPROM - saved %d sensors\n"), sensID);
+		}
+
+// Now let's iterate through Stations and fill in Zones list
+
+		FullZone zone = {0};
+		uint8_t	 zoneIndex = 0;
+
+		for( int st=0; st<MAX_STATIONS; st++ )
+		{
+			LoadStation(st,&fullStation);
+
+			if( (fullStation.stationFlags & STATION_FLAGS_VALID) && (fullStation.stationFlags & STATION_FLAGS_ENABLED) )
+			{
+				for( uint8_t j=0; j<fullStation.numZoneChannels; j++ )
+				{
+						if( j == 0 ){
+
+							fullStation.startZone = zoneIndex;			// save starting zone# back reference
+							SaveStation(st, &fullStation);		// in Station entity
+						}
+
+						zone.bEnabled = 1;
+						zone.bPump = false;
+						zone.stationID = st;
+						zone.channel = j;
+						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), zoneIndex + 1, zone.stationID, zone.channel+1);
+						
+//						trace(F("Created zone %d, \"%s\"\n"), (uint8_t)(zoneIndex + 1), zone.name);
+						
+						SaveZone(zoneIndex, &zone);
+						zoneIndex++;
+				}
+			}
+		}
+
+		SetNumZones(zoneIndex);
+		trace(F("LoadIniEEPROM - Generated %d Zones\n"), zoneIndex);
+
+// Load XBee config
+
+// XBee enabled by default
+		SetXBeeFlags(NETWORK_FLAGS_ENABLED);
+		SetXBeePort(NETWORK_XBEE_DEFAULT_PORT);
+		SetXBeePortSpeed(NETWORK_XBEE_DEFAULT_SPEED);
+		SetXBeePANID(NETWORK_XBEE_DEFAULT_PANID);
+		SetXBeeChan(NETWORK_XBEE_DEFAULT_CHAN);
+
+// show message and reboot
+		localUI.lcd_print_line_clear_pgm(PSTR("EEPROM reloaded"), 0);
+		localUI.lcd_print_line_clear_pgm(PSTR("Rebooting..."), 1);
+		delay(2000);
+
+		sysreset();
+
+#endif // HW_ENABLE_SD
+}
+
 
 void SetNumSchedules(const uint8_t iNum)
 {
