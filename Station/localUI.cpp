@@ -24,6 +24,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "nntp.h"
 #include "core.h"
 #include "settings.h"
+#include "sensors.h"
 
 // Data members
 byte OSLocalUI::osUI_State = OSUI_STATE_UNDEFINED;
@@ -250,6 +251,8 @@ byte OSLocalUI::callHandler(byte needs_refresh)
    if( forceRefresh == 2 ){     // entering this Mode
 
      display_board = GetMyStationID();         // set initial view to board 0;
+//	 trace(F("GetMyStationID returned %d\n"), int(display_board));
+//	 delay(3000);
    }
 
    char btn = get_button_async(0);
@@ -505,48 +508,46 @@ byte OSLocalUI::modeHandler_Status(byte forceRefresh)
           if( osUI_Page == 0 ){
 
              lcd_print_pgm(PSTR("Status: Version "));
-			 LCD_SETCURSOR(lcd, 0, 1);
-             lcd_print_pgm(PSTR(VERSION));
-             lcd_print_pgm(PSTR("        "));
+//			 LCD_SETCURSOR(lcd, 0, 1);
+			 lcd_print_line_clear_pgm(PSTR(VERSION),1);
           }
           else if( osUI_Page == 1 ){
              uint32_t ip = GetIP();
 
-             lcd_print_pgm(PSTR("Status: IP      "));
-			 LCD_SETCURSOR(lcd, 0, 1);
+             lcd_print_line_clear_pgm(PSTR("Status: IP"), 0);
 #if HW_ENABLE_ETHERNET
+			 LCD_SETCURSOR(lcd, 0, 1);
              lcd_print_ip((byte *)&ip);
 #else // HW_ENABLE_ETHERNET
- 			 lcd_print_pgm(PSTR("No Ethernet    "));
+             lcd_print_line_clear_pgm(PSTR("No Ethernet"), 1);
 #endif // HW_ENABLE_ETHERNET
           }
           else if( osUI_Page == 2 ){
 
-             lcd_print_pgm(PSTR("Status: Port    "));
-			 LCD_SETCURSOR(lcd, 0, 1);
+             lcd_print_line_clear_pgm(PSTR("Status: Port"), 0);
 #if HW_ENABLE_ETHERNET
+			 LCD_SETCURSOR(lcd, 0, 1);
 			 lcd.print(GetWebPort());
  			 lcd_print_pgm(PSTR("         "));
 #else // HW_ENABLE_ETHERNET
- 			 lcd_print_pgm(PSTR("No Ethernet    "));
+             lcd_print_line_clear_pgm(PSTR("No Ethernet"), 1);
 #endif // HW_ENABLE_ETHERNET
           }
           else if( osUI_Page == 3 ){
-             lcd_print_pgm(PSTR("Status: GW      "));
-			 LCD_SETCURSOR(lcd, 0, 1);
+             lcd_print_line_clear_pgm(PSTR("Status: GW"), 0);
 #if HW_ENABLE_ETHERNET
+			 LCD_SETCURSOR(lcd, 0, 1);
              uint32_t ip = GetGateway();
              lcd_print_ip((byte *)&ip);
 #else // HW_ENABLE_ETHERNET
- 			 lcd_print_pgm(PSTR("No Ethernet    "));
+             lcd_print_line_clear_pgm(PSTR("No Ethernet"), 1);
 #endif // HW_ENABLE_ETHERNET
           }
           else if( osUI_Page == 4 ){
 
 			 if( GetLastReceivedStationID() == 255 ){
-				lcd_print_pgm(PSTR("Last received     "));
-				LCD_SETCURSOR(lcd, 0, 1);
-				lcd_print_pgm(PSTR("No signal       "));
+				lcd_print_line_clear_pgm(PSTR("Last received:"), 0);
+				lcd_print_line_clear_pgm(PSTR("No signal"), 1);
 			 }
 			 else {
 
@@ -857,6 +858,36 @@ void OSLocalUI::lcd_print_time(byte line)
   lcd_print_2digit(month(t));
   lcd_print_pgm(PSTR("-"));
   lcd_print_2digit(day(t));
+
+// if LCD size allows it, and if there are sensors configured
+// show temperature and humidity
+#if LOCAL_UI_LCD_X >= 20
+
+  if( sensorsModule.fLCDSensors )
+  {
+	LCD_SETCURSOR(lcd, 16,0);
+	if( sensorsModule.Temperature < 10 )
+	{
+		lcd_print_pgm(PSTR("  "));
+	}
+	else if( sensorsModule.Temperature < 100 )
+	{
+	    lcd_print_pgm(PSTR(" "));
+	}
+	lcd.print(sensorsModule.Temperature);
+	lcd_print_pgm(PSTR("F"));
+
+// show humidity
+	LCD_SETCURSOR(lcd, 16,1);
+	lcd_print_pgm(PSTR(" "));
+	if( sensorsModule.Humidity < 10 )
+		lcd_print_pgm(PSTR(" "));
+
+	lcd.print(sensorsModule.Humidity);
+	lcd_print_pgm(PSTR("%"));
+  }
+
+#endif // LOCAL_UI_LCD_X >= 20
 }
 
 int freeRam(void)

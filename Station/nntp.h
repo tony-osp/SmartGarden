@@ -20,7 +20,5 @@ public:
 	void flagCheckTime(void);
 
         
-private:
-	time_t m_nextSyncTime;
 };
 

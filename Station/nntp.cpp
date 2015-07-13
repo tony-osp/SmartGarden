@@ -12,7 +12,7 @@
 //static uint8_t cNntpSync = 0;
 static unsigned long		tLastSync = millis()-DEFAULT_MAX_OFFLINE_TDELTA;		// reset timestamp of the last sync time
 
-nntp::nntp(void) : m_nextSyncTime(0)
+nntp::nntp(void)
 {
 }
 
@@ -144,8 +144,7 @@ void nntp::checkTime()
 
 void nntp::flagCheckTime(void)
 {
-	m_nextSyncTime = now();  // sync time on the next opportunity
-
+	tLastSync = millis() - (DEFAULT_MAX_OFFLINE_TDELTA/5UL);	// sync time on the next opportunity
 }
 
 #endif //HW_ENABLE_ETHERNET

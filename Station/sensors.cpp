@@ -39,6 +39,8 @@ DHT dht_sensor(DHTPIN, DHTTYPE);
 SFE_BMP180 bmp180;
 #endif
 
+
+
 // maximum ulong value
 #define MAX_ULONG       4294967295
 
@@ -62,8 +64,26 @@ byte Sensors::begin(void)
 			for( uint8_t i=0; i<numS; i++ )
 			{
 				LoadShortSensor(i, &SensorsList[i].config);
-			
-				
+
+				if( SensorsList[i].config.sensorType == SENSOR_TYPE_TEMPERATURE )
+				{
+					fLCDSensors = true;
+#ifdef SENSOR_DEFAULT_LCD_TEMPERATURE
+					iLCDTempIndex = SENSOR_DEFAULT_LCD_TEMPERATURE;
+#else // SENSOR_DEFAULT_LCD_TEMPERATURE
+					iLCDTempIndex = i;
+#endif // SENSOR_DEFAULT_LCD_TEMPERATURE
+
+				}
+				else if( SensorsList[i].config.sensorType == SENSOR_TYPE_HUMIDITY )
+				{
+					fLCDSensors = true;
+#ifdef SENSOR_DEFAULT_LCD_HUMIDITY
+					iLCDHumidIndex = SENSOR_DEFAULT_LCD_HUMIDITY;
+#else // SENSOR_DEFAULT_LCD_HUMIDITY
+					iLCDHumidIndex = i;
+#endif // SENSOR_DEFAULT_LCD_HUMIDITY
+				}
 				SensorsList[i].lastReading = 0;
 				SensorsList[i].lastReadingTimestamp = (time_t)(MAX_ULONG/2);
 			}
@@ -104,6 +124,26 @@ byte Sensors::begin(void)
      dht_sensor.begin();
 #endif
 
+#ifdef SENSOR_ENABLE_ANALOG
+
+#ifdef SENSOR_CHANNEL_ANALOG_1_PIN
+	 pinMode(SENSOR_CHANNEL_ANALOG_1_PIN, INPUT);
+#endif //SENSOR_CHANNEL_ANALOG_1_PIN
+
+#ifdef SENSOR_CHANNEL_ANALOG_2_PIN
+	 pinMode(SENSOR_CHANNEL_ANALOG_2_PIN, INPUT);
+#endif //SENSOR_CHANNEL_ANALOG_2_PIN
+
+#ifdef SENSOR_CHANNEL_ANALOG_3_PIN
+	 pinMode(SENSOR_CHANNEL_ANALOG_3_PIN, INPUT);
+#endif //SENSOR_CHANNEL_ANALOG_3_PIN
+
+#ifdef SENSOR_CHANNEL_ANALOG_4_PIN
+	 pinMode(SENSOR_CHANNEL_ANALOG_4_PIN, INPUT);
+#endif //SENSOR_CHANNEL_ANALOG_4_PIN
+
+#endif //SENSOR_ENABLE_ANALOG
+
      return true;
 }
 
@@ -116,6 +156,7 @@ byte Sensors::loop(void)
        unsigned long  new_millis = millis();    // Note: we are using built-in Arduino millis() function instead of now() or time-zone adjusted LocalNow(), because it is a lot faster
                                                 // and for detecting minutes changes it does not make any difference.
        if( (new_millis - old_millis) >= 60000 ){   // one minute detection
+//       if( (new_millis - old_millis) >= 10000 ){   // debug - 10 sec instead of 1 minute
 
              old_millis = new_millis;             
              poll_MinTimer();             
@@ -173,9 +214,9 @@ void Sensors::poll_MinTimer(void)
 					trace(F("Failure reading temperature or humidity from DHT.\n"));
 
 //					// debugging - temporary hardcode some value here
-//					temp = 10; hum = 20;
-// 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_DHT_TEMPERATURE, temp );	
-// 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_DHT_HUMIDITY, hum );	
+					temp = 10; hum = 20;
+ 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_DHT_TEMPERATURE, temp );	
+ 					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_DHT_HUMIDITY, hum );	
 				}
 				else
 				{
@@ -187,6 +228,44 @@ void Sensors::poll_MinTimer(void)
 				}
 			}
 #endif  //   SENSOR_ENABLE_DHT
+
+#ifdef SENSOR_ENABLE_ANALOG
+			{
+				int		val;
+#ifdef SENSOR_CHANNEL_ANALOG_1_PIN				
+				val = analogRead(SENSOR_CHANNEL_ANALOG_1_PIN);
+
+//				trace(F("Analog sensor#1 reading: %d\n"), val);
+
+				if( val < SENSOR_CHANNEL_ANALOG_1_MINV ) val = SENSOR_CHANNEL_ANALOG_1_MINV;
+				if( val > SENSOR_CHANNEL_ANALOG_1_MAXV ) val = SENSOR_CHANNEL_ANALOG_1_MAXV;
+
+// to increase precision we are up-converting input signal by multiplying it by 16
+// and by multiplying scaling factor by 16 as well. 
+// It is OK, since input signal is guaranteed to be only 10bit (AtMega ADC).				
+				val = (val-SENSOR_CHANNEL_ANALOG_1_MINV)*16;
+				val = val/(SENSOR_CHANNEL_ANALOG_1_SCALE*16);
+				val = val + SENSOR_CHANNEL_ANALOG_1_MINVAL;
+
+//				trace(F("Analog sensor#1 converted: %d, scale:%d\n"), val, int(SENSOR_CHANNEL_ANALOG_1_SCALE));
+				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_1_CHANNEL, val );	
+#endif //SENSOR_CHANNEL_ANALOG_1_PIN
+
+#ifdef SENSOR_CHANNEL_ANALOG_2_PIN				
+				val = analogRead(SENSOR_CHANNEL_ANALOG_2_PIN);
+
+				if( val < SENSOR_CHANNEL_ANALOG_2_MINV ) val = SENSOR_CHANNEL_ANALOG_2_MINV;
+				if( val > SENSOR_CHANNEL_ANALOG_2_MAXV ) val = SENSOR_CHANNEL_ANALOG_2_MAXV;
+
+				val = (val-SENSOR_CHANNEL_ANALOG_2_MINV)*16;
+				val = val/(SENSOR_CHANNEL_ANALOG_2_SCALE*16);
+				val = val + SENSOR_CHANNEL_ANALOG_2_MINVAL;
+				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_2_CHANNEL, val );	
+#endif //SENSOR_CHANNEL_ANALOG_2_PIN
+
+			}
+#endif //SENSOR_ENABLE_ANALOG
+
 
 		}
 		else
@@ -270,10 +349,20 @@ void Sensors::ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int
 				SensorsList[i].lastReading = sensorReading;
 				SensorsList[i].lastReadingTimestamp = millis();
 
+				if( iLCDTempIndex == i )
+				{
+					Temperature = sensorReading;
+				}
+				else if( iLCDHumidIndex == i )
+				{
+					Humidity = sensorReading;
+				}
+#ifdef notdef	// I don't want to proactively send sensor readings to Master, let's poller pick it up
 				if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SENSORS )
 				{
 					rprotocol.SendSensorsReport(0, GetMyStationID(), GetEvtMasterStationID(), i, 1);
 				}
+#endif //notdef
 				sdlog.LogSensorReading( SensorsList[i].config.sensorType, (int)i, sensorReading );
 				return;
 			}

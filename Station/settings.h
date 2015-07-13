@@ -93,17 +93,6 @@ struct ShortSensor
 	uint8_t		sensorChannel;			// Sensor Channel this particular sensor is connected to on that Station.
 };
 
-//
-// Sensor types
-//
-#define SENSOR_TYPE_NONE				0
-#define SENSOR_TYPE_TEMPERATURE			1
-#define SENSOR_TYPE_PRESSURE			2
-#define SENSOR_TYPE_HUMIDITY			3
-#define SENSOR_TYPE_WATERFLOW			4
-#define SENSOR_TYPE_VOLTAGE				5
-
-
 
 //	Station definition structure. This structure reflects station definition in EEPROM.
 //

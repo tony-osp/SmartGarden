@@ -62,19 +62,25 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
  #define PIN_BUTTON_2      A10   // button Up
  #define PIN_BUTTON_3      A9    // button Down
  #define PIN_BUTTON_4      A11   // button Select
-#else	// hardware V15
+
+#elif SG_HARDWARE == HW_V15_MASTER
+ #define PIN_BUTTON_1      A3    // button 1
+ #define PIN_BUTTON_2      A1    // button 2
+ #define PIN_BUTTON_3      A2    // button 3
+ #define PIN_BUTTON_4      A0    // button 4
+
+// Input buttons may be direct or inverted
+#define PIN_INVERTED_BUTTON1  1
+#define PIN_INVERTED_BUTTON2  1
+#define PIN_INVERTED_BUTTON3  1
+//#define PIN_INVERTED_BUTTON4  1
+
+#else	// default (e.g. HW_V15_REMOTE)
  #define PIN_BUTTON_1      A0    // button 1
  #define PIN_BUTTON_2      A2    // button 2
  #define PIN_BUTTON_3      A1    // button 3
  #define PIN_BUTTON_4      A3    // button 4
 #endif //Hardware V10/V15
-
-// Input buttons may be direct or inverted
-//#define PIN_INVERTED_BUTTON1  1
-//#define PIN_INVERTED_BUTTON2  1
-//#define PIN_INVERTED_BUTTON3  1
-//#define PIN_INVERTED_BUTTON4  1
-
 
 
 // Sensors
@@ -97,6 +103,21 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 //#define SENSOR_ENABLE_BMP180	1
 //#define	SENSOR_CHANNEL_BMP180_TEMPERATURE	3
 //#define	SENSOR_CHANNEL_BMP180_PRESSURE		4
+
+// locally connected Humidity sensor via Analog port
+#define SENSOR_ENABLE_ANALOG				1	// enable Analog sensor port
+#define SENSOR_ANALOG_CHANNELS				1	// one Analog channel
+
+#define SENSOR_CHANNEL_ANALOG_1_PIN			A7	// moisture sensor connected to A7
+#define SENSOR_CHANNEL_ANALOG_1_TYPE		SENSOR_TYPE_HUMIDITY	// humidity sensor
+#define SENSOR_CHANNEL_ANALOG_1_CHANNEL		2	// logical channel this sensor is mapped to
+
+#define SENSOR_CHANNEL_ANALOG_1_MINV		0	// minimum analog input value for this port
+#define SENSOR_CHANNEL_ANALOG_1_MAXV		930	// maximum analog input value for this port
+#define SENSOR_CHANNEL_ANALOG_1_MINVAL		0	// minimum sensor output value for this port
+#define SENSOR_CHANNEL_ANALOG_1_MAXVAL		100	// maximum sensor output value for this port
+#define SENSOR_CHANNEL_ANALOG_1_SCALE ((SENSOR_CHANNEL_ANALOG_1_MAXV-SENSOR_CHANNEL_ANALOG_1_MINV)/(SENSOR_CHANNEL_ANALOG_1_MAXVAL-SENSOR_CHANNEL_ANALOG_1_MINVAL))
+
 
 #if defined(SENSOR_ENABLE_DHT) && defined(SENSOR_ENABLE_BMP180)
 #define SENSOR_NUM_LOCAL_SENSORS	2

@@ -851,6 +851,23 @@ void ResetEEPROM()
 			}
 		}
 		else
+		{
+			numStations = 0;
+		}
+
+		uint8_t	myStationID;
+		u16 = DEFAULT_STATION_ID;
+		if( ini.getValue_P(PSTR("Stations"), PSTR("MyStationID"), buffer, bufferLen, u16) )
+		{
+			if( u16 >= MAX_STATIONS )
+			{
+				trace(F("LoadIniEEPROM - invalid MyStationID %d. Number should be <16\n."), u16);
+				u16 = DEFAULT_STATION_ID;
+			}
+		}
+//		trace(F("MyStationID=%d\n"), u16);
+		myStationID = u16;
+		SetMyStationID(myStationID);
 
 #ifdef VERBOSE_TRACE
 		trace(F("LoadIniEEPROM - numStations=%d\n"), numStations);
@@ -1259,6 +1276,35 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 				sensID++;
 			}
 #endif // SENSOR_ENABLE_BMP180
+
+#ifdef SENSOR_ENABLE_ANALOG
+			{
+				FullSensor  fullSens;
+
+#ifdef SENSOR_CHANNEL_ANALOG_1_PIN
+				fullSens.sensorType = SENSOR_CHANNEL_ANALOG_1_TYPE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_ANALOG_1_CHANNEL;
+				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_ANALOG_1_CHANNEL);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+#endif // SENSOR_CHANNEL_ANALOG_1_PIN
+
+#ifdef SENSOR_CHANNEL_ANALOG_2_PIN
+				fullSens.sensorType = SENSOR_CHANNEL_ANALOG_2_TYPE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_ANALOG_2_CHANNEL;
+				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_ANALOG_2_CHANNEL);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+#endif // SENSOR_CHANNEL_ANALOG_2_PIN
+			}
+#endif // SENSOR_ENABLE_ANALOG
+
 
 			SetNumSensors(sensID);
 			trace(F("LoadIniEEPROM - saved %d sensors\n"), sensID);

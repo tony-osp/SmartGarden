@@ -42,11 +42,6 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include <DHT.h>
 #endif
 
-#define SENSOR_CHANNEL_TEMPERATURE1 0	// when temp sensor is connected directly to the Master controller, assign it to channel 0
-#define SENSOR_CHANNEL_PRESSURE1	1	// when air pressure sensor is connected directly to the Master controller, assign it to channel 1
-#define SENSOR_CHANNEL_TEMPERATURE2 2	// second temp sensor connected to the master controller (if any)
-#define SENSOR_CHANNEL_HUMIDITY1	3	// humidity sensor
-
 struct SensorStruct 
 {
 	ShortSensor		config;
@@ -73,6 +68,7 @@ public:
 
 	int				Temperature;		// latest known readings
 	int				Humidity;
+	uint8_t			fLCDSensors;
 	SensorStruct	SensorsList[MAX_SENSORS];
 
 private:
@@ -83,6 +79,9 @@ private:
 	uint8_t			stationsToPollList[MAX_STATIONS];
 	uint8_t			nPoll;
     
+	uint8_t			iLCDTempIndex;
+	uint8_t			iLCDHumidIndex;
+
 	void			poll_MinTimer(void);
 };
 

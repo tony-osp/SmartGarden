@@ -23,8 +23,8 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // Uncomment the line that corresponds to the actual hardware
 
-#define SG_HARDWARE				HW_V15_REMOTE
-//#define SG_HARDWARE				HW_V15_MASTER
+//#define SG_HARDWARE				HW_V15_REMOTE
+#define SG_HARDWARE				HW_V15_MASTER
 //#define SG_HARDWARE				HW_V10_MASTER
 
 #if SG_HARDWARE == HW_V15_MASTER
@@ -72,7 +72,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define MAX_STATTION_NAME_LENGTH	20
 #define MAX_SENSOR_NAME_LENGTH		20
 
-#define EEPROM_SHEADER "T2.7"
+#define EEPROM_SHEADER "T2.8"
 #define SG_FIRMWARE_VERSION	27
 
 #define EEPROM_INI_FILE	"/device.ini"
@@ -111,10 +111,25 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 // Sensors
 // Default sensors logging interval, minutes
 #define SENSORS_POLL_DEFAULT_REPEAT  60
-//#define SENSORS_POLL_DEFAULT_REPEAT  5
+//#define SENSORS_POLL_DEFAULT_REPEAT  1
 
 // XBee RF network
 #define NETWORK_ADDRESS_BROADCAST	0x0FFFF
+
+//
+// Sensor types
+//
+#define SENSOR_TYPE_NONE				0
+#define SENSOR_TYPE_TEMPERATURE			1
+#define SENSOR_TYPE_PRESSURE			2
+#define SENSOR_TYPE_HUMIDITY			3
+#define SENSOR_TYPE_WATERFLOW			4
+#define SENSOR_TYPE_VOLTAGE				5
+
+#define SENSOR_DEFAULT_LCD_TEMPERATURE	0		// if defined, this will be the sensor channel shown as Temperature reading on the local LCD
+#define SENSOR_DEFAULT_LCD_HUMIDITY		1		// if defined, this will be the sensor channel shown as Humidity reading on the local LCD
+
+
 
 // HardwiredConfig.h specifies compile-time defaults for hardware config.
 // It is used when device.ini file is unavailable (e.g. no SD card), also few hardware definitions are always compile-time and 
