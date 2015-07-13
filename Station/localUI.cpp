@@ -374,7 +374,7 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
          else if( btn == BUTTON_DOWN ){
 
             if( sel_manual_ch > 0 ) sel_manual_ch--;
-                else                sel_manual_ch = max_ch;
+                else                sel_manual_ch = max_ch-1;
                 forceRefresh = 1;
          }
          else if( btn == BUTTON_MODE ){
