@@ -218,7 +218,7 @@ inline void MessageZonesSet( void *ptr )
 
 		if( !(sStation.stationFlags & STATION_FLAGS_ENABLED) || !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_RCONTROL) )
 		{
-			trace(F("MessageZonesSet - station %d is not enabled\n"), uint16_t(pMessage->Header.ToUnitID) );
+			trace(F("MessageZonesSet - station %d is not enabled, flags=%d\n"), uint16_t(pMessage->Header.ToUnitID), uint16_t(sStation.stationFlags) );
 	
 			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
 			return;																						// unit ID, Exception Code=2 (Illegal Data Address)
@@ -288,7 +288,7 @@ bool RProtocolMaster::SendZonesReport(uint8_t transactionID, uint8_t fromUnitID,
 		{
 			if( (firstZone+numZones) > sStation.numZoneChannels )
 			{
-				trace(F("SendZonesReport - wrong zones input parameters\n"));
+				trace(F("SendZonesReport - wrong zones input parameters. firstZone=%d, numZones=%d, stationID=%d, numZoneChannels=%d\n"), uint16_t(firstZone), uint16_t(numZones),uint16_t(fromUnitID),uint16_t(sStation.numZoneChannels) );
 				return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
 			}
 
@@ -390,8 +390,13 @@ bool RProtocolMaster::SendEvtMasterReport(uint8_t transactionID, uint8_t fromUni
 	Message.Header.TransactionID = transactionID;
 	Message.Header.Length = sizeof(RMESSAGE_EVTMASTER_REPORT)-sizeof(RMESSAGE_HEADER);	
 
+#ifndef SG_STATION_MASTER	// we send remote master notifications only if this station is not a master by itself
 	Message.EvtFlags = GetEvtMasterFlags();
 	Message.MasterStationID = GetEvtMasterStationID();
+#else
+	Message.EvtFlags = 0;
+	Message.MasterStationID = 0;
+#endif
 	Message.MasterStationAddress = 0;
 
 	return _SendMessage(toUnitID, &Message, sizeof(Message));

@@ -268,8 +268,10 @@ bool runStateClass::StartZone(int iSchedule, uint8_t stationID, uint8_t channel,
 {
 	if( StartZoneWorker(iSchedule, stationID, channel, time2run) )
 	{
+#ifndef SG_STATION_MASTER	// we send remote master notifications only if this station is not a master by itself
 		if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
 			rprotocol.SendZonesReport(0, stationID, GetEvtMasterStationID(), 0, GetNumZones());	// Note: this would work correctly only on Remote station, with only one station defined
+#endif //SG_STATION_MASTER
 	}
 }
 //
@@ -292,6 +294,8 @@ bool runStateClass::StartZoneWorker(int iSchedule, uint8_t stationID, uint8_t ch
 				return false;
 
 			ch = sStation.startZone+channel;
+
+//			trace(F("StartZoneWorker - starting channel %d on station %d, zone=%d\n"), uint16_t(channel), uint16_t(stationID), uint16_t(ch));
 		}
 
 		uint8_t	n_zones = GetNumZones();
@@ -329,11 +333,13 @@ void runStateClass::RemoteStopAllZones(void)
 void runStateClass::TurnOffZones()
 {
 		TurnOffZonesWorker();
+#ifndef SG_STATION_MASTER	// we send remote master notifications only if this station is not a master by itself
 		if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
 		{
 			rprotocol.SendZonesReport(0, GetMyStationID(), GetEvtMasterStationID(), 0, GetNumZones());	// Note: this would work correctly only on Remote station, with only one station defined
 //			trace(F("TurnOffZones - reporting event to Master\n"));
 		}
+#endif
 }
 
 void runStateClass::TurnOffZonesWorker()

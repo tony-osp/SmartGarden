@@ -881,6 +881,7 @@ void ResetEEPROM()
 			uint16_t		netID;
 			uint16_t		numChannels = 0;
 			uint16_t		netAddr;
+			uint8_t			fEnableRAccess = false;
 
 			for( int i=0; i<numStations; i++ )
 			{
@@ -943,8 +944,24 @@ void ResetEEPROM()
 					goto skip_Station;
 				}
 
+				fEnableRAccess = false;
+				strcpy_P(keyName, PSTR("RAccess"));
+				if( !ini.getValue(sectionName, keyName, buffer, bufferLen, tmpb, sizeof(tmpb)-1) )
+				{
+					trace(F("LoadIniEEPROM - no RAccess statement, assuming no remote access for Station %d\n"), i);
+				}
+				else
+				{
+					if( (strcmp_P(tmpb, PSTR("Yes")) == 0) || (strcmp_P(tmpb, PSTR("yes")) == 0) || (strcmp_P(tmpb, PSTR("YES")) == 0))
+						fEnableRAccess = true;
+				}
+
 				memset(&fullStation,0,sizeof(fullStation));
-				fullStation.stationFlags = STATION_FLAGS_VALID | STATION_FLAGS_ENABLED;
+				if( fEnableRAccess )	// allow remote access (via RF) to this station
+					fullStation.stationFlags = STATION_FLAGS_VALID | STATION_FLAGS_ENABLED | STATION_FLAGS_RSTATUS | STATION_FLAGS_RCONTROL;
+				else
+					fullStation.stationFlags = STATION_FLAGS_VALID | STATION_FLAGS_ENABLED;
+
 				fullStation.networkID = netID;
 				fullStation.networkAddress = netAddr;
 				fullStation.numZoneChannels = numChannels;
@@ -1101,7 +1118,7 @@ skip_Sensor:;
 						zone.bPump = false;
 						zone.stationID = st;
 						zone.channel = j;
-						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), zoneIndex + 1, zone.stationID, zone.channel+1);
+						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), uint16_t(zoneIndex+1), uint16_t(zone.stationID), uint16_t(zone.channel+1));
 						
 //						trace(F("Created zone %d, \"%s\"\n"), (uint8_t)(zoneIndex + 1), zone.name);
 						
@@ -1223,6 +1240,20 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 
 		trace(F("Creating default station\n"));
 
+// !!!Experiment!!!
+// Creating second station to shadow Station 0 (master)
+#ifdef notdef
+		memset(&fullStation,0,sizeof(fullStation));
+		fullStation.stationFlags = STATION_FLAGS_VALID | STATION_FLAGS_ENABLED;
+		fullStation.networkID = NETWORK_ID_XBEE;
+		fullStation.networkAddress = 0;
+		fullStation.numZoneChannels = 8;
+
+		sprintf_P(fullStation.name, PSTR("Master Station"));
+
+		SaveStation(0, &fullStation);
+		numStations++;
+#endif //notdef
 		// Sensors definitions
 		SetNumSensors(0);	// initial default
 
@@ -1333,9 +1364,9 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 						zone.bPump = false;
 						zone.stationID = st;
 						zone.channel = j;
-						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), zoneIndex + 1, zone.stationID, zone.channel+1);
+						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), uint16_t(zoneIndex + 1), uint16_t(zone.stationID), uint16_t(zone.channel+1));
 						
-//						trace(F("Created zone %d, \"%s\"\n"), (uint8_t)(zoneIndex + 1), zone.name);
+//						trace(F("Created zone %d, \"%s\"\n"), uint16_t(zoneIndex + 1), zone.name);
 						
 						SaveZone(zoneIndex, &zone);
 						zoneIndex++;
@@ -1467,9 +1498,9 @@ void SetPWS(const char * key)
 
 void GetApiKey(char * key)
 {
-        sprintf_P(key, PSTR("%02x%02x%02x%02x%02x%02x%02x%02x"), EEPROM.read(ADDR_APIKEY), EEPROM.read(ADDR_APIKEY + 1), EEPROM.read(ADDR_APIKEY + 2),
-                        EEPROM.read(ADDR_APIKEY + 3), EEPROM.read(ADDR_APIKEY + 4), EEPROM.read(ADDR_APIKEY + 5), EEPROM.read(ADDR_APIKEY + 6),
-                        EEPROM.read(ADDR_APIKEY + 7));
+        sprintf_P(key, PSTR("%02x%02x%02x%02x%02x%02x%02x%02x"), uint16_t(EEPROM.read(ADDR_APIKEY)), uint16_t(EEPROM.read(ADDR_APIKEY + 1)), uint16_t(EEPROM.read(ADDR_APIKEY + 2)),
+                        uint16_t(EEPROM.read(ADDR_APIKEY + 3)), uint16_t(EEPROM.read(ADDR_APIKEY + 4)), uint16_t(EEPROM.read(ADDR_APIKEY + 5)), uint16_t(EEPROM.read(ADDR_APIKEY + 6)),
+                        uint16_t(EEPROM.read(ADDR_APIKEY + 7)));
 }
 
 static uint8_t toHex(char val)

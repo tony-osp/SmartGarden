@@ -52,13 +52,26 @@ bool SysInfo(FILE* stream_file)
     "<div style=\"text-align: center\">"));
 
 	fprintf_P( stream_file, PSTR("<h3 class=\"auto-style1\">MCU</h3>\n"));
+#if defined(__AVR_ATmega2560__)
 	fprintf_P( stream_file, PSTR("<p>Arduino Mega 2560</p>\n"));
+#elif defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284p__)
+	fprintf_P( stream_file, PSTR("<p>Arduino 1284p </p>\n"));
+#else
+	fprintf_P( stream_file, PSTR("<p>Other Arduino MCU</p>\n"));
+#endif
 
 	fprintf_P( stream_file, PSTR("<table align=\"center\" border=\"1\" style=\"border:medium\"><tr>\n<td width=\"200\">Free RAM</td>\n"));
-	fprintf_P( stream_file, PSTR("<td>%d bytes (out of 8KB total)</td>\n"), GetFreeMemory());
 
-	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>Network</td>\n<td>Ethernet W5100 (100/10 Mbps)</td>\n</tr><tr>\n"
-							     "<td>Storage</td>\n<td>MicroSD Card</td>\n</tr><tr>\n<td>Local LCD</td>\n<td>16 character X 2 lines</td>\n</tr></table>\n"));
+#if defined(__AVR_ATmega2560__)
+	fprintf_P( stream_file, PSTR("<td>%d bytes (out of 8KB total)</td>\n"), GetFreeMemory());
+#elif defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284p__)
+	fprintf_P( stream_file, PSTR("<td>%d bytes (out of 16KB total)</td>\n"), GetFreeMemory());
+#else
+	fprintf_P( stream_file, PSTR("<td>%d bytes </td>\n"), GetFreeMemory());
+#endif
+
+	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>Network</td>\n<td>Ethernet W5100/W5500 (100/10 Mbps)</td>\n"));
+	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>Storage</td>\n<td>MicroSD Card</td>\n</tr><tr>\n<td>Local LCD</td>\n<td>16 character X 2 lines</td>\n</tr></table>\n"));
 
 	fprintf_P( stream_file, PSTR("<h3 class=\"auto-style1\">System</h3>\n"
 						         "<table align=\"center\" border=\"1\" style=\"border:medium\"><tr>\n"));
@@ -138,7 +151,6 @@ bool SysInfo(FILE* stream_file)
 			else if( fStation.networkID == NETWORK_ID_XBEE )			strcpy_P(tmp_buf, PSTR("Remote XBee"));
 			else														strcpy_P(tmp_buf, PSTR("Unknown!"));
 
-//			fprintf_P( stream_file, PSTR("<tr class=\"auto-style3\"><td>%i</td><td>%s</td><td>%i</td><td>%s</td><td>%u</td>\n"), i, fStation.name, fStation.numZoneChannels, tmp_buf, fStation.networkAddress);
 			fprintf_P( stream_file, PSTR("<tr class=\"auto-style3\"><td>%i</td><td>%s</td><td>%i</td><td>%s</td>"), i, fStation.name, fStation.numZoneChannels, tmp_buf );
 			
 			if(fStation.networkID == NETWORK_ID_XBEE )
@@ -180,7 +192,7 @@ bool SysInfo(FILE* stream_file)
 		else if( fSensor.sensorType == SENSOR_TYPE_PRESSURE )		strcpy_P(tmp_buf, PSTR("Air Pressure"));
 		else if( fSensor.sensorType == SENSOR_TYPE_WATERFLOW )		strcpy_P(tmp_buf, PSTR("Water Flow"));
 		else if( fSensor.sensorType == SENSOR_TYPE_VOLTAGE )		strcpy_P(tmp_buf, PSTR("Voltage"));
-		else														strcpy_P(tmp_buf, PSTR("Unknown!"));
+		else														strcpy_P(tmp_buf, PSTR("Unknown"));
 
 		fprintf_P( stream_file, PSTR("</tr><tr class=\"auto-style3\">\n<td>%i</td><td>%s</td><td>%s</td><td>%i:%i</td>\n"), i, tmp_buf, fSensor.name, (int)(fSensor.sensorStationID), (int)(fSensor.sensorChannel));
 	}

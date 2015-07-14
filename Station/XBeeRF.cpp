@@ -135,7 +135,7 @@ bool XBeeRFClass::ChannelOn( uint8_t stationID, uint8_t chan, uint8_t ttr )
 	{   // limit scope of sStation declaration to save memory during subsequent call
 		ShortStation	sStation;
 
-		trace(F("XBee - ChannelOn, stationID=%d, channel=%d, ttr=%d\n"), (int)stationID, (int)chan, (int)ttr);
+//		trace(F("XBee - ChannelOn, stationID=%d, channel=%d, ttr=%d\n"), (int)stationID, (int)chan, (int)ttr);
 
 		if( !fXBeeReady ) 
 			return false;
@@ -436,7 +436,7 @@ bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 	if( !XBeeRF.fXBeeReady )	// check that XBee is initialized and ready
 		return false;
 
-	trace(F("XBee - sending packet to station %d, len %u\n"), nStation, (unsigned int)mSize);
+//	trace(F("XBee - sending packet to station %d, len %u\n"), nStation, (unsigned int)mSize);
 
 	static Tx64Request tx = Tx64Request();						// pre-allocated, static objects to avoid dynamic memory issues
 	static XBeeAddress64  addrBroadcast = XBeeAddress64(0, 0xFFFF);

@@ -869,7 +869,7 @@ static bool ParseHTTPHeader(EthernetClient & client, KVPairs * key_value_pairs, 
 			if ((c == ' ') || c == '&')
 			{
 				*value_ptr = 0;
-				trace(F("Found a KV pair : %s -> %s\n"), key_value_pairs->keys[key_value_pairs->num_pairs], key_value_pairs->values[key_value_pairs->num_pairs]);
+//				trace(F("Found a KV pair : %s -> %s\n"), key_value_pairs->keys[key_value_pairs->num_pairs], key_value_pairs->values[key_value_pairs->num_pairs]);
 
 				if ((c == '&') && (key_value_pairs->num_pairs >= NUM_KEY_VALUES - 1))
 				{
