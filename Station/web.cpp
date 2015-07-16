@@ -23,10 +23,6 @@
 bool SysInfo(FILE* stream_file);
 
 
-// local forward declaration 
-static void ServeFile(FILE * stream_file, const char * fname, SdFile & theFile, EthernetClient & client);
-
-
 web::web(void)
 		: m_server(0)
 {
@@ -89,7 +85,7 @@ static int stream_putchar(char c, FILE *stream)
 #endif
 
 
-static void ServeHeader(FILE * stream_file, int code, const char * pReason, bool cache, char * type)
+void ServeHeader(FILE * stream_file, int code, const char * pReason, bool cache, char * type)
 {
 	fprintf_P(stream_file, PSTR("HTTP/1.1 %d %S\nContent-Type: %S\nConnection: close\n"), code, pReason, type);
 	if (cache)
@@ -98,7 +94,7 @@ static void ServeHeader(FILE * stream_file, int code, const char * pReason, bool
 		fprintf_P(stream_file, PSTR("Cache-Control: no-cache\r\n\r\n"));
 }
 
-static void ServeHeader(FILE * stream_file, int code, const char * pReason, bool cache)
+void ServeHeader(FILE * stream_file, int code, const char * pReason, bool cache)
 {
      ServeHeader(stream_file, code, pReason, cache, PSTR("text/html"));
 }
@@ -106,7 +102,7 @@ static void ServeHeader(FILE * stream_file, int code, const char * pReason, bool
 
 
 
-static void Serve404(FILE * stream_file)
+void Serve404(FILE * stream_file)
 {
 	ServeHeader(stream_file, 404, PSTR("NOT FOUND"), false);
 	fprintf_P(stream_file, PSTR("NOT FOUND"));
@@ -159,65 +155,6 @@ static void JSONSensorsNow(FILE * stream_file)
 
 
 #ifdef LOGGING
-static void ShowLogs(char *sPage, FILE * pFile, EthernetClient client)
-{
-//   let's check what is it - log listing or a specific log file request
-
-   if( sPage[4] == 0 || sPage[4] == ' ' || (sPage[4] == '/' && sPage[5] == ' ')){    // this is log listing - the string is either /logs or /logs/ with a spacebar after the last character
-
-// this is log listing request
-        SdFile logfile;
-
-	trace(F("Serving logs directory listing\n"));
-  
-        if( !logfile.open("/logs", O_READ) ){
-
-            trace(F("Cannot open logs directory\n"));
-            Serve404(pFile);
-            return;    // failed to open logs directory
-        }
-
-        ServeHeader(pFile, 200, PSTR("OK"), false);  // note: no caching on logs directory rendering
-        
-        fprintf_P( pFile, PSTR("<html>\n<body>\n<h1>Directory listing of /logs</h1>\n<table> <tr> <td><b>File Name</b></td> <td>&nbsp&nbsp</td> <td><b>Size, bytes</b></td> </tr>\n"));
-
-       while(true) {
-
-            char fname[20] = {0};
-            SdFile entry;
-            if (!entry.openNext(&logfile, O_READ) ){
-       // no more files
-                  logfile.close();
-
-                  fprintf_P( pFile, PSTR("</table> </body>\n</html>"));
-                  return;          // all done, exiting
-            }
-
-            entry.getFilename(fname);
-            fprintf_P( pFile, PSTR("<tr> <td> <a href=\"/logs/%s\">%s</a> </td> <td>&nbsp&nbsp</td> <td>%lu </td> </tr>"), fname, fname, entry.fileSize() ); 
-            entry.close();
-       }
-       logfile.close();
-
-   }
-   else {         // this is a request to an individual log file
-
-	trace(F("Serving log file: %s\n"), sPage);
-
-	SdFile theFile;
-	if (!theFile.open(sPage, O_READ))
-		Serve404(pFile);
-	else
-	{
-		if (theFile.isFile())
-  		        ServeFile(pFile, sPage, theFile, client);
-		else  
-			Serve404(pFile);
-
-		theFile.close();
-	}
-   }
-}
 
 static void ShowWateringLogs(char *sPage, FILE * pFile, EthernetClient client)
 {
@@ -691,7 +628,7 @@ static bool ManualZone(const KVPairs & key_value_pairs)
 	return true;
 }
 
-static void ServeFile(FILE * stream_file, const char * fname, SdFile & theFile, EthernetClient & client)
+void ServeFile(FILE * stream_file, const char * fname, SdFile & theFile, EthernetClient & client)
 {
 	freeMemory();
 	const char * ext;
@@ -717,7 +654,7 @@ static void ServeFile(FILE * stream_file, const char * fname, SdFile & theFile, 
 			ServeHeader(stream_file, 200, PSTR("OK"), true, PSTR("image/x-icon"));
 		else if ( (strcmp_P(ext, PSTR("log")) == 0) || (strcmp_P(ext, PSTR("LOG")) == 0))
 			ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
-		else if ( ext[0] == '0' && ext[1] == '0' )
+		else if ( ext[0] >= '0' && ext[0] <= '9')
 			ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
 		else
 			ServeHeader(stream_file, 200, PSTR("OK"), true);
@@ -1167,14 +1104,14 @@ void web::ProcessWebClients()
 			else if (strncmp_P(sPage, PSTR("logs"), 4) == 0)
 			{
   				freeMemory();
-				ShowLogs(sPage, pFile, client);
+				sdlog.LogsHandler(sPage, pFile, client);
 			}
-// watering logs
-			else if (strncmp_P(sPage, PSTR("watering.log"), 12) == 0)
-			{
-  				freeMemory();
-				ShowWateringLogs(sPage, pFile, client);
-			}
+//// watering logs
+//			else if (strncmp_P(sPage, PSTR("watering.log"), 12) == 0)
+//			{
+//  				freeMemory();
+//				ShowWateringLogs(sPage, pFile, client);
+//			}
 			else
 // This is the "catch all" case, that also serves static HTML files, *.js etc.
 			{

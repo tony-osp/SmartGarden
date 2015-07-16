@@ -120,7 +120,7 @@ bool Logging::begin(char *str)
   sprintf_P(log_fname, PSTR(PRESSURE_LOG_DIR));   // Atmospheric pressure log directory
   if( !lfile.open(log_fname, O_READ) ){
 
-        trace(F("Humidity log directory not found, creating it.\n"));
+        trace(F("Pressure log directory not found, creating it.\n"));
 
         if( !sd.mkdir(log_fname) ){
 
@@ -628,6 +628,121 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
                      fprintf_P(stream_file, PSTR("\n\t\t\t\t\t ] \n\t\t\t\t } \n"));    // close the last zone if we emitted
 
         return true;
+}
+
+// Local worker routine
+// Emit directory listing
+//
+void emitDirectoryListing(SdFile &dir, char *folder, FILE *pFile)
+{
+//	SdFile dir;
+
+//	trace(F("Serving directory listing of %s\n"), folder);
+	
+	fprintf_P( pFile, PSTR("<table><tr><td><b>File Name</b></td> <td>&nbsp&nbsp</td> <td><b>Size, bytes</b></td></tr>\n"));
+
+	SdFile entry;
+	char fname[20];
+
+	while(true) 
+	{
+        if (!entry.openNext(&dir, O_READ) ){
+		// no more files
+			dir.close();
+            fprintf_P( pFile, PSTR("</table>"));
+            return;          // all done, exiting
+        }
+
+        entry.getFilename(fname);
+        fprintf_P( pFile, PSTR("<tr> <td> <a href=\".%s/%s\">%s</a></td><td>&nbsp&nbsp</td><td>%lu</td></tr>"), folder, fname, fname, entry.fileSize() ); 
+
+        entry.close();
+   }
+   return;
+}
+
+// "/logs*" URL handler.
+// This handler provides access and WEB UI management for various logs.
+// This includes directory listing, displaying individual log files, and deleting unwanted log files
+//
+
+void Logging::LogsHandler(char *sPage, FILE *pFile, EthernetClient client)
+{
+//   let's check what is it - log listing or a specific log file request
+
+   if( sPage[4] == 0 || sPage[4] == ' ' || (sPage[4] == '/' && sPage[5] == 0)){    // this is log listing - the string is either /logs or /logs/
+
+// this is log listing request
+        SdFile logfile;
+
+        if( !logfile.open(sPage, O_READ) ){
+
+            trace(F("Cannot open logs directory\n"));
+            Serve404(pFile);
+            return;    // failed to open logs directory
+        }
+        
+		ServeHeader(pFile, 200, PSTR("OK"), false);  // note: no caching on logs directory rendering        
+        fprintf_P( pFile, PSTR("<html>\n<head>\n<title>SmartGarden Logs</title></head>\n<body>\n<div style=\"text-align: center\"><h2>SmartGarden System</h2>\n<h3>Directory listing of /logs</h3></div>\n"));
+		fprintf_P( pFile, PSTR("<p><b>System Logs:</b><p>\n")); 
+        
+		emitDirectoryListing(logfile, "/logs", pFile);
+        logfile.close();
+
+		fprintf_P( pFile, PSTR( "<p><p><table><tr><td><b>Other logs:</b></td></tr>"
+								"<tr><td><a href=\"/logs" WATERING_LOG_DIR "\">Watering Logs</a></td></tr>\n"
+								"<tr><td><a href=\"/logs" TEMPERATURE_LOG_DIR "\">Temperature Sensors</a></td></tr>\n"
+								"<tr><td><a href=\"/logs" HUMIDITY_LOG_DIR "\">Humidity Sensors</a></td></tr>\n"
+								"<tr><td><a href=\"/logs" PRESSURE_LOG_DIR "\">Air Pressure Sensors</a></td></tr>\n"
+								"<tr><td><a href=\"/logs" WFLOW_LOG_DIR "\">Waterflow Counters</a></td></tr>\n"
+								"</table>\n"
+								"<p><br><div style=\"text-align: center\">(c) 2015 Tony-osp</div></p>\n</body>\n</html>")); 
+   }
+   else if( sPage[4] != 0 && sPage[5] != 0 )	// path is longer than /logs
+   {
+	   char *path = sPage+4;
+
+	   if( (strncmp_P(path, PSTR(WATERING_LOG_DIR), WATERING_LOG_DIR_LEN)==0) ||
+		   (strncmp_P(path, PSTR(TEMPERATURE_LOG_DIR), TEMPERATURE_LOG_DIR_LEN)==0) ||
+	       (strncmp_P(path, PSTR(HUMIDITY_LOG_DIR), HUMIDITY_LOG_DIR_LEN)==0) ||
+	       (strncmp_P(path, PSTR(PRESSURE_LOG_DIR), PRESSURE_LOG_DIR_LEN)==0) ||
+		   (strncmp_P(path, PSTR(WFLOW_LOG_DIR), WFLOW_LOG_DIR_LEN)==0) )
+		{
+			;
+	    }
+	   else
+	   {
+			path = sPage;
+	   }
+
+
+		SdFile logfile;
+
+		if( !logfile.open(path, O_READ) ){
+
+			trace(F("Cannot open %s file or directory\n"), sPage+4);
+		    Serve404(pFile);
+			return;    // failed to open logs directory
+		}
+
+		if( logfile.isDir() )
+		{
+			ServeHeader(pFile, 200, PSTR("OK"), false);  // note: no caching on logs directory rendering
+			fprintf_P( pFile, PSTR("<html>\n<head>\n<title>SmartGarden Logs</title></head>\n<body>\n<div style=\"text-align: center\"><h2>SmartGarden System</h2>\n<h3>Directory listing of %s</h3></div>\n"), sPage);
+			
+			emitDirectoryListing(logfile, path, pFile);
+			logfile.close();
+			
+			fprintf_P( pFile, PSTR( "<p><br><div style=\"text-align: center\">(c) 2015 Tony-osp</div></p>\n</body>\n</html>"));
+	   }
+	   else {         // this is a request to an individual log file
+
+//			trace(F("Serving log file: %s\n"), path);
+
+			ServeFile(pFile, sPage, logfile, client);
+			logfile.close();
+	   }
+   }
 }
 
 // emit sensor log as JSON

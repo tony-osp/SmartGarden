@@ -48,7 +48,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define USE_I2C_LCD				1	// Use I2C LCD (instead of the parallel-connected LCD)
 #define SG_RF_TIME_CLIENT		1	// accept time broadcast messages on XBee network
 
-#define DEFAULT_STATION_ID		2	// for Remote default station ID is 1
+#define DEFAULT_STATION_ID		2	// 
 
 #endif //HW_V15_REMOTE
 
@@ -72,7 +72,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define MAX_STATTION_NAME_LENGTH	20
 #define MAX_SENSOR_NAME_LENGTH		20
 
-#define EEPROM_SHEADER "T2.8"
+#define EEPROM_SHEADER "T2.7"
 #define SG_FIRMWARE_VERSION	27
 
 #define EEPROM_INI_FILE	"/device.ini"

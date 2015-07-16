@@ -26,33 +26,33 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // System log directory and file name format (mm-yyyy.log)
 #define SYSTEM_LOG_DIR			"/logs"
+#define SYSTEM_LOG_DIR_LEN		5
 #define SYSTEM_LOG_FNAME_FORMAT "/logs/%2.2u-%4.4u.log"
 
 // Watering activity log directory and file name format (wat-yyyy.nnn)
 #define WATERING_LOG_DIR			"/watering.log"
+#define WATERING_LOG_DIR_LEN		13
 #define WATERING_LOG_FNAME_FORMAT "/watering.log/wat-%4.4u.%3.3u"
 
 // Water flow data directory and file name format (wfl-yyyy.nnn)
 #define WFLOW_LOG_DIR			"/wflow.log"
+#define WFLOW_LOG_DIR_LEN		10
 #define WFLOW_LOG_FNAME_FORMAT "/wflow.log/wfl-%4.4u.%3.3u"
 
 // Temperature data directory and file name format (temMM-YY.nnn)
 #define TEMPERATURE_LOG_DIR		 	 "/tempr.log"
+#define TEMPERATURE_LOG_DIR_LEN	 	 10
 #define TEMPERATURE_LOG_FNAME_FORMAT "/tempr.log/tem%2.2u-%2.2u.%3.3u"
-// temporary put temperature logs into /logs directory
-//#define TEMPERATURE_LOG_DIR		 	 "/logs"
-//#define TEMPERATURE_LOG_FNAME_FORMAT "/logs/tem%2.2d-%2.2d.%3.3d"
 
 // Humidity data directory and file name format (humMM-YY.nnn)
 #define HUMIDITY_LOG_DIR		  "/humid.log"
+#define HUMIDITY_LOG_DIR_LEN	  10
 #define HUMIDITY_LOG_FNAME_FORMAT "/humid.log/hum%2.2u-%2.2u.%3.3u"
 
 // Atmospheric pressure data directory and file name format (preMM-YY.nnn)
-//#define PRESSURE_LOG_DIR		  "/pressure.log"
-//#define PRESSURE_LOG_FNAME_FORMAT "/pressure.log/pre-%4.4u.%3.3u"
-// temporary put pressure files in system logs directory
-#define PRESSURE_LOG_DIR		  "/logs"
-#define PRESSURE_LOG_FNAME_FORMAT "/logs/pre%2.2u-%2.2u.%3.3u"
+#define PRESSURE_LOG_DIR		  "/pressure.log"
+#define PRESSURE_LOG_DIR_LEN	  13
+#define PRESSURE_LOG_FNAME_FORMAT "/pressure.log/pre%2.2u-%2.2u.%3.3u"
 
 
 //
@@ -112,6 +112,7 @@ public:
         byte syslog_str_P(char evt_type, char *str);
         
         void HandleWebRq(char *sPage, FILE *pFile);
+		void LogsHandler(char *sPage, FILE *stream_file, EthernetClient client);
 
 private:
 

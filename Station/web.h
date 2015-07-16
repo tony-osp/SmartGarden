@@ -9,6 +9,11 @@
 #ifndef _WEB_h
 #define _WEB_h
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <SdFat.h>
+#include <Ethernet.h>
+
 class EthernetServer;
 
 #define NUM_KEY_VALUES 60
@@ -32,5 +37,12 @@ public:
 private:
 	EthernetServer * m_server;
 };
+
+void ServeHeader(FILE * stream_file, int code, const char * pReason, bool cache, char * type);
+void ServeHeader(FILE * stream_file, int code, const char * pReason, bool cache);
+void ServeFile(FILE * stream_file, const char * fname, SdFile & theFile, EthernetClient & client);
+void Serve404(FILE * stream_file);
+
+
 
 #endif

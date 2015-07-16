@@ -70,8 +70,9 @@ bool SysInfo(FILE* stream_file)
 	fprintf_P( stream_file, PSTR("<td>%d bytes </td>\n"), GetFreeMemory());
 #endif
 
-	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>Network</td>\n<td>Ethernet W5100/W5500 (100/10 Mbps)</td>\n"));
-	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>Storage</td>\n<td>MicroSD Card</td>\n</tr><tr>\n<td>Local LCD</td>\n<td>16 character X 2 lines</td>\n</tr></table>\n"));
+	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>Network</td>\n<td>Ethernet W5100/W5500 (100 Mbps)</td>\n"));
+	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>Storage</td>\n<td>MicroSD Card</td>\n</tr><tr>\n<td>Local LCD</td>\n<td>"));
+	fprintf_P( stream_file, PSTR("%d character X %d lines</td>\n</tr></table>\n"), LOCAL_UI_LCD_X, LOCAL_UI_LCD_Y);
 
 	fprintf_P( stream_file, PSTR("<h3 class=\"auto-style1\">System</h3>\n"
 						         "<table align=\"center\" border=\"1\" style=\"border:medium\"><tr>\n"));
@@ -98,18 +99,28 @@ bool SysInfo(FILE* stream_file)
 								 "<h4>Parallel Interface</h4>\n"
 								 "<table align=\"center\" border=\"1\" style=\"border:medium\"><tr>\n"));
 
-	fprintf_P( stream_file, PSTR("<td width=\"200\">Num. Channels</td>\n<td>%i</td>\n"), (int)GetNumIOChannels());
-	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>Polarity</td>\n"));
-	if( GetOT() == OT_DIRECT_NEG )
-		fprintf_P( stream_file, PSTR("<td>Negative</td>\n"));
-	else if(GetOT() == OT_DIRECT_POS )
-		fprintf_P( stream_file, PSTR("<td>Positive</td>\n"));
-	else
-		fprintf_P( stream_file, PSTR("<td>Not defined</td>\n"));
+	fprintf_P( stream_file, PSTR("<td width=\"200\">Num. Channels</td>\n<td>%i</td>\n"), int(GetNumIOChannels()));
+	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>Polarity</td>\n<td>"));
+	if( GetNumIOChannels() != 0 )
+	{
+		if( GetOT() == OT_DIRECT_NEG )
+			fprintf_P( stream_file, PSTR("Negative"));
+		else if(GetOT() == OT_DIRECT_POS )
+			fprintf_P( stream_file, PSTR("Positive"));
+		else
+			fprintf_P( stream_file, PSTR("Not defined"));
+	}
+	else 
+	{
+		fprintf_P( stream_file, PSTR("N/A"));
+	}
+	fprintf_P( stream_file, PSTR("</td>\n</tr><tr>\n<td>PINs</td>\n<td>\n"));
 
-	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>PINs</td>\n<td>\n"));
-	for( uint8_t i=0; i<GetNumIOChannels(); i++)
-		fprintf_P( stream_file, PSTR("%S%i"), i?PSTR(","):PSTR(""), (int)GetDirectIOPin(i));
+	if( GetNumIOChannels() != 0 )
+	{
+		for( uint8_t i=0; i<GetNumIOChannels(); i++)
+			fprintf_P( stream_file, PSTR("%S%i"), i?PSTR(","):PSTR(""), (int)GetDirectIOPin(i));
+	}
 
 	fprintf_P( stream_file, PSTR("</td>\n</tr></table>\n"));
 

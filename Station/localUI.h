@@ -84,9 +84,6 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // Button meaning
 
-// nothing pressed
-#define BUTTON_NONE   0
-
 #define BUTTON_MODE             BUTTON_1
 #define BUTTON_UP               BUTTON_2
 // note: button 3 is the optional button
