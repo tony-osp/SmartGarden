@@ -60,11 +60,11 @@ bool Logging::begin(char *str)
   sprintf_P(log_fname, PSTR(SYSTEM_LOG_DIR));   // system log directory
   if( !lfile.open(log_fname, O_READ) ){
 
-        trace(F("System log directory not found, creating it.\n"));
+        TRACE_INFO(F("System log directory not found, creating it.\n"));
 
         if( !sd.mkdir(log_fname) ){
 
-           trace(F("Error creating System log directory.\n"));
+           TRACE_ERROR(F("Error creating System log directory.\n"));
         }
   }
   lfile.close();      // close the directory
@@ -72,11 +72,11 @@ bool Logging::begin(char *str)
   sprintf_P(log_fname, PSTR(WATERING_LOG_DIR));   // Watering log directory
   if( !lfile.open(log_fname, O_READ) ){
 
-        trace(F("Watering log directory not found, creating it.\n"));
+        TRACE_INFO(F("Watering log directory not found, creating it.\n"));
 
         if( !sd.mkdir(log_fname) ){
 
-           trace(F("Error creating Watering log directory.\n"));
+           TRACE_ERROR(F("Error creating Watering log directory.\n"));
         }
   }
   lfile.close();      // close the directory
@@ -84,11 +84,11 @@ bool Logging::begin(char *str)
   sprintf_P(log_fname, PSTR(WFLOW_LOG_DIR));   // Waterflow log directory
   if( !lfile.open(log_fname, O_READ) ){
 
-        trace(F("Waterflow log directory not found, creating it.\n"));
+        TRACE_INFO(F("Waterflow log directory not found, creating it.\n"));
 
         if( !sd.mkdir(log_fname) ){
 
-           trace(F("Error creating Waterflow log directory.\n"));
+           TRACE_ERROR(F("Error creating Waterflow log directory.\n"));
         }
   }
   lfile.close();      // close the directory
@@ -96,11 +96,11 @@ bool Logging::begin(char *str)
   sprintf_P(log_fname, PSTR(TEMPERATURE_LOG_DIR));   // Temperature log directory
   if( !lfile.open(log_fname, O_READ) ){
 
-        trace(F("Temperature log directory not found, creating it.\n"));
+        TRACE_INFO(F("Temperature log directory not found, creating it.\n"));
 
         if( !sd.mkdir(log_fname) ){
 
-           trace(F("Error creating Temperature log directory.\n"));
+           TRACE_ERROR(F("Error creating Temperature log directory.\n"));
         }
   }
   lfile.close();      // close the directory
@@ -108,11 +108,11 @@ bool Logging::begin(char *str)
   sprintf_P(log_fname, PSTR(HUMIDITY_LOG_DIR));   // Humidity log directory
   if( !lfile.open(log_fname, O_READ) ){
 
-        trace(F("Humidity log directory not found, creating it.\n"));
+        TRACE_INFO(F("Humidity log directory not found, creating it.\n"));
 
         if( !sd.mkdir(log_fname) ){
 
-           trace(F("Error creating Humidity log directory.\n"));
+           TRACE_ERROR(F("Error creating Humidity log directory.\n"));
         }
   }
   lfile.close();      // close the directory
@@ -120,11 +120,11 @@ bool Logging::begin(char *str)
   sprintf_P(log_fname, PSTR(PRESSURE_LOG_DIR));   // Atmospheric pressure log directory
   if( !lfile.open(log_fname, O_READ) ){
 
-        trace(F("Pressure log directory not found, creating it.\n"));
+        TRACE_INFO(F("Pressure log directory not found, creating it.\n"));
 
         if( !sd.mkdir(log_fname) ){
 
-           trace(F("Error creating Pressure log directory.\n"));
+           TRACE_ERROR(F("Error creating Pressure log directory.\n"));
         }
   }
   lfile.close();      // close the directory
@@ -134,7 +134,7 @@ bool Logging::begin(char *str)
   sprintf_P(log_fname, PSTR(SYSTEM_LOG_FNAME_FORMAT), month(curr_time), year(curr_time) );
   if( !lfile.open(log_fname, O_WRITE | O_APPEND | O_CREAT) ){
 
-        trace(F("Cannot open system log file (%s)\n"), log_fname);
+        TRACE_ERROR(F("Cannot open system log file (%s)\n"), log_fname);
         logger_ready = false;
 
         return false;    // failed to open/create log file
@@ -195,7 +195,7 @@ byte Logging::syslog_str_internal(char evt_type, char *str, char flag)
 
    if( !lfile.open(tmp_buf, O_WRITE | O_APPEND | O_CREAT) ){
 
-            trace(F("Cannot open system log file (%s)\n"), tmp_buf);
+            TRACE_ERROR(F("Cannot open system log file (%s)\n"), tmp_buf);
 
             logger_ready = false;      // something is wrong with the log file, mark logger as "not ready"
             return false;    // failed to open/create log file
@@ -253,7 +253,7 @@ bool Logging::LogZoneEvent(time_t start, int zone, int duration, int schedule, i
 // operation failed, usually because log file for this year does not exist yet. Let's create it and add column headers.
          if( !lfile.open(tmp_buf, O_WRITE | O_APPEND | O_CREAT) ){
 
-               trace(F("Cannot open watering log file (%s)\n"), tmp_buf);    // file create failed, return an error.
+               TRACE_ERROR(F("Cannot open watering log file (%s)\n"), tmp_buf);    // file create failed, return an error.
                return false;    // failed to open/create file
          }
          lfile.println(F("Month,Day,Time,Run time(min),ScheduleID,Adjustment,WUAdjustment"));
@@ -278,7 +278,7 @@ bool Logging::LogZoneEvent(time_t start, int zone, int duration, int schedule, i
 //
 bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int sensor_reading)
 {
-//	trace(F("LogSensorReading - enter, sensor_type=%i, sensor_id=%i, sensor_reading=%i\n"), (int)sensor_type, sensor_id, sensor_reading);
+//	TRACE_ERROR(F("LogSensorReading - enter, sensor_type=%i, sensor_id=%i, sensor_reading=%i\n"), (int)sensor_type, sensor_id, sensor_reading);
 
 	if( !logger_ready ) return false;  //check if the logger is ready
 
@@ -313,27 +313,27 @@ bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int sensor_re
                      return false;    // sensor_type not recognized
                      break;           
       }
-//      trace(F("LogSensorReading - about to open file: %s, len=%d\n"), tmp_buf, strlen(tmp_buf));
+//      TRACE_ERROR(F("LogSensorReading - about to open file: %s, len=%d\n"), tmp_buf, strlen(tmp_buf));
 
       if( !lfile.open(tmp_buf, O_WRITE | O_APPEND) ){    // we are trying to open existing log file for write/append
 
 // operation failed, usually because log file for this year does not exist yet. Let's create it and add column headers.
          if( !lfile.open(tmp_buf, O_WRITE | O_APPEND | O_CREAT) ){
 
-               trace(F("Cannot open or create sensor  log file %s\n"), tmp_buf);    // file create failed, return an error.
+               TRACE_ERROR(F("Cannot open or create sensor  log file %s\n"), tmp_buf);    // file create failed, return an error.
                return false;    // failed to open/create file
          }
 		 // write header line
          sprintf_P(tmp_buf, PSTR("Day,Time,%S\n"), sensorName); 
 		 lfile.write(tmp_buf, strlen(tmp_buf));
          
-         trace(F("creating new log file for sensor:%S\n"), sensorName);
+         TRACE_INFO(F("creating new log file for sensor:%S\n"), sensorName);
       }
-//	  trace(F("Opened log file %s, len=%i\n"), tmp_buf, strlen(tmp_buf));
+//	  TRACE_ERROR(F("Opened log file %s, len=%i\n"), tmp_buf, strlen(tmp_buf));
 
       sprintf_P(tmp_buf, PSTR("%u,%u:%u,%d\n"), day(t), hour(t), minute(t), sensor_reading);
 
-//	  trace(F("Writing log string %s, len=%d\n"), tmp_buf, strlen(tmp_buf));
+//	  TRACE_ERROR(F("Writing log string %s, len=%d\n"), tmp_buf, strlen(tmp_buf));
 	  lfile.write(tmp_buf, strlen(tmp_buf));
 
       lfile.close();
@@ -420,7 +420,7 @@ int Logging::getZoneBins( int zone, time_t start, time_t end, long int bin_data[
         int    bin_counter[24];
         int    r_counter = 0;
         
-//		trace(F("getZoneBins - entering, zone=%d, bins=%d, grouping=%d\n"), zone, bins, (int)grouping);
+//		TRACE_ERROR(F("getZoneBins - entering, zone=%d, bins=%d, grouping=%d\n"), zone, bins, (int)grouping);
 //		freeMemory();
 		if( grouping == NONE )		// I have not implemented "no grouping" case yet
 			return -2;
@@ -447,7 +447,7 @@ int Logging::getZoneBins( int zone, time_t start, time_t end, long int bin_data[
 
         if( !lfile.open(tmp_buf, O_READ) ){  // logs for each zone are stored in a separate file, with the file name based on the year and zone number. Try to open it.
 
-//			trace(F("getZoneBins - cannot open watering log file: %s\n"), tmp_buf);
+//			TRACE_ERROR(F("getZoneBins - cannot open watering log file: %s\n"), tmp_buf);
             return -1;  // cannot open watering log file
         }
         char bFirstRow = true;
@@ -517,11 +517,11 @@ int Logging::getZoneBins( int zone, time_t start, time_t end, long int bin_data[
         
         lfile.close();
         
-//        trace(F("Zone=%i. Scaling bins, num bins=%i\n"), zone, bins);
+//        TRACE_ERROR(F("Zone=%i. Scaling bins, num bins=%i\n"), zone, bins);
         
         for( int i=0; i<bins; i++ ){
           
-//              trace(F("bin_data[%i]=%lu, bin_counter[%i]=%i\n"), i, bin_data[i], i, bin_counter[i]);
+//              TRACE_ERROR(F("bin_data[%i]=%lu, bin_counter[%i]=%i\n"), i, bin_data[i], i, bin_counter[i]);
               if( bin_counter[i] != 0 ){
                 
                        bin_data[i] = bin_data[i]/(long int)bin_counter[i];   
@@ -547,7 +547,7 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
         unsigned int  nmend = month(end);
         unsigned int  ndayend = day(end);
 
-//		trace(F("TableZone - entering, start year=%u, month=%u, day=%u\n"), year(start), month(start), day(start));
+//		TRACE_ERROR(F("TableZone - entering, start year=%u, month=%u, day=%u\n"), year(start), month(start), day(start));
 
         if( year(end) != year(start) ){     // currently we cannot handle queries that span multiple years. Truncate the query to the year end.
              nmend = 12;    ndayend = 31;
@@ -564,7 +564,7 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
                     char bFirstRow = true;
                     
 //                    if(xzone==1){
-//                         trace(F("***Reading zone=1, year=%u, month end=%u, day end=%u***\n"), nyear, nmend, ndayend);
+//                         TRACE_ERROR(F("***Reading zone=1, year=%u, month end=%u, day end=%u***\n"), nyear, nmend, ndayend);
 //                    }
 
                      lfile.fgets(tmp_buf, MAX_LOG_RECORD_SIZE-1);  // skip first line in the file - column headers
@@ -592,7 +592,7 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 
 //                    if(xzone==1){
 //                      
-//                        trace(F("Found suitable string: %s\n"), tmp_buf);
+//                        TRACE_ERROR(F("Found suitable string: %s\n"), tmp_buf);
 //                    }
 
 // we have something to output.
@@ -620,7 +620,7 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
                 }
 				else
 				{
-//					trace(F("TableZone - cannot open log file %s\n"), tmp_buf);
+//					TRACE_ERROR(F("TableZone - cannot open log file %s\n"), tmp_buf);
 				}
         }   // for( int xzone = 1; xzone <= xmaxzone; xzone++ )
 
@@ -637,7 +637,7 @@ void emitDirectoryListing(SdFile &dir, char *folder, FILE *pFile)
 {
 //	SdFile dir;
 
-//	trace(F("Serving directory listing of %s\n"), folder);
+//	TRACE_ERROR(F("Serving directory listing of %s\n"), folder);
 	
 	fprintf_P( pFile, PSTR("<table><tr><td><b>File Name</b></td> <td>&nbsp&nbsp</td> <td><b>Size, bytes</b></td></tr>\n"));
 
@@ -677,7 +677,7 @@ void Logging::LogsHandler(char *sPage, FILE *pFile, EthernetClient client)
 
         if( !logfile.open(sPage, O_READ) ){
 
-            trace(F("Cannot open logs directory\n"));
+            TRACE_ERROR(F("Cannot open logs directory\n"));
             Serve404(pFile);
             return;    // failed to open logs directory
         }
@@ -720,7 +720,7 @@ void Logging::LogsHandler(char *sPage, FILE *pFile, EthernetClient client)
 
 		if( !logfile.open(path, O_READ) ){
 
-			trace(F("Cannot open %s file or directory\n"), sPage+4);
+			TRACE_ERROR(F("Cannot open %s file or directory\n"), sPage+4);
 		    Serve404(pFile);
 			return;    // failed to open logs directory
 		}
@@ -737,7 +737,7 @@ void Logging::LogsHandler(char *sPage, FILE *pFile, EthernetClient client)
 	   }
 	   else {         // this is a request to an individual log file
 
-//			trace(F("Serving log file: %s\n"), path);
+//			TRACE_ERROR(F("Serving log file: %s\n"), path);
 
 			ServeFile(pFile, sPage, logfile, client);
 			logfile.close();
@@ -762,7 +762,7 @@ bool Logging::EmitSensorLog(FILE* stream_file, time_t start, time_t end, char se
 
         char bFirstRow = true, bHeader = true;
 
-//  trace(F("EmitSensorLog - entering, nyearstart=%d, nmstart=%d, ndaystart=%d, nyearend=%d, nmend=%d, ndayend=%d\n"), nyearstart, nmstart, ndaystart, nyearend, nmend, ndayend );
+//  TRACE_ERROR(F("EmitSensorLog - entering, nyearstart=%d, nmstart=%d, ndaystart=%d, nyearend=%d, nmend=%d, ndayend=%d\n"), nyearstart, nmstart, ndaystart, nyearend, nmend, ndayend );
 
         fprintf_P(stream_file, PSTR("\"series\": ["));   // JSON opening header
 
@@ -771,7 +771,7 @@ bool Logging::EmitSensorLog(FILE* stream_file, time_t start, time_t end, char se
           for( nmonth=nmstart; nmonth<=nmend; nmonth++ )
             {
 
-//  trace(F("EmitSensorLog - processing month=%d\n"), nmonth );
+//  TRACE_ERROR(F("EmitSensorLog - processing month=%d\n"), nmonth );
 
                 if( sensor_type == SENSOR_TYPE_TEMPERATURE )
                 {
@@ -790,7 +790,7 @@ bool Logging::EmitSensorLog(FILE* stream_file, time_t start, time_t end, char se
                 }
                 else  
                 {
-                     trace(F("EmitSensorLog - requested sensor type not recognized\n"));
+                     TRACE_ERROR(F("EmitSensorLog - requested sensor type not recognized\n"));
                      return false;
                 }
 

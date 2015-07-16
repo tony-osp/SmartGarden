@@ -45,11 +45,11 @@ bool LocalBoardParallel::ChannelOn( uint8_t chan )
 
 		if( chan > GetNumIOChannels() )
 		{
-			trace(F("LocalBoardParallel:ChannelOn - channel %d outside of range\n"), (int)chan);
+			TRACE_ERROR(F("LocalBoardParallel:ChannelOn - channel %d outside of range\n"), (int)chan);
 			return false;				// channel number is outside of the configured IO range
 		}
 
-//		trace(F("LocalBoardParallel:ChannelOn - channel %d\n"), (int)chan);
+//		TRACE_ERROR(F("LocalBoardParallel:ChannelOn - channel %d\n"), (int)chan);
 
 		const EOT eot = GetOT();		// get local IO type
         switch (eot)
@@ -73,7 +73,7 @@ bool LocalBoardParallel::ChannelOff( uint8_t chan )
 
 		if( chan > GetNumIOChannels() )
 		{
-			trace(F("LocalBoardParallel:ChannelOff - channel %d outside of range\n"), (int)chan);
+			TRACE_ERROR(F("LocalBoardParallel:ChannelOff - channel %d outside of range\n"), (int)chan);
 			return false;				// channel number is outside of the configured IO range
 		}
 
@@ -153,7 +153,7 @@ bool LocalBoardSerial::ChannelOn( uint8_t chan )
 
 		if( chan >= GetNumOSChannels() )
 		{
-			trace(F("LocalBoardSerial:ChannelOn - channel %d outside of range of %d\n"), (int)chan, (int)GetNumOSChannels());
+			TRACE_ERROR(F("LocalBoardSerial:ChannelOn - channel %d outside of range of %d\n"), (int)chan, (int)GetNumOSChannels());
 			return false;				// channel number is outside of the configured IO range
 		}
 
@@ -190,7 +190,7 @@ bool LocalBoardSerial::ChannelOff( uint8_t chan )
 
 		if( chan >= GetNumOSChannels() )
 		{
-			trace(F("LocalBoardSerial:ChannelOff - channel %d outside of range\n"), (int)chan);
+			TRACE_ERROR(F("LocalBoardSerial:ChannelOff - channel %d outside of range\n"), (int)chan);
 			return false;				// channel number is outside of the configured IO range
 		}
 

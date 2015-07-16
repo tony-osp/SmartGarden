@@ -65,7 +65,8 @@ void	RegisterRemoteEvents(void);
 void setup() {
 	trace_setup(Serial, 115200);
     
-	trace(F("Start!\n"));
+//	TRACE_ERROR(F("Start!\n"));
+	TRACE_CRIT(F("Start!\n"));
 
     localUI.begin();
     
@@ -80,7 +81,7 @@ void setup() {
 #ifdef HW_ENABLE_SD
 		if (!sd.begin(4, SPI_HALF_SPEED)) 
 		{
-			trace(F("Could not Initialize SDCard"));
+			TRACE_ERROR(F("Could not Initialize SDCard"));
 			localUI.lcd_print_line_clear_pgm(PSTR("EEPROM Corrupted"), 0);
 			localUI.lcd_print_line_clear_pgm(PSTR("SD CARD FAILURE!"), 1);
 			delay(10000);
@@ -103,7 +104,7 @@ void setup() {
 	localUI.lcd_print_line_clear_pgm(PSTR("Ethernet init..."), 1);
 	// start the Ethernet connection and the server:
     Ethernet.begin(mac, GetIP(), INADDR_NONE, GetGateway(), GetNetmask());
-	trace(F("Assigned IP:")); Serial.println(Ethernet.localIP());
+	TRACE_CRIT(F("Assigned IP:")); Serial.println(Ethernet.localIP());
 #endif //HW_ENABLE_ETHERNET
 
 #ifdef HW_ENABLE_SD
@@ -113,11 +114,11 @@ void setup() {
 	if (!sd.begin(4, SPI_HALF_SPEED)) 
 #endif //SD_USE_CUSOM_SS
 	{
-		trace(F("Could not Initialize SDCard\n"));
+		TRACE_ERROR(F("Could not Initialize SDCard\n"));
 	}
 	else
 	{
-		trace(F("SDCard init success\n"));
+		TRACE_INFO(F("SDCard init success\n"));
 	}
 #endif //HW_ENABLE_SD
 

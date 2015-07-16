@@ -3,7 +3,7 @@
 // Author: Richard Zimmerman
 // Copyright (c) 2013 Richard Zimmerman
 //
-// Tony-osp: fixed existing file overwrite bug when new file is smaller than the old one, also changed debug output to trace() and
+// Tony-osp: fixed existing file overwrite bug when new file is smaller than the old one, also changed debug output to TRACE_ERROR() and
 //           converted SendERR to use PSTR to conserve RAM on Arduino.
 
 #include "tftp.h"
@@ -35,7 +35,7 @@ bool tftp::Init()
 {
 	m_timeout = 0;
 	if (!m_udp.begin(69)) {
-		trace(F("No Sockets Available!\n"));
+		TRACE_ERROR(F("No Sockets Available!\n"));
 		return false;
 	}
 	return true;
@@ -52,10 +52,10 @@ bool tftp::Poll()
 		switch (opcode) {
 		case 0x01: // RRQ
 			{
-				trace(F("RRQ\n"));
+				TRACE_INFO(F("TFTP:RRQ\n"));
 				if (m_timeout)
 				{
-					trace(F("Busy\n"));
+					TRACE_ERROR(F("TFTP:Busy\n"));
 					return false;
 				}
 				m_remoteIP = m_udp.remoteIP();
@@ -72,11 +72,11 @@ bool tftp::Poll()
 			}
 		case 0x02: // WRQ
 			{
-				trace(F("WRQ\n"));
+				TRACE_INFO(F("TFTP:WRQ\n"));
 				// Check to see we don't already have a client on the line
 				if (m_timeout)
 				{
-					trace(F("Busy\n"));
+					TRACE_ERROR(F("TFTP:Busy\n"));
 					return false;
 				}
 				m_remoteIP = m_udp.remoteIP();
@@ -96,7 +96,7 @@ bool tftp::Poll()
 				//Serial.println("DATA");
 				if (!m_timeout)
 				{
-					trace(F("Data w/o Init\n"));
+					TRACE_ERROR(F("Data w/o Init\n"));
 					return 0;
 				}
 				const int blocknum = (packetBuffer[2] << 8) + packetBuffer[3];
@@ -122,7 +122,7 @@ bool tftp::Poll()
 			{
 				if (!m_timeout)
 				{
-					trace(F("ACK w/o Init\n"));
+					TRACE_ERROR(F("ACK w/o Init\n"));
 					return 0;
 				}
 				const int blocknum = (packetBuffer[2] << 8) + packetBuffer[3];
@@ -137,7 +137,7 @@ bool tftp::Poll()
 			}
 		case 0x05: // ERROR
 			{
-				trace(F("ERR\n"));
+				TRACE_ERROR(F("ERR\n"));
 				break;
 			}
 		default:
@@ -146,7 +146,7 @@ bool tftp::Poll()
 	} // if parsePacket
 	else if (m_timeout && (millis() > (m_timeout + TIMEOUT)))
 	{
-		trace(F("Timeout\n"));
+		TRACE_ERROR(F("Timeout\n"));
 		m_theFile.close();
 		m_timeout = 0;
 	}

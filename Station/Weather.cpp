@@ -34,7 +34,7 @@ static void ParseResponse(EthernetClient & client, Weather::ReturnVals * ret)
 		if (recvbufptr >= recvbufend)
 		{
 			int len = client.read((uint8_t*) recvbuf, sizeof(recvbuf));
-//			trace(F("Received Bytes:%d\n"), len);
+//			TRACE_ERROR(F("Received Bytes:%d\n"), len);
 			if (len <= 0)
 			{
 				if (!client.connected())
@@ -109,7 +109,7 @@ static void ParseResponse(EthernetClient & client, Weather::ReturnVals * ret)
 			{
 				current_state = FIND_QUOTE1;
 				*valptr = 0;
-				//trace("%s:%s\n", key, val);
+				//TRACE_ERROR("%s:%s\n", key, val);
 				if (strcmp(key, "maxhumidity") == 0)
 				{
 					ret->valid = true;
@@ -176,7 +176,7 @@ int Weather::GetScale(const ReturnVals & vals) const
 	const int temp_factor = (vals.meantempi - 70) * 4;
 	const int rain_factor = (vals.precipi + vals.precip_today) * -2;
 	const int adj = min(max(0, 100+humid_factor+temp_factor+rain_factor), 200);
-	trace(F("Adjusting H(%d)T(%d)R(%d):%d\n"), humid_factor, temp_factor, rain_factor, adj);
+	TRACE_INFO(F("Adjusting H(%d)T(%d)R(%d):%d\n"), humid_factor, temp_factor, rain_factor, adj);
 	return adj;
 }
 
@@ -187,12 +187,12 @@ Weather::ReturnVals Weather::GetVals(const IPAddress & ip, const char * key, uin
 	if (client.connect(ip, 80))
 	{
 		char getstring[90];
-		trace(F("Connected\n"));
+		TRACE_INFO(F("Connected\n"));
 		if (usePws)
 			snprintf(getstring, sizeof(getstring), "GET /api/%s/yesterday/conditions/q/pws:%s.json HTTP/1.0\n\n", key, pws);
 		else
 			snprintf(getstring, sizeof(getstring), "GET /api/%s/yesterday/conditions/q/%ld.json HTTP/1.0\n\n", key, (long) zip);
-		//trace(getstring);
+		//TRACE_ERROR(getstring);
 		client.write((uint8_t*) getstring, strlen(getstring));
 
 		ParseResponse(client, &vals);
@@ -200,14 +200,18 @@ Weather::ReturnVals Weather::GetVals(const IPAddress & ip, const char * key, uin
 		if (!vals.valid)
 		{
 			if (vals.keynotfound)
-				trace("Invalid WUnderground Key\n");
+			{
+				TRACE_ERROR(F("Invalid WUnderground Key\n"));
+			}
 			else
-				trace("Bad WUnderground Response\n");
+			{
+				TRACE_ERROR(F("Bad WUnderground Response\n"));
+			}
 		}
 	}
 	else
 	{
-		trace(F("connection failed\n"));
+		TRACE_ERROR(F("connection failed\n"));
 		client.stop();
 	}
 	return vals;

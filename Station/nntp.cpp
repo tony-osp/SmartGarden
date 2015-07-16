@@ -65,11 +65,11 @@ static unsigned long sendNTPpacket(EthernetUDP & Udp, const IPAddress& address, 
 
 static unsigned long getNtpTime()
 {
-//	trace(F("Syncing Time\n"));
+//	TRACE_ERROR(F("Syncing Time\n"));
 	EthernetUDP Udp;
     if (!Udp.begin(8888))
 	{
-        trace(F("getNtpTime: No Sockets Available!\n"));
+        TRACE_ERROR(F("getNtpTime: No Sockets Available!\n"));
 		return 0;
 	}
 	byte packetBuffer[NTP_PACKET_SIZE]; //buffer to hold incoming and outgoing packets 
@@ -98,7 +98,7 @@ static unsigned long getNtpTime()
 			// subtract seventy years:
 			unsigned long epoch = secsSince1900 - seventyYears;  
 			// print Unix time:
-//			trace(F("Unix time = %lu\n"), epoch);
+			TRACE_INFO(F("Unix time = %lu\n"), epoch);
 			Udp.stop();
 
 			tLastSync  = millis();			// save last update timestamp (in millis)
@@ -109,7 +109,7 @@ static unsigned long getNtpTime()
 		}
 		if (!(timeout--) > 0)
 		{
-			trace(F("NTP Fail\n"));
+			TRACE_ERROR(F("NTP Fail\n"));
 			//  There's a bug with the W5100 that causes an ARP failure if we reuse a socket for UDP after
 			//  using it for TCP.  To work around this bug, if we fail we'll try connecting to a different IP address.
 			//  This should clear the ARP cache and we should be golden!.

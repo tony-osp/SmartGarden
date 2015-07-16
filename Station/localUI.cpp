@@ -251,7 +251,7 @@ byte OSLocalUI::callHandler(byte needs_refresh)
    if( forceRefresh == 2 ){     // entering this Mode
 
      display_board = GetMyStationID();         // set initial view to board 0;
-//	 trace(F("GetMyStationID returned %d\n"), int(display_board));
+//	 TRACE_INFO(F("GetMyStationID returned %d\n"), int(display_board));
 //	 delay(3000);
    }
 
@@ -438,7 +438,7 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
 
                 if( num_min != 0 ){
 
-//					trace(F("Starting manual. Display_board %d, channel %d, zone %d, number of minutes %d\n"), display_board, sel_manual_ch, sel_manual_ch+sStation.startZone, num_min);
+//					TRACE_ERROR(F("Starting manual. Display_board %d, channel %d, zone %d, number of minutes %d\n"), display_board, sel_manual_ch, sel_manual_ch+sStation.startZone, num_min);
 
 					runState.StartZone(100, display_board, sel_manual_ch, num_min );			// start required station in manual mode for num_min only if required time is != 0
 //					manual_station_on((byte)(sel_manual_ch+sStation.startZone), num_min);        // start required station in manual mode for num_min only if required time is != 0

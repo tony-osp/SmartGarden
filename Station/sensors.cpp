@@ -116,7 +116,7 @@ byte Sensors::begin(void)
 
 #ifdef SENSOR_ENABLE_BMP180
      if( !bmp180.begin() ){
-           trace(F("BMP180 sensor init failure.\n"));
+           TRACE_ERROR(F("BMP180 sensor init failure.\n"));
      }
 #endif  //   SENSOR_ENABLE_BMP180
 
@@ -191,7 +191,7 @@ void Sensors::poll_MinTimer(void)
 				// read BMP180 sensor           
 				if( bmp180_Read(&pressure, &temperature) == false ){
             
-					trace(F("Failure reading pressure from BMP180.\n"));
+					TRACE_ERROR(F("Failure reading pressure from BMP180.\n"));
 				}
 				else
 				{
@@ -211,7 +211,7 @@ void Sensors::poll_MinTimer(void)
 
 				if( isnan(t) || isnan(h) )
 				{
-					trace(F("Failure reading temperature or humidity from DHT.\n"));
+					TRACE_ERROR(F("Failure reading temperature or humidity from DHT.\n"));
 
 //					// debugging - temporary hardcode some value here
 					temp = 10; hum = 20;
@@ -235,7 +235,7 @@ void Sensors::poll_MinTimer(void)
 #ifdef SENSOR_CHANNEL_ANALOG_1_PIN				
 				val = analogRead(SENSOR_CHANNEL_ANALOG_1_PIN);
 
-//				trace(F("Analog sensor#1 reading: %d\n"), val);
+//				TRACE_ERROR(F("Analog sensor#1 reading: %d\n"), val);
 
 				if( val < SENSOR_CHANNEL_ANALOG_1_MINV ) val = SENSOR_CHANNEL_ANALOG_1_MINV;
 				if( val > SENSOR_CHANNEL_ANALOG_1_MAXV ) val = SENSOR_CHANNEL_ANALOG_1_MAXV;
@@ -247,7 +247,7 @@ void Sensors::poll_MinTimer(void)
 				val = val/(SENSOR_CHANNEL_ANALOG_1_SCALE*16);
 				val = val + SENSOR_CHANNEL_ANALOG_1_MINVAL;
 
-//				trace(F("Analog sensor#1 converted: %d, scale:%d\n"), val, int(SENSOR_CHANNEL_ANALOG_1_SCALE));
+//				TRACE_ERROR(F("Analog sensor#1 converted: %d, scale:%d\n"), val, int(SENSOR_CHANNEL_ANALOG_1_SCALE));
 				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_1_CHANNEL, val );	
 #endif //SENSOR_CHANNEL_ANALOG_1_PIN
 
@@ -370,7 +370,7 @@ void Sensors::ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int
 	}
 // scan complete but we have not found the sensor we need.
 
-	trace(F("ReportSensorReading - cannot find sensor, stationID=%d, channel=%d\n"), (int)stationID, (int)sensorChannel);
+	TRACE_ERROR(F("ReportSensorReading - cannot find sensor, stationID=%d, channel=%d\n"), (int)stationID, (int)sensorChannel);
 }
 
 // Sensors handling

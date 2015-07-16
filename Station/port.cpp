@@ -64,7 +64,11 @@ int GetFreeMemory(void)
 
 void freeMemory()
 {
-   trace(F("Free Memory %d\n"), GetFreeMemory());
+	int freeMem = GetFreeMemory();
+	if( freeMem < TRACE_FREERAM_LIMIT )
+	{
+		TRACE_CRIT(F("Free Memory %d\n"), freeMem);
+	}
 }
 
 void sysreset()

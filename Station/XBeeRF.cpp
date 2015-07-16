@@ -38,18 +38,18 @@ XBeeRFClass::XBeeRFClass()
 
 void XBeeRFClass::begin()
 {
-	trace(F("Starting XBee\n"));
+	TRACE_INFO(F("Starting XBee\n"));
 
 	if( !IsXBeeEnabled() ){
 
-		trace(F("XBee is not enabled, exiting\n"));
+		TRACE_ERROR(F("XBee is not enabled, exiting\n"));
 		return;					// init the system only if XBee is enabled.
 	}
 
 	uint8_t		xbeePort = GetXBeePort();
 	uint16_t	xbeeSpeed = GetXBeePortSpeed();
 
-	trace(F("XBee port: %d, speed: %u\n"), xbeePort, xbeeSpeed);
+	TRACE_INFO(F("XBee port: %d, speed: %u\n"), xbeePort, xbeeSpeed);
 
 // Set XBee port and speed
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -84,29 +84,29 @@ void XBeeRFClass::begin()
 	
 // Now set XBee PAN ID, address and other parameters
 
-	trace(F("Setting XBeeAddr: %X, PANID:%X, Chan:%X\n"), GetXBeeAddr(), GetXBeePANID(), (int)GetXBeeChan() );
+	TRACE_INFO(F("Setting XBeeAddr: %X, PANID:%X, Chan:%X\n"), GetXBeeAddr(), GetXBeePANID(), (int)GetXBeeChan() );
 
 	if( !sendAtCommandParam(PSTR("ID"), GetXBeePANID()) )
 	{
-		trace(F("XBee init - failed to set Xbee PAN ID\n"));
+		TRACE_ERROR(F("XBee init - failed to set Xbee PAN ID\n"));
 		goto failed_ex1;
 	}
 #ifdef XBEE_TYPE_PRO900		// Xbee Pro 900 uses different channel selection commands
 	if( !sendAtCommandParam(PSTR("HP"), GetXBeeChan()) )
 	{
-		trace(F("XBee init - failed to set Xbee Chan\n"));
+		TRACE_ERROR(F("XBee init - failed to set Xbee Chan\n"));
 		goto failed_ex1;
 	}
 #else	// regular Xbee (2.4GHz)
 	if( !sendAtCommandParam(PSTR("CH"), GetXBeeChan()) )
 	{
-		trace(F("XBee init - failed to set Xbee Chan\n"));
+		TRACE_ERROR(F("XBee init - failed to set Xbee Chan\n"));
 		goto failed_ex1;
 	}
 #endif
 	if( !sendAtCommand(PSTR("AC")) )
 	{
-		trace(F("XBee init - failed to execute AC command\n"));
+		TRACE_ERROR(F("XBee init - failed to execute AC command\n"));
 		goto failed_ex1;
 	}
 
@@ -135,27 +135,27 @@ bool XBeeRFClass::ChannelOn( uint8_t stationID, uint8_t chan, uint8_t ttr )
 	{   // limit scope of sStation declaration to save memory during subsequent call
 		ShortStation	sStation;
 
-//		trace(F("XBee - ChannelOn, stationID=%d, channel=%d, ttr=%d\n"), (int)stationID, (int)chan, (int)ttr);
+		TRACE_INFO(F("XBee - ChannelOn, stationID=%d, channel=%d, ttr=%d\n"), (int)stationID, (int)chan, (int)ttr);
 
 		if( !fXBeeReady ) 
 			return false;
 
 		if( stationID >= MAX_STATIONS )
 		{
-			trace(F("XBee ChannelOnOffWorker - stationID outside of range\n"));
+			TRACE_ERROR(F("XBee ChannelOnOffWorker - stationID outside of range\n"));
 			return false;
 		}
 
 		LoadShortStation(stationID, &sStation);
 		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_ENABLED) )
 		{
-			trace(F("XBee ChannelOnOffWorker - station %d is not enabled\n"), (int)stationID);
+			TRACE_ERROR(F("XBee ChannelOnOffWorker - station %d is not enabled\n"), (int)stationID);
 			return false;
 		}
 
 		if( sStation.networkID != NETWORK_ID_XBEE )
 		{
-			trace(F("XBee ChannelOnOffWorker - station %d is of a wrong type (not XBee)\n"), (int)stationID);
+			TRACE_ERROR(F("XBee ChannelOnOffWorker - station %d is of a wrong type (not XBee)\n"), (int)stationID);
 			return false;
 		}
 	}
@@ -175,20 +175,20 @@ bool XBeeRFClass::AllChannelsOff(uint8_t stationID)
 
 		if( stationID >= MAX_STATIONS )
 		{
-			trace(F("XBee AllChannelsOff - stationID outside of range\n"));
+			TRACE_ERROR(F("XBee AllChannelsOff - stationID outside of range\n"));
 			return false;
 		}
 
 		LoadShortStation(stationID, &sStation);
 		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_ENABLED) )
 		{
-			trace(F("XBee AllChannelsOff - station %d is not enabled\n"), (int)stationID);
+			TRACE_ERROR(F("XBee AllChannelsOff - station %d is not enabled\n"), (int)stationID);
 			return false;
 		}
 
 		if( sStation.networkID != NETWORK_ID_XBEE )
 		{
-			trace(F("XBee AllChannelsOff - station %d is of a wrong type (not XBee)\n"), (int)stationID);
+			TRACE_ERROR(F("XBee AllChannelsOff - station %d is of a wrong type (not XBee)\n"), (int)stationID);
 			return false;
 		}
 	}
@@ -221,25 +221,25 @@ bool XBeeRFClass::PollStationSensors(uint8_t stationID)
 
 		if( stationID >= MAX_STATIONS )
 		{
-			trace(F("XBee PollStationSensors - stationID outside of range\n"));
+			TRACE_ERROR(F("XBee PollStationSensors - stationID outside of range\n"));
 			return false;
 		}
 
 		LoadShortStation(stationID, &sStation);
 		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_ENABLED) )
 		{
-			trace(F("XBee PollStationSensors - station %d is not enabled\n"), (int)stationID);
+			TRACE_ERROR(F("XBee PollStationSensors - station %d is not enabled\n"), (int)stationID);
 			return false;
 		}
 
 		if( sStation.networkID != NETWORK_ID_XBEE )
 		{
-			trace(F("XBee PollStationSensors - station %d is of a wrong type (not XBee)\n"), (int)stationID);
+			TRACE_ERROR(F("XBee PollStationSensors - station %d is of a wrong type (not XBee)\n"), (int)stationID);
 			return false;
 		}
 	}
 
-//	trace(F("PollStationSensors - sending request to station %d\n"), stationID);
+	TRACE_INFO(F("PollStationSensors - sending request to station %d\n"), stationID);
 
 // OK, everything seems to be ready. Send command.
 
@@ -291,11 +291,11 @@ bool XBeeRFClass::sendAtCommand(const char *cmd_pstr)
 			} 
 			else 
 			{
-				trace(F("sendAtCommand - Command return error code: %X\n"), atResponse.getStatus());
+				TRACE_ERROR(F("sendAtCommand - Command return error code: %X\n"), atResponse.getStatus());
 			}
 		} 
 		else {
-			trace(F("sendAtCommand - Expected AT response but got %X\n"), xbee.getResponse().getApiId());
+			TRACE_ERROR(F("sendAtCommand - Expected AT response but got %X\n"), xbee.getResponse().getApiId());
 		}   
 	} 
 	else 
@@ -303,10 +303,10 @@ bool XBeeRFClass::sendAtCommand(const char *cmd_pstr)
 		// at command failed
 		if (xbee.getResponse().isError()) 
 		{
-			trace(F("sendAtCommand - Error reading packet.  Error code: %d\n"), xbee.getResponse().getErrorCode());
+			TRACE_ERROR(F("sendAtCommand - Error reading packet.  Error code: %d\n"), xbee.getResponse().getErrorCode());
 		} 
 		else {
-			trace(F("sendAtCommand - No response from radio\n"));  
+			TRACE_ERROR(F("sendAtCommand - No response from radio\n"));  
 		}
 	}
 
@@ -370,11 +370,11 @@ bool XBeeRFClass::sendAtCommandParam(const char *cmd_pstr, uint8_t *param, uint8
 			} 
 			else 
 			{
-				trace(F("sendAtCommandParam - Command return error code: %X\n"), atResponse.getStatus());
+				TRACE_ERROR(F("sendAtCommandParam - Command return error code: %X\n"), atResponse.getStatus());
 			}
 		} 
 		else {
-			trace(F("sendAtCommandParam - Expected AT response but got %X\n"), xbee.getResponse().getApiId());
+			TRACE_ERROR(F("sendAtCommandParam - Expected AT response but got %X\n"), xbee.getResponse().getApiId());
 		}   
 	} 
 	else 
@@ -382,10 +382,10 @@ bool XBeeRFClass::sendAtCommandParam(const char *cmd_pstr, uint8_t *param, uint8
 		// at command failed
 		if (xbee.getResponse().isError()) 
 		{
-			trace(F("sendAtCommandParam - Error reading packet.  Error code: %d\n"), xbee.getResponse().getErrorCode());
+			TRACE_ERROR(F("sendAtCommandParam - Error reading packet.  Error code: %d\n"), xbee.getResponse().getErrorCode());
 		} 
 		else {
-			trace(F("sendAtCommandParam - No response from radio\n"));  
+			TRACE_ERROR(F("sendAtCommandParam - No response from radio\n"));  
 		}
 	}
 
@@ -436,7 +436,7 @@ bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 	if( !XBeeRF.fXBeeReady )	// check that XBee is initialized and ready
 		return false;
 
-//	trace(F("XBee - sending packet to station %d, len %u\n"), nStation, (unsigned int)mSize);
+//	TRACE_ERROR(F("XBee - sending packet to station %d, len %u\n"), nStation, (unsigned int)mSize);
 
 	static Tx64Request tx = Tx64Request();						// pre-allocated, static objects to avoid dynamic memory issues
 	static XBeeAddress64  addrBroadcast = XBeeAddress64(0, 0xFFFF);
@@ -452,7 +452,7 @@ bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 			tx.setAddress64(addr64);					
 			tx.setOption(0);
 
-			trace(F("Sending message as Unicast to station %lX:%lX\n"), XBeeRF.arpTable[nStation].MSB, XBeeRF.arpTable[nStation].LSB );
+			TRACE_INFO(F("Sending message as Unicast to station %lX:%lX\n"), XBeeRF.arpTable[nStation].MSB, XBeeRF.arpTable[nStation].LSB );
 		}
 		else
 		{
@@ -515,11 +515,11 @@ void XBeeRFClass::loop(void)
 
 				if( msg_len < 5 )
 				{
-					trace(F("XBee.loop - incoming packet from station %d is too small\n"), rx16.getRemoteAddress16());
+					TRACE_ERROR(F("XBee.loop - incoming packet from station %d is too small\n"), rx16.getRemoteAddress16());
 					return;
 				}
 
-//				trace(F("XBee.loop - processing packet from station %d\n"), rx16.getRemoteAddress16());
+//				TRACE_ERROR(F("XBee.loop - processing packet from station %d\n"), rx16.getRemoteAddress16());
 				rprotocol.ProcessNewFrame(msg+4, msg_len-4, 0 );	// process incoming packet.
 																		// Note: we don't copy the packet, and just use pointer to the packet already in XBee library buffer
 				return;
@@ -534,10 +534,10 @@ void XBeeRFClass::loop(void)
 				
 //				uint16_t  r16Addr = rx64.getRemoteAddress64().getLsb();
 
-//				trace(F("XBee.loop - received packed from %d, len=%d\n"), r16Addr, (int)msg_len);
+//				TRACE_ERROR(F("XBee.loop - received packed from %d, len=%d\n"), r16Addr, (int)msg_len);
 				if( msg_len < 12 )
 				{
-					trace(F("XBee.loop - incoming packet is too small\n"));
+					TRACE_ERROR(F("XBee.loop - incoming packet is too small\n"));
 					return;
 				}
 
@@ -547,13 +547,13 @@ void XBeeRFClass::loop(void)
 		} 
 
 		else {
-			trace(F("XBee.loop - Unrecognized frame from XBee %d\n"), responseID);
+			TRACE_ERROR(F("XBee.loop - Unrecognized frame from XBee %d\n"), responseID);
 			return;
 		}   
 	} 
 	else if( xbee.getResponse().isError() ) 
 	{
-		trace(F("XBee.loop - XBee reported error.  Error code: %d\n"), xbee.getResponse().getErrorCode());
+		TRACE_ERROR(F("XBee.loop - XBee reported error.  Error code: %d\n"), xbee.getResponse().getErrorCode());
 		return;
 	}
 

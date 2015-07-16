@@ -40,7 +40,7 @@ bool web::Init()
 	uint16_t port = GetWebPort();
 	if ((port > 65000) || (port < 80))
 		port = 80;
-	trace(F("Listening on Port %u\n"), port);
+	TRACE_INFO(F("Listening on Port %u\n"), port);
 	m_server = new EthernetServer(port);
 #ifdef ARDUINO
 	m_server->begin();
@@ -156,65 +156,6 @@ static void JSONSensorsNow(FILE * stream_file)
 
 #ifdef LOGGING
 
-static void ShowWateringLogs(char *sPage, FILE * pFile, EthernetClient client)
-{
-//   let's check what is it - log listing or a specific log file request
-
-   if( sPage[12] == 0 || sPage[12] == ' ' || (sPage[12] == '/' && sPage[13] == ' ')){    // this is log listing - the string is either /logs or /logs/ with a spacebar after the last character
-
-// this is log listing request
-        SdFile logfile;
-
-	trace(F("Serving watering logs directory listing\n"));
-  
-        if( !logfile.open("/watering.log", O_READ) ){
-
-            trace(F("Cannot open watering logs directory\n"));
-            Serve404(pFile);
-            return;    // failed to open logs directory
-        }
-
-        ServeHeader(pFile, 200, PSTR("OK"), false);  // note: no caching on logs directory rendering
-        
-        fprintf_P( pFile, PSTR("<html>\n<body>\n<h1>Directory listing of /watering.log</h1>\n<table> <tr> <td><b>File Name</b></td> <td>&nbsp&nbsp</td> <td><b>Size, bytes</b></td> </tr>\n"));
-
-       while(true) {
-
-            char fname[20] = {0};
-            SdFile entry;
-            if (!entry.openNext(&logfile, O_READ) ){
-       // no more files
-                  logfile.close();
-
-                  fprintf_P( pFile, PSTR("</table> </body>\n</html>"));
-                  return;          // all done, exiting
-            }
-
-            entry.getFilename(fname);
-            fprintf_P( pFile, PSTR("<tr> <td> <a href=\"/watering.log/%s\">%s</a> </td> <td>&nbsp&nbsp</td> <td>%lu </td> </tr>"), fname, fname, entry.fileSize() ); 
-            entry.close();
-       }
-       logfile.close();
-
-   }
-   else {         // this is a request to an individual log file
-
-	trace(F("Serving watering log file: %s\n"), sPage);
-
-	SdFile theFile;
-	if (!theFile.open(sPage, O_READ))
-		Serve404(pFile);
-	else
-	{
-		if (theFile.isFile())
-  		        ServeFile(pFile, sPage, theFile, client);
-		else  
-			Serve404(pFile);
-
-		theFile.close();
-	}
-   }
-}
 
 // Query sensor readings
 
@@ -806,7 +747,7 @@ static bool ParseHTTPHeader(EthernetClient & client, KVPairs * key_value_pairs, 
 			if ((c == ' ') || c == '&')
 			{
 				*value_ptr = 0;
-//				trace(F("Found a KV pair : %s -> %s\n"), key_value_pairs->keys[key_value_pairs->num_pairs], key_value_pairs->values[key_value_pairs->num_pairs]);
+				TRACE_VERBOSE(F("Found a KV pair : %s -> %s\n"), key_value_pairs->keys[key_value_pairs->num_pairs], key_value_pairs->values[key_value_pairs->num_pairs]);
 
 				if ((c == '&') && (key_value_pairs->num_pairs >= NUM_KEY_VALUES - 1))
 				{
@@ -912,20 +853,20 @@ void web::ProcessWebClients()
 		FILE * pFile = fdopen(client.GetSocket(), "w");
 #endif
 		 freeMemory();
-		 trace(F("Got a client\n"));
+		 TRACE_INFO(F("Got a client\n"));
 		 //ShowSockStatus();
 		 KVPairs key_value_pairs;
 		 char sPage[35];
 
 		 if (!ParseHTTPHeader(client, &key_value_pairs, sPage, sizeof(sPage)))
 		 {
-			trace(F("ERROR!\n"));
+			TRACE_ERROR(F("ERROR!\n"));
 			ServeError(pFile);
 		 }
 		 else
 		 {
 
-			trace(F("Page:%s\n"), sPage);
+			TRACE_INFO(F("Page:%s\n"), sPage);
 			//ShowSockStatus();
 
             if( strncmp_P(sPage, PSTR("bin/"), 4) == 0 )       // We do the check in two phases. 
@@ -1106,25 +1047,19 @@ void web::ProcessWebClients()
   				freeMemory();
 				sdlog.LogsHandler(sPage, pFile, client);
 			}
-//// watering logs
-//			else if (strncmp_P(sPage, PSTR("watering.log"), 12) == 0)
-//			{
-//  				freeMemory();
-//				ShowWateringLogs(sPage, pFile, client);
-//			}
 			else
 // This is the "catch all" case, that also serves static HTML files, *.js etc.
 			{
   				if (strlen(sPage) == 0){
     
- 			        trace(F("Serving: web root\n"));
+ 			        TRACE_INFO(F("Serving: web root\n"));
 					strcpy(sPage, "index.htm");
                 }
 				// prepend path
 				memmove(sPage + 5, sPage, sizeof(sPage) - 5);
 				memcpy(sPage, "/web/", 5);
 				sPage[sizeof(sPage)-1] = 0;
-				trace(F("Serving file: %s\n"), sPage);
+				TRACE_INFO(F("Serving file: %s\n"), sPage);
 				SdFile theFile;
 				if (!theFile.open(sPage, O_READ))
 					Serve404(pFile);

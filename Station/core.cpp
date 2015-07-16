@@ -97,13 +97,13 @@ void zoneHandlerLoop(void)
 
 void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 {
-        trace(F("Turning On Zone %d\n"), nZone);
+        TRACE_INFO(F("Turning On Zone %d\n"), nZone);
 
 		nZone--;		// adjust zone number (1 based vs 0 based)
 
         if( nZone >= GetNumZones() )
 		{
-			trace(F("TurnOnZone - invalid zone %d\n"), (uint16_t)nZone);
+			TRACE_ERROR(F("TurnOnZone - invalid zone %d\n"), (uint16_t)nZone);
             return;
 		}
 
@@ -113,12 +113,12 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 		// sanity checks
 		if( !zone.bEnabled ){
 
-			trace(F("TurnOnZone - error, zone %d is not enabled\n"), (uint16_t)nZone);
+			TRACE_ERROR(F("TurnOnZone - error, zone %d is not enabled\n"), (uint16_t)nZone);
 			return;
 		}
 		if( zone.stationID > MAX_STATIONS ){
 
-			trace(F("TurnOnZone - data corruption, StationID for zone %d is too high (%d)\n"), (uint16_t)nZone, (uint16_t)(zone.stationID));
+			TRACE_ERROR(F("TurnOnZone - data corruption, StationID for zone %d is too high (%d)\n"), (uint16_t)nZone, (uint16_t)(zone.stationID));
 			return;
 		}
 
@@ -135,7 +135,7 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 				zoneStateCache[nZone] = ZONE_STATE_RUNNING;	// parallel stations go directly to running state
 			else
 			{
-				trace(F("TurnOnZone - lBoardParallel returned failure for zone %d\n"), (uint16_t)nZone);
+				TRACE_ERROR(F("TurnOnZone - lBoardParallel returned failure for zone %d\n"), (uint16_t)nZone);
 				return;
 			}
 
@@ -148,7 +148,7 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 				zoneStateCache[nZone] = ZONE_STATE_RUNNING;	// serial stations go directly to running state
 			else
 			{
-				trace(F("TurnOnZone - lBoardSerial returned failure for zone %d\n"), (uint16_t)nZone);
+				TRACE_ERROR(F("TurnOnZone - lBoardSerial returned failure for zone %d\n"), (uint16_t)nZone);
 				return;
 			}
 
@@ -163,7 +163,7 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 			}
 			else
 			{
-				trace(F("TurnOnZone - XBeeRF.ChannelOn returned failure for zone %d\n"), (uint16_t)nZone);
+				TRACE_ERROR(F("TurnOnZone - XBeeRF.ChannelOn returned failure for zone %d\n"), (uint16_t)nZone);
 				return;
 			}
 
@@ -172,20 +172,20 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 		}
 		else
 		{
-			trace(F("TurnOnZone - unknown NetworkID for station %d, cannot turn On zone.\n"), (uint16_t)nZone);
+			TRACE_ERROR(F("TurnOnZone - unknown NetworkID for station %d, cannot turn On zone.\n"), (uint16_t)nZone);
 			return;
 		}
 }
 
 void runStateClass::TurnOffZone(uint8_t nZone)
 {
-        trace(F("Turning Off Zone %d\n"), nZone);
+        TRACE_INFO(F("Turning Off Zone %d\n"), nZone);
 
 		nZone--;		// adjust zone number (1 based vs 0 based)
 
         if( nZone >= GetNumZones() )
 		{
-			trace(F("TurnOffZone - invalid zone %d\n"), (uint16_t)nZone);
+			TRACE_ERROR(F("TurnOffZone - invalid zone %d\n"), (uint16_t)nZone);
             return;
 		}
 
@@ -195,12 +195,12 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 		// sanity checks
 		if( !zone.bEnabled ){
 
-			trace(F("TurnOffZone - error, zone %d is not enabled\n"), (uint16_t)nZone);
+			TRACE_ERROR(F("TurnOffZone - error, zone %d is not enabled\n"), (uint16_t)nZone);
 			return;
 		}
 		if( zone.stationID > MAX_STATIONS ){
 
-			trace(F("TurnOffZone - data corruption, StationID for zone %d is too high (%d)\n"), (uint16_t)nZone, (uint16_t)(zone.stationID));
+			TRACE_ERROR(F("TurnOffZone - data corruption, StationID for zone %d is too high (%d)\n"), (uint16_t)nZone, (uint16_t)(zone.stationID));
 			return;
 		}
 
@@ -237,7 +237,7 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 			}
 			else
 			{
-				trace(F("TurnOffZone - XBeeRF.ChannelOff returned failure for zone %d\n"), (uint16_t)nZone);
+				TRACE_ERROR(F("TurnOffZone - XBeeRF.ChannelOff returned failure for zone %d\n"), (uint16_t)nZone);
 				return;
 			}
 
@@ -246,7 +246,7 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 		}
 		else
 		{
-			trace(F("TurnOffZone - unknown NetworkID for station %d, cannot turn On zone.\n"), (uint16_t)nZone);
+			TRACE_ERROR(F("TurnOffZone - unknown NetworkID for station %d, cannot turn On zone.\n"), (uint16_t)nZone);
 			return;
 		}
 }
@@ -295,7 +295,7 @@ bool runStateClass::StartZoneWorker(int iSchedule, uint8_t stationID, uint8_t ch
 
 			ch = sStation.startZone+channel;
 
-//			trace(F("StartZoneWorker - starting channel %d on station %d, zone=%d\n"), uint16_t(channel), uint16_t(stationID), uint16_t(ch));
+			TRACE_INFO(F("StartZoneWorker - starting channel %d on station %d, zone=%d\n"), uint16_t(channel), uint16_t(stationID), uint16_t(ch));
 		}
 
 		uint8_t	n_zones = GetNumZones();
@@ -337,14 +337,14 @@ void runStateClass::TurnOffZones()
 		if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
 		{
 			rprotocol.SendZonesReport(0, GetMyStationID(), GetEvtMasterStationID(), 0, GetNumZones());	// Note: this would work correctly only on Remote station, with only one station defined
-//			trace(F("TurnOffZones - reporting event to Master\n"));
+			TRACE_INFO(F("TurnOffZones - reporting event to Master\n"));
 		}
 #endif
 }
 
 void runStateClass::TurnOffZonesWorker()
 {
-        trace(F("Turning Off All Zones\n"));
+        TRACE_INFO(F("Turning Off All Zones\n"));
 
 		for( uint8_t i=0; i<GetNumZones(); i++ )
 		{
@@ -450,7 +450,7 @@ uint8_t GetZoneState(uint8_t iNum)
 
 	if( iNum >= GetNumZones() )
 	{
-		trace(F("GetZoneState - wrong zone number %d\n"), (uint16_t)iNum);
+		TRACE_ERROR(F("GetZoneState - wrong zone number %d\n"), (uint16_t)iNum);
 		return ZONE_STATE_OFF;
 	}
 
@@ -535,7 +535,7 @@ void LoadSchedTimeEvents(int8_t sched_num, bool bQuickSchedule)
                 {
                         if (iNumEvents >= MAX_EVENTS - 1)
                         {  // make sure we have room for the on && the off events.. hence the -1
-                                trace(F("ERROR: Too Many Events!\n"));
+                                TRACE_ERROR(F("ERROR: Too Many Events!\n"));
                         }
                         else
                         {
@@ -600,7 +600,7 @@ void ReloadEvents(bool bAllEvents)
                                                 continue;
                                         if (iNumEvents >= MAX_EVENTS)
                                         {
-                                                trace(F("ERROR: Too Many Events!\n"));
+                                                TRACE_ERROR(F("ERROR: Too Many Events!\n"));
                                         }
                                         else
                                         {
@@ -690,11 +690,9 @@ void mainLoop()
 
 #ifdef ARDUINO
                 //Init the TFTP server
-//				trace(F("Skipping TFPT\n"));
                 tftpServer.Init();
 #endif
                 // Set the clock.
-//				trace(F("Skipping NNTP time\n"));
                 nntpTimeServer.checkTime();
 #endif //HW_ENABLE_ETHERNET
 
@@ -739,7 +737,7 @@ void mainLoop()
 				// One shot at midnight
 				if ((hour(timeNow) == 0) && !bDoneMidnightReset)
 				{
-                     trace(F("Reloading Midnight\n"));
+                     TRACE_INFO(F("Reloading Midnight\n"));
                      bDoneMidnightReset = true;
                      // TODO:  outstanding midnight events.  See other TODO for how.
                      ReloadEvents(true);
