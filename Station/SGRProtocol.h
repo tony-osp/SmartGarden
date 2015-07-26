@@ -100,6 +100,9 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define FCODE_EVTMASTER_SET					13
 #define FCODE_EVTMASTER_REPORT				14
 
+// Syslog
+#define FCODE_SYSEVT_READ					15
+#define FCODE_SYSEVT_REPORT					16
 
 // Other
 #define FCODE_SCAN							50
@@ -377,6 +380,69 @@ struct RMESSAGE_SYSSTRING_REPORT
 };
 
 
+//
+//  FCODE_SYSEVT_READ - Read System log record(s)
+//
+//  When receiving this request, the station will send FCODE_SYSEVT_REPORT message
+//   to report system events starting with timestamp next after the event identified by StartTimeStamp.
+//
+//  Note: Each FCODE_SYSEVT_REPORT message reports single event, and retrieving multiple messages requires to 
+//
+struct RMESSAGE_SYSEVT_READ
+{
+//  Header
+	RMESSAGE_HEADER	Header;
+	
+// PDU
+	uint32_t	LastTimeStampH;		// timestamp (in unix/now() format) to start with (next event after the timestamp)
+	uint16_t	LastTimeStampL;		// low 16bit part of the timestamp 
+};
+
+// Event type codes
+
+#define SYSEVENT_EMERGENCY				0
+#define SYSEVENT_ALERT					1	
+#define SYSEVENT_CRIT					2	// critical event
+#define SYSEVENT_ERROR					3
+#define SYSEVENT_WARNING				4
+#define SYSEVENT_NOTICE					5
+#define SYSEVENT_INFO					6
+#define SYSEVENT_VERBOSE				7	// verbose info message, typically used for debugging
+
+#define SYSEVENT_FLAG_CONTINUE			128	// high bit set means that the message is carrying continuation of the event started in the previous message
+#define SYSEVENT_FLAG_MORE				64	// this bit means that more events are available 
+
+#define SYSEVENT_MAX_STRING_LENGTH		50
+
+//
+//  FCODE_SYSEVT_REPORT - Report Syslog event
+//
+//  Please note, although conceptually similar to Syslog, this message is not binary-compatible with it.
+//
+//  This message will be sent in response to FCODE_SYSEVT_READ message
+//    also this message may be sent as unsolicited information  message to the Master to inform about Syslog event.
+//  When sent in response to FCODE_SYSEVT_READ, TransactionID will be the same as in the request, 
+//    if sent unsolicited - it will be 0.
+//
+//  Note: maximum EvtString length is SYSEVENT_MAX_STRING_LENGTH
+//
+struct RMESSAGE_SYSEVT_REPORT
+{
+//  Header
+	RMESSAGE_HEADER	Header;
+	
+// PDU
+
+	uint32_t	TimeStamp;			// Event timestamp (unix/now() format)
+	uint16_t	SeqID;				// Sequence ID. Caller can treat it as an opaque 16bit value that could be quoted in subsequent queries to get next event
+									// The SeqID is required because TimeStamp has only one second resolution and more than one event may have the same timestamp.
+	uint8_t		Flags;				// Flags (e.g. SYSEVENT_FLAG_MORE)
+	uint8_t		EventType;			// Event type code (SYSEVENT_* codes)
+	uint8_t		NumDataBytes;		// The number of bytes to follow
+	uint8_t		EvtString;			// Event string bytes, in ASCII. Note: the string is not null-terminated (its length is provided in NumDataBytes)
+};
+
+
 
 //
 //  FCODE_EVTMASTER_READ - Read current EvtMaster registration
@@ -389,7 +455,6 @@ struct RMESSAGE_EVTMASTER_READ
 // PDU
 
 };
-
 
 
 //

@@ -65,7 +65,6 @@ void	RegisterRemoteEvents(void);
 void setup() {
 	trace_setup(Serial, 115200);
     
-//	TRACE_ERROR(F("Start!\n"));
 	TRACE_CRIT(F("Start!\n"));
 
     localUI.begin();
@@ -81,7 +80,7 @@ void setup() {
 #ifdef HW_ENABLE_SD
 		if (!sd.begin(4, SPI_HALF_SPEED)) 
 		{
-			TRACE_ERROR(F("Could not Initialize SDCard"));
+			SYSEVT_ERROR(F("Could not Initialize SDCard"));
 			localUI.lcd_print_line_clear_pgm(PSTR("EEPROM Corrupted"), 0);
 			localUI.lcd_print_line_clear_pgm(PSTR("SD CARD FAILURE!"), 1);
 			delay(10000);
@@ -114,7 +113,7 @@ void setup() {
 	if (!sd.begin(4, SPI_HALF_SPEED)) 
 #endif //SD_USE_CUSOM_SS
 	{
-		TRACE_ERROR(F("Could not Initialize SDCard\n"));
+		SYSEVT_ERROR(F("Could not Initialize SDCard"));
 	}
 	else
 	{

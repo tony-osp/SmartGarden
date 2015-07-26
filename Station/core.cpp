@@ -97,13 +97,13 @@ void zoneHandlerLoop(void)
 
 void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 {
-        TRACE_INFO(F("Turning On Zone %d\n"), nZone);
+        SYSEVT_CRIT(F("Turning On Zone %d"), nZone);
 
 		nZone--;		// adjust zone number (1 based vs 0 based)
 
         if( nZone >= GetNumZones() )
 		{
-			TRACE_ERROR(F("TurnOnZone - invalid zone %d\n"), (uint16_t)nZone);
+			SYSEVT_ERROR(F("TurnOnZone - invalid zone %d"), (uint16_t)nZone);
             return;
 		}
 
@@ -113,12 +113,12 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 		// sanity checks
 		if( !zone.bEnabled ){
 
-			TRACE_ERROR(F("TurnOnZone - error, zone %d is not enabled\n"), (uint16_t)nZone);
+			SYSEVT_ERROR(F("TurnOnZone - error, zone %d is not enabled"), (uint16_t)nZone);
 			return;
 		}
 		if( zone.stationID > MAX_STATIONS ){
 
-			TRACE_ERROR(F("TurnOnZone - data corruption, StationID for zone %d is too high (%d)\n"), (uint16_t)nZone, (uint16_t)(zone.stationID));
+			SYSEVT_ERROR(F("TurnOnZone - data corruption, StationID for zone %d is too high (%d)"), (uint16_t)nZone, (uint16_t)(zone.stationID));
 			return;
 		}
 
@@ -135,7 +135,7 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 				zoneStateCache[nZone] = ZONE_STATE_RUNNING;	// parallel stations go directly to running state
 			else
 			{
-				TRACE_ERROR(F("TurnOnZone - lBoardParallel returned failure for zone %d\n"), (uint16_t)nZone);
+				SYSEVT_ERROR(F("TurnOnZone - lBoardParallel returned failure for zone %d"), (uint16_t)nZone);
 				return;
 			}
 
@@ -148,7 +148,7 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 				zoneStateCache[nZone] = ZONE_STATE_RUNNING;	// serial stations go directly to running state
 			else
 			{
-				TRACE_ERROR(F("TurnOnZone - lBoardSerial returned failure for zone %d\n"), (uint16_t)nZone);
+				SYSEVT_ERROR(F("TurnOnZone - lBoardSerial returned failure for zone %d"), (uint16_t)nZone);
 				return;
 			}
 
@@ -163,7 +163,7 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 			}
 			else
 			{
-				TRACE_ERROR(F("TurnOnZone - XBeeRF.ChannelOn returned failure for zone %d\n"), (uint16_t)nZone);
+				SYSEVT_ERROR(F("TurnOnZone - XBeeRF.ChannelOn returned failure for zone %d"), (uint16_t)nZone);
 				return;
 			}
 
@@ -172,20 +172,20 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 		}
 		else
 		{
-			TRACE_ERROR(F("TurnOnZone - unknown NetworkID for station %d, cannot turn On zone.\n"), (uint16_t)nZone);
+			SYSEVT_ERROR(F("TurnOnZone - unknown NetworkID for station %d, cannot turn On zone"), (uint16_t)nZone);
 			return;
 		}
 }
 
 void runStateClass::TurnOffZone(uint8_t nZone)
 {
-        TRACE_INFO(F("Turning Off Zone %d\n"), nZone);
+        SYSEVT_CRIT(F("Turning Off Zone %d"), nZone);
 
 		nZone--;		// adjust zone number (1 based vs 0 based)
 
         if( nZone >= GetNumZones() )
 		{
-			TRACE_ERROR(F("TurnOffZone - invalid zone %d\n"), (uint16_t)nZone);
+			SYSEVT_ERROR(F("TurnOffZone - invalid zone %d"), (uint16_t)nZone);
             return;
 		}
 
@@ -195,12 +195,12 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 		// sanity checks
 		if( !zone.bEnabled ){
 
-			TRACE_ERROR(F("TurnOffZone - error, zone %d is not enabled\n"), (uint16_t)nZone);
+			SYSEVT_ERROR(F("TurnOffZone - error, zone %d is not enabled"), (uint16_t)nZone);
 			return;
 		}
 		if( zone.stationID > MAX_STATIONS ){
 
-			TRACE_ERROR(F("TurnOffZone - data corruption, StationID for zone %d is too high (%d)\n"), (uint16_t)nZone, (uint16_t)(zone.stationID));
+			SYSEVT_ERROR(F("TurnOffZone - data corruption, StationID for zone %d is too high (%d)"), (uint16_t)nZone, (uint16_t)(zone.stationID));
 			return;
 		}
 
@@ -237,7 +237,7 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 			}
 			else
 			{
-				TRACE_ERROR(F("TurnOffZone - XBeeRF.ChannelOff returned failure for zone %d\n"), (uint16_t)nZone);
+				SYSEVT_ERROR(F("TurnOffZone - XBeeRF.ChannelOff returned failure for zone %d"), (uint16_t)nZone);
 				return;
 			}
 
@@ -246,7 +246,7 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 		}
 		else
 		{
-			TRACE_ERROR(F("TurnOffZone - unknown NetworkID for station %d, cannot turn On zone.\n"), (uint16_t)nZone);
+			SYSEVT_ERROR(F("TurnOffZone - unknown NetworkID for station %d, cannot turn On zone"), (uint16_t)nZone);
 			return;
 		}
 }
@@ -295,7 +295,7 @@ bool runStateClass::StartZoneWorker(int iSchedule, uint8_t stationID, uint8_t ch
 
 			ch = sStation.startZone+channel;
 
-			TRACE_INFO(F("StartZoneWorker - starting channel %d on station %d, zone=%d\n"), uint16_t(channel), uint16_t(stationID), uint16_t(ch));
+			SYSEVT_CRIT(F("StartZoneWorker - starting channel %d on station %d, zone=%d\n"), uint16_t(channel), uint16_t(stationID), uint16_t(ch));
 		}
 
 		uint8_t	n_zones = GetNumZones();
@@ -450,7 +450,7 @@ uint8_t GetZoneState(uint8_t iNum)
 
 	if( iNum >= GetNumZones() )
 	{
-		TRACE_ERROR(F("GetZoneState - wrong zone number %d\n"), (uint16_t)iNum);
+		SYSEVT_ERROR(F("GetZoneState - wrong zone number %d"), (uint16_t)iNum);
 		return ZONE_STATE_OFF;
 	}
 
@@ -535,7 +535,7 @@ void LoadSchedTimeEvents(int8_t sched_num, bool bQuickSchedule)
                 {
                         if (iNumEvents >= MAX_EVENTS - 1)
                         {  // make sure we have room for the on && the off events.. hence the -1
-                                TRACE_ERROR(F("ERROR: Too Many Events!\n"));
+                                SYSEVT_ERROR(F("ERROR: Too Many Events!"));
                         }
                         else
                         {
@@ -600,7 +600,7 @@ void ReloadEvents(bool bAllEvents)
                                                 continue;
                                         if (iNumEvents >= MAX_EVENTS)
                                         {
-                                                TRACE_ERROR(F("ERROR: Too Many Events!\n"));
+                                                SYSEVT_ERROR(F("ERROR: Too Many Events!"));
                                         }
                                         else
                                         {
@@ -699,7 +699,8 @@ void mainLoop()
                 ReloadEvents();
                 //ShowSockStatus();
 #ifdef LOGGING
-                sdlog.begin(PSTR("System started."));
+                sdlog.begin();
+                SYSEVT_CRIT(F("System started."));
 #endif
 			    localUI.set_mode(OSUI_MODE_HOME);  // set to HOME mode, page 0
 			    localUI.resume();

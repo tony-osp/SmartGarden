@@ -19,6 +19,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #include "port.h"
 #include <Time.h>
+#include "SGRProtocol.h"
 
 //
 // Log directories
@@ -55,14 +56,79 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define PRESSURE_LOG_FNAME_FORMAT "/pressure.log/pre%2.2u-%2.2u.%3.3u"
 
 
+#ifdef notdef
+
+// ***NOTE***
+// Because Event codes are shared with the wire protocol, definitions are in SGRProtocol.h
+
 //
 // Event types for system log
 //
+#define SYSEVENT_CRIT					0	// critical event
 #define SYSEVENT_ERROR					1
 #define SYSEVENT_WARNING				2
 #define SYSEVENT_INFO					3
+#define SYSEVENT_VERBOSE				4	// verbose info message
 
+#endif
 
+// SYSEVT_LEVEL defines the level of events in system log. I have separate log macro for each trace type, and depending on the current SYSEVT_LEVEL
+//  some of these macros (or all of them) will be enabled.
+//
+//	2 ==	Critical messages only (SYSEVT_CRIT)
+//  3 ==	Critical messages and errors (SYSEVT_ERROR)
+//  4 ==	Critical messages, errors and warnings (SYSEVT_WARNING)
+//  5 ==	Critical messages, errors and warnings (SYSEVT_NOTICE)
+//  6 ==	Critical messages, errors, warnings and informational messages (SYSEVT_INFO)
+//  7 ==	Critical messages, errors, warnings, infrmational messages and verbose tracing (SYSEVT_VERBOSE)
+
+#if SYSEVT_LEVEL <= SYSEVENT_CRIT
+#define SYSEVT_CRIT(...)	syslog_evt(SYSEVENT_CRIT, __VA_ARGS__);
+#define SYSEVT_ERROR(...)	TRACE_ERROR(__VA_ARGS__); 
+#define SYSEVT_WARNING(...) TRACE_WARNING(__VA_ARGS__); 
+#define SYSEVT_NOTICE(...)	TRACE_NOTICE(__VA_ARGS__); 
+#define SYSEVT_INFO(...)	TRACE_INFO(__VA_ARGS__); 
+#define SYSEVT_VERBOSE(...) TRACE_VERBOSE(__VA_ARGS__); 
+#elif SYSEVT_LEVEL == SYSEVENT_ERROR
+#define SYSEVT_CRIT(...)	syslog_evt(SYSEVENT_CRIT, __VA_ARGS__);
+#define SYSEVT_ERROR(...)	syslog_evt(SYSEVENT_ERROR, __VA_ARGS__);
+#define SYSEVT_WARNING(...) TRACE_WARNING(__VA_ARGS__); 
+#define SYSEVT_NOTICE(...)	TRACE_NOTICE(__VA_ARGS__); 
+#define SYSEVT_INFO(...)	TRACE_INFO(__VA_ARGS__); 
+#define SYSEVT_VERBOSE(...) TRACE_VERBOSE(__VA_ARGS__);
+#elif SYSEVT_LEVEL == SYSEVENT_WARNING
+#define SYSEVT_CRIT(...)	syslog_evt(SYSEVENT_CRIT, __VA_ARGS__);
+#define SYSEVT_ERROR(...)	syslog_evt(SYSEVENT_ERROR, __VA_ARGS__);
+#define SYSEVT_WARNING(...) syslog_evt(SYSEVENT_WARNING, __VA_ARGS__);
+#define SYSEVT_NOTICE(...)	TRACE_NOTICE(__VA_ARGS__); 
+#define SYSEVT_INFO(...)	TRACE_INFO(__VA_ARGS__); 
+#define SYSEVT_VERBOSE(...) TRACE_VERBOSE(__VA_ARGS__); 
+#elif SYSEVT_LEVEL == SYSEVENT_NOTICE
+#define SYSEVT_CRIT(...)	syslog_evt(SYSEVENT_CRIT, __VA_ARGS__);
+#define SYSEVT_ERROR(...)	syslog_evt(SYSEVENT_ERROR, __VA_ARGS__);
+#define SYSEVT_WARNING(...) syslog_evt(SYSEVENT_WARNING, __VA_ARGS__);
+#define SYSEVT_NOTICE(...)	syslog_evt(SYSEVENT_NOTICE, __VA_ARGS__);
+#define SYSEVT_INFO(...)	TRACE_INFO(__VA_ARGS__); 
+#define SYSEVT_VERBOSE(...) TRACE_VERBOSE(__VA_ARGS__);
+#elif SYSEVT_LEVEL == SYSEVENT_INFO
+#define SYSEVT_CRIT(...)	syslog_evt(SYSEVENT_CRIT, __VA_ARGS__);
+#define SYSEVT_ERROR(...)	syslog_evt(SYSEVENT_ERROR, __VA_ARGS__);
+#define SYSEVT_WARNING(...) syslog_evt(SYSEVENT_WARNING, __VA_ARGS__);
+#define SYSEVT_NOTICE(...)	syslog_evt(SYSEVENT_NOTICE, __VA_ARGS__);
+#define SYSEVT_INFO(...)	syslog_evt(SYSEVENT_INFO, __VA_ARGS__);
+#define SYSEVT_VERBOSE(...) TRACE_VERBOSE(__VA_ARGS__);
+#else
+#define SYSEVT_CRIT(...)	syslog_evt(SYSEVENT_CRIT, __VA_ARGS__);
+#define SYSEVT_ERROR(...)	syslog_evt(SYSEVENT_ERROR, __VA_ARGS__);
+#define SYSEVT_WARNING(...) syslog_evt(SYSEVENT_WARNING, __VA_ARGS__);
+#define SYSEVT_NOTICE(...)	syslog_evt(SYSEVENT_NOTICE, __VA_ARGS__);
+#define SYSEVT_INFO(...)	syslog_evt(SYSEVENT_INFO, __VA_ARGS__);
+#define SYSEVT_VERBOSE(...) syslog_evt(SYSEVENT_VERBOSE, __VA_ARGS__);
+#endif
+
+// Main Syslog event routine
+void syslog_evt(uint8_t event_type, const char * fmt, ...);
+void syslog_evt(uint8_t event_type, const __FlashStringHelper * fmt, ...);
 //
 // Summarization codes
 //
@@ -90,7 +156,7 @@ public:
         enum GROUPING {NONE, HOURLY, DAILY, MONTHLY};
         Logging();
         ~Logging();
-        bool begin(char *str);
+        bool begin(void);
         void Close();
         // Watering activity logging. Note: signature is deliberately compatible with sprinklers_pi control program
         bool LogZoneEvent(time_t start, int zone, int duration, int schedule, int sadj, int wunderground);
@@ -105,24 +171,22 @@ public:
         bool LogSensorReading(uint8_t sensor_type, int sensor_id, int sensor_reading);
 
 	bool EmitSensorLog(FILE* stream_file, time_t sdate, time_t edate, char sensor_type, int sensor_id, char summary_type);
-
-        // add event to the system log with the string str
-        byte syslog_str(char evt_type, char *str);
-        // add event to the system log with the string str in PROGMEM
-        byte syslog_str_P(char evt_type, char *str);
         
         void HandleWebRq(char *sPage, FILE *pFile);
 		void LogsHandler(char *sPage, FILE *stream_file, EthernetClient client);
 
-private:
-
-        bool	logger_ready;
+// Data
+		bool	logger_ready;
 		SdFile  lfile;
 
-        
-        byte syslog_str_internal(char evt_type, char *str, char flag);
+private:
+
+
         int getZoneBins( int zone, time_t start, time_t end, long int *bin_data, int bins, GROUPING grouping);
 
 };
+
+extern Logging sdlog;
+
 
 #endif /* SD-LOG_H_ */

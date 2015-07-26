@@ -17,12 +17,130 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "sdlog.h"
 #include "port.h"
 #include "settings.h"
+#include "RProtocolMS.h"
 
 extern SdFat sd;
 
 #define CL_TMPB_SIZE  256    // size of the local temporary buffer
 
-// Local forward declarations
+static FILE _syslog_file;
+
+//#ifndef SG_STATION_MASTER
+static uint8_t  _syslog_EvtBuffer[SYSEVENT_MAX_STRING_LENGTH];
+static uint8_t  _syslog_EvtType;
+static uint32_t  _syslog_EvtTimeStamp;
+static uint8_t  _syslog_EvtByteCounter;
+static uint8_t  _syslog_EvtContFlag;
+//#endif
+
+// local logger helper
+static int syslog_putchar(char c, FILE *stream)
+{
+	trace_char(c);				// directly output character into the trace channel
+
+#ifndef SG_STATION_MASTER
+	if( _syslog_EvtByteCounter < (SYSEVENT_MAX_STRING_LENGTH-1) )
+	{
+		_syslog_EvtBuffer[_syslog_EvtByteCounter] = c;
+		_syslog_EvtByteCounter++;
+	}
+	else
+	{
+		rprotocol.NotifySysEvent(_syslog_EvtType, _syslog_EvtTimeStamp, 0, _syslog_EvtContFlag?SYSEVENT_FLAG_CONTINUE:0, _syslog_EvtByteCounter, _syslog_EvtBuffer);
+
+		_syslog_EvtBuffer[0] = c;
+		_syslog_EvtByteCounter = 1;		
+		_syslog_EvtContFlag = true;
+	}
+#endif
+
+#ifdef HW_ENABLE_SD	// local log on SD card
+	return sdlog.lfile.write(c);
+#endif //HW_ENABLE_SD
+
+	return 1;
+}
+
+
+// Main Syslog event routine - PSTR format
+void syslog_evt(uint8_t event_type, const __FlashStringHelper * fmt, ...)
+{
+	time_t t = now();
+
+#ifdef HW_ENABLE_SD	// local log on SD card
+
+	if( !sdlog.logger_ready )
+		return;
+
+	// limit the scope of local variables to conserve stack space
+	{
+   // temp buffer for log strings processing
+		char tmp_buf[20];
+
+		sprintf_P(tmp_buf, PSTR(SYSTEM_LOG_FNAME_FORMAT), month(t), year(t) );
+
+		if( !sdlog.lfile.open(tmp_buf, O_WRITE | O_APPEND | O_CREAT) ){
+
+            TRACE_ERROR(F("Cannot open system log file (%s)\n"), tmp_buf);
+
+            sdlog.logger_ready = false;      // something is wrong with the log file, mark logger as "not ready"
+            return;    // failed to open/create log file
+		}
+
+		sprintf_P(tmp_buf, PSTR("%u,%u:%u:%u,%d,"), day(t), hour(t), minute(t), second(t),int(event_type));
+		sdlog.lfile.print(tmp_buf);
+	}
+#endif //HW_ENABLE_SD
+
+	if(		 event_type <= SYSEVENT_CRIT )
+	{
+		TRACE_CRIT(F("SYSEVT-CRIT: "));
+	}
+	else if( event_type == SYSEVENT_ERROR )
+	{
+		TRACE_CRIT(F("SYSEVT-ERROR: "));
+	}
+	else if( event_type == SYSEVENT_WARNING )
+	{
+		TRACE_CRIT(F("SYSEVT-WARNING: "));
+	}
+	else if( event_type == SYSEVENT_NOTICE )
+	{
+		TRACE_CRIT(F("SYSEVT-NOTICE: "));
+	}
+	else 
+	{
+		TRACE_CRIT(F("SYSEVT-INFO: "));	// we are treating INFO and VERBOSE as identical
+	}
+
+// prepare to send the event to the Master if this functionality is enabled
+#ifndef SG_STATION_MASTER
+	_syslog_EvtByteCounter = 0;		
+	_syslog_EvtContFlag = false;
+	_syslog_EvtType = event_type;
+	_syslog_EvtTimeStamp = t;
+#endif
+
+	va_list parms;
+	va_start(parms, fmt);
+    vfprintf_P(&_syslog_file, reinterpret_cast<const char *>(fmt), parms);
+	va_end(parms);
+
+#ifdef HW_ENABLE_SD	// local log on SD card
+	sdlog.lfile.write('\n');	
+	sdlog.lfile.close();
+#endif //HW_ENABLE_SD
+
+	trace_char('\n');	
+
+// Send event to the Master if this functionality is enabled
+#ifndef SG_STATION_MASTER
+	if( _syslog_EvtByteCounter != 0 )
+	{
+		rprotocol.NotifySysEvent(event_type, _syslog_EvtTimeStamp, 0, _syslog_EvtContFlag?SYSEVENT_FLAG_CONTINUE:0, _syslog_EvtByteCounter, _syslog_EvtBuffer);
+	}
+#endif
+}
 
 
 
@@ -32,6 +150,8 @@ Logging::Logging()
 
   logger_ready = false;
 
+// prepare common Syslog event routine
+  fdev_setup_stream(&_syslog_file, syslog_putchar, NULL, _FDEV_SETUP_WRITE);
 }
 
 Logging::~Logging()
@@ -46,7 +166,7 @@ Logging::~Logging()
 //
 
 
-bool Logging::begin(char *str)
+bool Logging::begin(void)
 {
 #ifndef HW_ENABLE_SD
 	return false;
@@ -134,7 +254,7 @@ bool Logging::begin(char *str)
   sprintf_P(log_fname, PSTR(SYSTEM_LOG_FNAME_FORMAT), month(curr_time), year(curr_time) );
   if( !lfile.open(log_fname, O_WRITE | O_APPEND | O_CREAT) ){
 
-        TRACE_ERROR(F("Cannot open system log file (%s)\n"), log_fname);
+        SYSEVT_ERROR(F("Cannot open system log file (%s)\n"), log_fname);
         logger_ready = false;
 
         return false;    // failed to open/create log file
@@ -143,7 +263,7 @@ bool Logging::begin(char *str)
   lfile.close();
   logger_ready = true;      // we are good to go
 
-  return syslog_str_P(SYSEVENT_INFO, str);    // add system log record using the string provided.
+  return true;
 }
 
 void Logging::Close()
@@ -152,86 +272,6 @@ void Logging::Close()
 }
 
 
-
-//
-// internal helpers
-//
-
-// Add new log record
-// Takes input string, returns true on success and false on failure
-//
-byte Logging::syslog_str(char evt_type, char *str)
-{
-   return syslog_str_internal(evt_type, str, false);
-}
-
-// Add new log record
-// Takes input string FROM PROGRAM MEMORY, returns true on success and false on failure
-//
-byte Logging::syslog_str_P(char evt_type, char *str)
-{
-   return syslog_str_internal(evt_type, str, true);
-}
-
-
-// Internal worker for syslog_str
-// First parameter is the string, second parameter is a flag indicating string location
-//     false == RAM
-//     true   == PROGMEM
-//
-
-// Note: We open/write/close log file on each event. It is kind of expensive, but it allows to keep RAM
-//               usage low. Also close operation flushes buffers (acts as sync()).
-//
-byte Logging::syslog_str_internal(char evt_type, char *str, char flag)
-{
-   time_t t = now();
-// temp buffer for log strings processing
-   char tmp_buf[20];
-
-   if( !logger_ready ) return false;  //check if the logger is ready
-
-   sprintf_P(tmp_buf, PSTR(SYSTEM_LOG_FNAME_FORMAT), month(t), year(t) );
-
-   if( !lfile.open(tmp_buf, O_WRITE | O_APPEND | O_CREAT) ){
-
-            TRACE_ERROR(F("Cannot open system log file (%s)\n"), tmp_buf);
-
-            logger_ready = false;      // something is wrong with the log file, mark logger as "not ready"
-            return false;    // failed to open/create log file
-   }
-
-   if( flag ){   // progmem or regular string
-
-      if( strlen_P(str) > (CL_TMPB_SIZE-20) ) return false;   // input string too long, reject it. Note: we need almost 20 bytes for the date/time etc
-   }
-   else {
-      if( strlen(str) > (CL_TMPB_SIZE-20) ) return false;   // input string too long, reject it. Note: we need almost 20 bytes for the date/time etc
-   }
-
-   if( flag ){
-
-      sprintf_P(tmp_buf, PSTR("%u,%u:%u:%u,"), day(t), hour(t), minute(t), second(t) );
-      lfile.print(tmp_buf);
-
-// Because this is PROGMEM string we have to output it manually, one char at a time because we don't want to pre-allocate space for the whole string (RAM is a scarse resource!). But SdFat library will buffer output anyway, so it is OK.
-// SdFat will flush the buffer on close().
-      char c;
-      while((c = pgm_read_byte(str++)))
-         lfile.write(c);
-
-	  lfile.write('\n');
-   }
-   else {
-
-      sprintf_P(tmp_buf, PSTR("%u,%u:%u:%u,"), day(t), hour(t), minute(t), second(t) );
-      lfile.print(tmp_buf);
-      lfile.println(str);
-   }
-
-   lfile.close();
-   return true;
-}
 
 
 // Record watering event
@@ -790,7 +830,7 @@ bool Logging::EmitSensorLog(FILE* stream_file, time_t start, time_t end, char se
                 }
                 else  
                 {
-                     TRACE_ERROR(F("EmitSensorLog - requested sensor type not recognized\n"));
+                     SYSEVT_ERROR(F("EmitSensorLog - requested sensor type not recognized\n"));
                      return false;
                 }
 

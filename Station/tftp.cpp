@@ -3,12 +3,13 @@
 // Author: Richard Zimmerman
 // Copyright (c) 2013 Richard Zimmerman
 //
-// Tony-osp: fixed existing file overwrite bug when new file is smaller than the old one, also changed debug output to TRACE_ERROR() and
+// Tony-osp: fixed existing file overwrite bug when new file is smaller than the old one, also changed debug output to TRACE and SYSLOG() and
 //           converted SendERR to use PSTR to conserve RAM on Arduino.
 
 #include "tftp.h"
 #include <SdFat.h>
 #include "port.h"
+#include "sdlog.h"
 
 // TODO:  There's a big problem here.  The W5100 only has 4 sockets available.  In version 1 of this library I reused the
 //  same socket for the client and the server, but I "moved" the socket to a new port.  So it sort of behaved just like a
@@ -35,7 +36,7 @@ bool tftp::Init()
 {
 	m_timeout = 0;
 	if (!m_udp.begin(69)) {
-		TRACE_ERROR(F("No Sockets Available!\n"));
+		SYSEVT_ERROR(F("No Sockets Available"));
 		return false;
 	}
 	return true;
@@ -55,7 +56,7 @@ bool tftp::Poll()
 				TRACE_INFO(F("TFTP:RRQ\n"));
 				if (m_timeout)
 				{
-					TRACE_ERROR(F("TFTP:Busy\n"));
+					SYSEVT_ERROR(F("TFTP:Busy"));
 					return false;
 				}
 				m_remoteIP = m_udp.remoteIP();
@@ -76,7 +77,7 @@ bool tftp::Poll()
 				// Check to see we don't already have a client on the line
 				if (m_timeout)
 				{
-					TRACE_ERROR(F("TFTP:Busy\n"));
+					SYSEVT_ERROR(F("TFTP:Busy"));
 					return false;
 				}
 				m_remoteIP = m_udp.remoteIP();
@@ -96,7 +97,7 @@ bool tftp::Poll()
 				//Serial.println("DATA");
 				if (!m_timeout)
 				{
-					TRACE_ERROR(F("Data w/o Init\n"));
+					SYSEVT_ERROR(F("Data w/o Init"));
 					return 0;
 				}
 				const int blocknum = (packetBuffer[2] << 8) + packetBuffer[3];
@@ -122,7 +123,7 @@ bool tftp::Poll()
 			{
 				if (!m_timeout)
 				{
-					TRACE_ERROR(F("ACK w/o Init\n"));
+					SYSEVT_ERROR(F("ACK w/o Init"));
 					return 0;
 				}
 				const int blocknum = (packetBuffer[2] << 8) + packetBuffer[3];
@@ -137,7 +138,7 @@ bool tftp::Poll()
 			}
 		case 0x05: // ERROR
 			{
-				TRACE_ERROR(F("ERR\n"));
+				SYSEVT_ERROR(F("ERR"));
 				break;
 			}
 		default:
@@ -146,7 +147,7 @@ bool tftp::Poll()
 	} // if parsePacket
 	else if (m_timeout && (millis() > (m_timeout + TIMEOUT)))
 	{
-		TRACE_ERROR(F("Timeout\n"));
+		SYSEVT_ERROR(F("Timeout"));
 		m_theFile.close();
 		m_timeout = 0;
 	}

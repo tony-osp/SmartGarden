@@ -11,14 +11,12 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #ifndef _DEFINES_H
 #define _DEFINES_H 
 
-#define ENABLE_TRACE 1
-#define TRACE_LEVEL  0		// critical messages only
-//#define TRACE_LEVEL  1		// critical messages and errors
-
+#define ENABLE_TRACE	1
+#define TRACE_LEVEL		2		// critical and alert messages only
+//#define TRACE_LEVEL			6		// all info
 #define TRACE_FREERAM_LIMIT	2000	// when free RAM goes below this limit freeMem() calls will start producing critical notifications
 
-#define VERBOSE_TRACE 1
-
+#define SYSEVT_LEVEL	2	// critical events only
 
 // Supported hardware version definitions
 

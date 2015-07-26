@@ -422,7 +422,7 @@ bool SetSchedule(const KVPairs & key_value_pairs)
                                         hour += 12;
                                 if ((hour >= 24) || (hour < 0) || (minute >= 60) || (minute < 0))
                                 {
-                                        TRACE_ERROR(F("Invalid Date Input\n"));
+                                        SYSEVT_ERROR(F("Invalid Date Input"));
                                         return false;
                                 }
                                 sched.time[key[1] - '1'] = hour * 60 + minute;
@@ -455,7 +455,7 @@ bool SetSchedule(const KVPairs & key_value_pairs)
                 // Check to see if we've exceeded the number of schedules.
                 if (iNumSchedules == MAX_SCHEDULES )
                 {
-                        TRACE_ERROR(F("Too Many Schedules\n"));
+                        SYSEVT_ERROR(F("Too Many Schedules"));
                         return false;
                 }
                 sched_num = iNumSchedules++;
@@ -465,7 +465,7 @@ bool SetSchedule(const KVPairs & key_value_pairs)
         // check to see if we've got a valid schedule number
         if ((sched_num < 0) || (sched_num >= iNumSchedules))
         {
-                TRACE_ERROR(F("Invalid Schedule Number :%d\n"), sched_num);
+                SYSEVT_ERROR(F("Invalid Schedule Number :%d"), sched_num);
                 return false;
         }
         // and save it
@@ -645,7 +645,7 @@ void ResetEEPROM()
 #else // HW_ENABLE_SD
 	if( !ini.open() )
 	{
-		TRACE_ERROR(F("LoadIniEEPROM - error opening device ini file.\n"));
+		SYSEVT_ERROR(F("LoadIniEEPROM - error opening device ini file"));
 
 		retcode = false;
 	}
@@ -668,7 +668,7 @@ void ResetEEPROM()
 
 		if( !ini.validate(buffer, bufferLen) )
 		{
-			TRACE_ERROR(F("LoadIniEEPROM - ini file failed validation.\n"));
+			SYSEVT_ERROR(F("LoadIniEEPROM - ini file failed validation"));
 
 			retcode = false;
 		}
@@ -764,7 +764,7 @@ void ResetEEPROM()
 
 		if( parChannels > LOCAL_NUM_DIRECT_CHANNELS ) 
 		{
-			TRACE_ERROR(F("LoadIniEEPROM - specified number of Parallel channels %d too high, truncating it to %d.\n"), parChannels, LOCAL_NUM_DIRECT_CHANNELS );
+			SYSEVT_ERROR(F("LoadIniEEPROM - specified number of Parallel channels %d too high, truncating it to %d"), parChannels, LOCAL_NUM_DIRECT_CHANNELS );
 			parChannels = LOCAL_NUM_DIRECT_CHANNELS;	// basic protection to constrain the maximum number of parallel channels
 		}
 
@@ -846,7 +846,7 @@ void ResetEEPROM()
 		{
 			if( numStations >= MAX_STATIONS )
 			{
-				TRACE_ERROR(F("LoadIniEEPROM - invalid number of Stations %d. Number should be <16\n."), numStations);
+				SYSEVT_ERROR(F("LoadIniEEPROM - invalid number of Stations %d. Number should be <16"), numStations);
 				numStations = 0;
 			}
 		}
@@ -861,15 +861,15 @@ void ResetEEPROM()
 		{
 			if( u16 >= MAX_STATIONS )
 			{
-				TRACE_ERROR(F("LoadIniEEPROM - invalid MyStationID %d. Number should be <16\n."), u16);
+				SYSEVT_ERROR(F("LoadIniEEPROM - invalid MyStationID %d. Number should be <16"), u16);
 				u16 = DEFAULT_STATION_ID;
 			}
 		}
-//		TRACE_ERROR(F("MyStationID=%d\n"), u16);
+//		SYSEVT_ERROR(F("MyStationID=%d\n"), u16);
 		myStationID = u16;
 		SetMyStationID(myStationID);
 
-		TRACE_INFO(F("LoadIniEEPROM - numStations=%d\n"), numStations);
+		TRACE_INFO(F("LoadIniEEPROM - numStations=%d"), numStations);
 		if( numStations != 0 )	// We have at least one Station defined in the ini file
 		{
 
@@ -891,32 +891,32 @@ void ResetEEPROM()
 
 				if( !ini.getValue(sectionName, keyName, buffer, bufferLen, stationID) )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - Cannot get StationID for station %d\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - Cannot get StationID for station %d"), i);
 					goto skip_Station;
 				}
 
 				if( stationID >= MAX_STATIONS )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - invalid StationID %d. Number should be <16\n"), stationID);
+					SYSEVT_ERROR(F("LoadIniEEPROM - invalid StationID %d. Number should be <16"), stationID);
 					goto skip_Station;
 				}
 
 				strcpy_P(keyName, PSTR("NumChannels"));
 				if( !ini.getValue(sectionName, keyName, buffer, bufferLen, numChannels) )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - cannot read NumChannels for Station %d\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - cannot read NumChannels for Station %d"), i);
 					goto skip_Station;
 				}
 				if( numChannels > 8 )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - NumChannels too high for Station %d, truncating to 8\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - NumChannels too high for Station %d, truncating to 8"), i);
 					numChannels = 8;
 				}
 
 				strcpy_P(keyName, PSTR("NetworkID"));
 				if( !ini.getValue(sectionName, keyName, buffer, bufferLen, tmpb, sizeof(tmpb)-1) )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - cannot read NetworkID for Station %d, error code: %d\n"), i, ini.getError());
+					SYSEVT_ERROR(F("LoadIniEEPROM - cannot read NetworkID for Station %d, error code: %d"), i, ini.getError());
 					goto skip_Station;
 				}
 				if( strcmp_P(tmpb, PSTR("Parallel")) == 0 )
@@ -927,7 +927,7 @@ void ResetEEPROM()
 					netID = NETWORK_ID_XBEE;
 				else
 				{
-					TRACE_ERROR(F("NetworkID not recognized for station %d, skipping the station\n"), i+1);
+					SYSEVT_ERROR(F("NetworkID not recognized for station %d, skipping the station"), i+1);
 					goto skip_Station;
 				}
 				TRACE_INFO(F("Got NetworkID of %s (code %d) for Station %d\n"), tmpb, netID, i+1);
@@ -935,7 +935,7 @@ void ResetEEPROM()
 				strcpy_P(keyName, PSTR("NetworkAddress"));
 				if( !ini.getValue(sectionName, keyName, buffer, bufferLen, netAddr) )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - cannot read NetworkAddress for Station %d\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - cannot read NetworkAddress for Station %d"), i);
 					goto skip_Station;
 				}
 
@@ -943,7 +943,7 @@ void ResetEEPROM()
 				strcpy_P(keyName, PSTR("RAccess"));
 				if( !ini.getValue(sectionName, keyName, buffer, bufferLen, tmpb, sizeof(tmpb)-1) )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - no RAccess statement, assuming no remote access for Station %d\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - no RAccess statement, assuming no remote access for Station %d"), i);
 				}
 				else
 				{
@@ -965,7 +965,7 @@ void ResetEEPROM()
 
 				SaveStation(stationID, &fullStation);	// save the station
 
-				TRACE_ERROR(F("LoadIniEEPROM - Saving station %d, NumChannels %d, netID %d, netAddr %d\n"), (int)stationID, (int)numChannels, (int)netID, (int)netAddr);
+				SYSEVT_ERROR(F("LoadIniEEPROM - Saving station %d, NumChannels %d, netID %d, netAddr %d"), (int)stationID, (int)numChannels, (int)netID, (int)netAddr);
 skip_Station:;
 			}
 		}
@@ -986,7 +986,7 @@ skip_Station:;
 		{
 			if( numSensors >= MAX_SENSORS )
 			{
-				TRACE_ERROR(F("LoadIniEEPROM - invalid number of Sensors %d. Number should be <%d\n."), numSensors, (int)MAX_SENSORS);
+				SYSEVT_ERROR(F("LoadIniEEPROM - invalid number of Sensors %d. Number should be <%d."), numSensors, (int)MAX_SENSORS);
 				numSensors = 0;
 			}
 		}
@@ -1010,7 +1010,7 @@ skip_Station:;
 				strcpy_P(keyName, PSTR("Type"));
 				if( !ini.getValue(sectionName, keyName, buffer, bufferLen, tmpb, sizeof(tmpb)-1) )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - Cannot get Type for Sensor%d\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - Cannot get Type for Sensor%d"), i);
 					goto skip_Sensor;
 				}
 				TRACE_INFO(F("Reading Sensor%d, type=%s\n"), i, tmpb);
@@ -1027,38 +1027,38 @@ skip_Station:;
 					sensType = SENSOR_TYPE_VOLTAGE;
 				else
 				{
-					TRACE_ERROR(F("Sensor%d type not recognized - skipping it\n"), i);
+					SYSEVT_ERROR(F("Sensor%d type not recognized - skipping it"), i);
 					goto skip_Sensor;
 				}
 
 				strcpy_P(keyName, PSTR("Station"));
 				if( !ini.getValue(sectionName, keyName, buffer, bufferLen, sensStation) )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - cannot read Station for Sensor %d\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - cannot read Station for Sensor %d"), i);
 					goto skip_Sensor;
 				}
 				if( sensStation > MAX_STATIONS )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - Sensor Station too high for Sensor%d\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - Sensor Station too high for Sensor%d"), i);
 					goto skip_Sensor;
 				}
 
 				strcpy_P(keyName, PSTR("Channel"));
 				if( !ini.getValue(sectionName, keyName, buffer, bufferLen, sensChannel) )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - cannot read Channel for Sensor%d\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - cannot read Channel for Sensor%d"), i);
 					goto skip_Sensor;
 				}
 				if( sensChannel > 254 )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - Channel is too high for Sensor%d\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - Channel is too high for Sensor%d"), i);
 					goto skip_Sensor;
 				}
 
 				strcpy_P(keyName, PSTR("Name"));
 				if( !ini.getValue(sectionName, keyName, buffer, bufferLen, tmpb, sizeof(tmpb)-1) )
 				{
-					TRACE_ERROR(F("LoadIniEEPROM - Cannot get Name for Sensor%d\n"), i);
+					SYSEVT_ERROR(F("LoadIniEEPROM - Cannot get Name for Sensor%d"), i);
 					sprintf_P(tmpb, PSTR("Sensor %u:%u"), sensStation, sensChannel);	// if no name provided - generate default
 				}
 
@@ -1073,14 +1073,14 @@ skip_Station:;
 
 					SaveSensor(sensID, &fullSens);	// save the sensor
 
-					TRACE_ERROR(F("LoadIniEEPROM - Saving sensor %d\n"), (int)sensID);
+					SYSEVT_ERROR(F("LoadIniEEPROM - Saving sensor %d"), (int)sensID);
 
 					sensID++;
 				}
 skip_Sensor:;
 			}
 			SetNumSensors(sensID);
-			TRACE_INFO(F("LoadIniEEPROM - saved %d sensors\n"), sensID);
+			TRACE_INFO(F("LoadIniEEPROM - saved %d sensors"), sensID);
 		}
 
 // Now let's iterate through Stations and fill in Zones list
@@ -1108,7 +1108,7 @@ skip_Sensor:;
 						zone.channel = j;
 						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), uint16_t(zoneIndex+1), uint16_t(zone.stationID), uint16_t(zone.channel+1));
 						
-//						TRACE_ERROR(F("Created zone %d, \"%s\"\n"), (uint8_t)(zoneIndex + 1), zone.name);
+//						SYSEVT_ERROR(F("Created zone %d, \"%s\"\n"), (uint8_t)(zoneIndex + 1), zone.name);
 						
 						SaveZone(zoneIndex, &zone);
 						zoneIndex++;
@@ -1354,7 +1354,7 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 						zone.channel = j;
 						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), uint16_t(zoneIndex + 1), uint16_t(zone.stationID), uint16_t(zone.channel+1));
 						
-//						TRACE_ERROR(F("Created zone %d, \"%s\"\n"), uint16_t(zoneIndex + 1), zone.name);
+//						SYSEVT_ERROR(F("Created zone %d, \"%s\""), uint16_t(zoneIndex + 1), zone.name);
 						
 						SaveZone(zoneIndex, &zone);
 						zoneIndex++;

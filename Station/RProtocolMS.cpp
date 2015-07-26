@@ -108,7 +108,7 @@ inline uint16_t		getSingleSensor(uint8_t sensorID)
 {
 	if( sensorID >= GetNumSensors() ) 
 	{
-		TRACE_ERROR(F("getSingleSensorRegister - error, wrong sensorID %d\n"), sensorID);
+		SYSEVT_ERROR(F("getSingleSensorRegister - error, wrong sensorID %d"), sensorID);
 		return 0;
 	}
 
@@ -138,13 +138,13 @@ inline void MessageZonesRead( void *ptr )
 	// parameters length check
 	if( pMessage->Header.Length != (sizeof(RMESSAGE_ZONES_READ)-sizeof(RMESSAGE_HEADER)) )
 	{
-		TRACE_ERROR(F("MessageZonesRead - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessageZonesRead - bad parameters length"));
 		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
 	}
 	
 	if( pMessage->Header.ToUnitID >= MAX_STATIONS )
 	{
-			TRACE_ERROR(F("MessageZonesRead - wrong station ID\n"));
+			SYSEVT_ERROR(F("MessageZonesRead - wrong station ID"));
 			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, FCODE_ZONES_READ, 2);
 			return;																					// unit ID, FCode=1 and Exception Code=2 (Illegal Data Address)
 	}
@@ -154,7 +154,7 @@ inline void MessageZonesRead( void *ptr )
 		LoadShortStation(pMessage->Header.ToUnitID, &sStation);
 		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_RSTATUS) )
 		{
-			TRACE_ERROR(F("MessageZonesRead - station is not valid or not enabled for remote query\n"));
+			SYSEVT_ERROR(F("MessageZonesRead - station is not valid or not enabled for remote query"));
 			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, FCODE_ZONES_READ, 2);
 			return;																					// unit ID, FCode=1 and Exception Code=2 (Illegal Data Address)
 		}
@@ -163,7 +163,7 @@ inline void MessageZonesRead( void *ptr )
 
 		if( ((pMessage->FirstZone+pMessage->NumZones) >  sStation.numZoneChannels) || (pMessage->NumZones < 1)  )
 		{
-			TRACE_ERROR(F("MessageZonesRead - wrong data address or the number of zones to read\n"));
+			SYSEVT_ERROR(F("MessageZonesRead - wrong data address or the number of zones to read"));
 	
 			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, FCODE_ZONES_READ, 2);		// send error response with the same transaction ID, 
 			return;																					// unit ID, FCode=1 and Exception Code=2 (Illegal Data Address)
@@ -197,7 +197,7 @@ inline void MessageZonesSet( void *ptr )
 	// parameters length check
 	if( pMessage->Header.Length != (sizeof(RMESSAGE_ZONES_SET) - sizeof(RMESSAGE_HEADER)) )		// we assume that this station has no more than 8 zones, so zones flags will be in one byte
 	{
-		TRACE_ERROR(F("MessageZonesSet - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessageZonesSet - bad parameters length"));
 		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
 	}
 	
@@ -205,7 +205,7 @@ inline void MessageZonesSet( void *ptr )
 
 	if( pMessage->Header.ToUnitID >= MAX_STATIONS )  //Check bounds
 	{
-		TRACE_ERROR(F("MessageZonesSet - requested station number is outside of bounds\n"));
+		SYSEVT_ERROR(F("MessageZonesSet - requested station number is outside of bounds"));
 	
 		rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
 		return;																						// unit ID, Exception Code=2 (Illegal Data Address)
@@ -218,7 +218,7 @@ inline void MessageZonesSet( void *ptr )
 
 		if( !(sStation.stationFlags & STATION_FLAGS_ENABLED) || !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_RCONTROL) )
 		{
-			TRACE_ERROR(F("MessageZonesSet - station %d is not enabled, flags=%d\n"), uint16_t(pMessage->Header.ToUnitID), uint16_t(sStation.stationFlags) );
+			SYSEVT_ERROR(F("MessageZonesSet - station %d is not enabled, flags=%d"), uint16_t(pMessage->Header.ToUnitID), uint16_t(sStation.stationFlags) );
 	
 			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
 			return;																						// unit ID, Exception Code=2 (Illegal Data Address)
@@ -226,7 +226,7 @@ inline void MessageZonesSet( void *ptr )
 
 		if(	((pMessage->NumZones+pMessage->FirstZone) >  sStation.numZoneChannels) || (pMessage->NumZones < 1) )
 		{
-			TRACE_ERROR(F("MessageZonesSet - wrong parameters. NumZones=%d, FirstZone=%d, numZoneChannels=%d\n"), uint16_t(pMessage->NumZones), uint16_t(pMessage->FirstZone), uint16_t(sStation.numZoneChannels) );
+			SYSEVT_ERROR(F("MessageZonesSet - wrong parameters. NumZones=%d, FirstZone=%d, numZoneChannels=%d"), uint16_t(pMessage->NumZones), uint16_t(pMessage->FirstZone), uint16_t(sStation.numZoneChannels) );
 	
 			rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
 			return;																						// unit ID, Exception Code=2 (Illegal Data Address)
@@ -266,7 +266,7 @@ bool RProtocolMaster::SendZonesReport(uint8_t transactionID, uint8_t fromUnitID,
 {		
 		if( fromUnitID >= MAX_STATIONS )
 		{
-			TRACE_ERROR(F("SendZonesReport - wrong station number\n"));
+			SYSEVT_ERROR(F("SendZonesReport - wrong station number"));
 			return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
 		}
 	
@@ -288,7 +288,7 @@ bool RProtocolMaster::SendZonesReport(uint8_t transactionID, uint8_t fromUnitID,
 		{
 			if( (firstZone+numZones) > sStation.numZoneChannels )
 			{
-				TRACE_ERROR(F("SendZonesReport - wrong zones input parameters. firstZone=%d, numZones=%d, stationID=%d, numZoneChannels=%d\n"), uint16_t(firstZone), uint16_t(numZones),uint16_t(fromUnitID),uint16_t(sStation.numZoneChannels) );
+				SYSEVT_ERROR(F("SendZonesReport - wrong zones input parameters. firstZone=%d, numZones=%d, stationID=%d, numZoneChannels=%d"), uint16_t(firstZone), uint16_t(numZones),uint16_t(fromUnitID),uint16_t(sStation.numZoneChannels) );
 				return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
 			}
 
@@ -318,11 +318,11 @@ bool RProtocolMaster::SendSensorsReport(uint8_t transactionID, uint8_t fromUnitI
 {
 	if( ((firstSensor+numSensors) > GetNumSensors()) || (numSensors < 1) )
 	{
-		TRACE_ERROR(F("SendSensorsReport - wrong input parameters, firstSensor=%d, numSensors=%d\n"), uint16_t(firstSensor), uint16_t(numSensors));
+		SYSEVT_ERROR(F("SendSensorsReport - wrong input parameters, firstSensor=%d, numSensors=%d"), uint16_t(firstSensor), uint16_t(numSensors));
 		return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
 	}
 	
-//	TRACE_ERROR(F("Sending sensors data to station %d\n"), uint16_t(toUnitID));
+//	SYSEVT_ERROR(F("Sending sensors data to station %d"), uint16_t(toUnitID));
 
 	uint8_t		outbuf[sizeof(RMESSAGE_SENSORS_REPORT)+(MAX_SENSORS-1)*2];
 	RMESSAGE_SENSORS_REPORT *pReportMessage = (RMESSAGE_SENSORS_REPORT*) outbuf;
@@ -352,7 +352,7 @@ bool RProtocolMaster::SendSystemRegisters(uint8_t transactionID, uint8_t fromUni
 {
 	if( (firstRegister+numRegisters) > MODBUSMAP_SYSTEM_MAX )
 	{
-		TRACE_ERROR(F("SendSystemRegisters - wrong input parameters\n"));
+		SYSEVT_ERROR(F("SendSystemRegisters - wrong input parameters"));
 		return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
 	}
 	uint8_t		outbuf[sizeof(RMESSAGE_SYSREGISTERS_REPORT)+MODBUSMAP_SYSTEM_MAX*2];
@@ -376,6 +376,39 @@ bool RProtocolMaster::SendSystemRegisters(uint8_t transactionID, uint8_t fromUni
 
 	return _SendMessage(toUnitID, outbuf, sizeof(RMESSAGE_SYSREGISTERS_REPORT)+numRegisters*2);
 }
+
+// Helper routine - notify Master of the system event
+
+bool RProtocolMaster::NotifySysEvent(uint8_t eventType, uint32_t timeStamp, uint16_t seqID, uint8_t flags, uint8_t eventDataLength, uint8_t *eventData)
+{
+	if( !(GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SYSTEM) )
+		return false;	// no Master registered to receive System notifications
+
+	if( eventDataLength > SYSEVENT_MAX_STRING_LENGTH )
+	{
+		SYSEVT_ERROR(F("SendSysEvent - too big payload"));
+		return false;																				
+	}
+
+	uint8_t		outbuf[sizeof(RMESSAGE_SYSEVT_REPORT)+SYSEVENT_MAX_STRING_LENGTH];
+	RMESSAGE_SYSEVT_REPORT *pReportMessage = (RMESSAGE_SYSEVT_REPORT*) outbuf;
+
+	pReportMessage->Header.ProtocolID = RPROTOCOL_ID;
+	pReportMessage->Header.FCode = FCODE_SYSEVT_REPORT;
+	pReportMessage->Header.FromUnitID = GetMyStationID();
+	pReportMessage->Header.ToUnitID = GetEvtMasterStationID();
+	pReportMessage->Header.TransactionID = 0;
+	pReportMessage->Header.Length = eventDataLength;	
+
+	memcpy(&(pReportMessage->EvtString), eventData, size_t(eventDataLength) );
+
+	pReportMessage->TimeStamp = timeStamp;
+	pReportMessage->SeqID = seqID;
+	pReportMessage->Flags = flags;
+
+	return _SendMessage(pReportMessage->Header.ToUnitID, outbuf, sizeof(RMESSAGE_SYSEVT_REPORT)+eventDataLength);
+}
+
 
 // Helper routine - send EvtMaster registration report
 
@@ -469,13 +502,13 @@ inline void MessageZonesReport( void *ptr )
 {
 	RMESSAGE_ZONES_REPORT	*pMessage = (RMESSAGE_ZONES_REPORT *)ptr;
 
-//	TRACE_ERROR(F("MessageZonesReport - processing message\n"));
-//	TRACE_ERROR(F("Header.Length=%d, FirstZone=%d, NumZones=%d\n"), (int)(pMessage->Header.Length), (int)(pMessage->FirstZone), (int)(pMessage->NumZones) );
+	TRACE_VERBOSE(F("MessageZonesReport - processing message\n"));
+	TRACE_VERBOSE(F("Header.Length=%d, FirstZone=%d, NumZones=%d\n"), (int)(pMessage->Header.Length), (int)(pMessage->FirstZone), (int)(pMessage->NumZones) );
 
 	// parameters length check
 	if( pMessage->Header.Length != (sizeof(RMESSAGE_ZONES_REPORT)-sizeof(RMESSAGE_HEADER)) )
 	{
-		TRACE_ERROR(F("MessageZonesReport - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessageZonesReport - bad parameters length"));
 		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
 	}
 	
@@ -484,7 +517,7 @@ inline void MessageZonesReport( void *ptr )
 // Note: since currently we have no more than 8 zones in the Remote station, we hardcode response size to 1 byte
 	if( ((pMessage->FirstZone+pMessage->NumZones) > GetNumZones()) || (pMessage->Header.FromUnitID > MAX_REMOTE_STATIONS) )
 	{
-		TRACE_ERROR(F("MessageZonesReport - wrong payload data.\n"));
+		SYSEVT_ERROR(F("MessageZonesReport - wrong payload data"));
 		return;	
 	}
 // OK, payload seems to be valid.
@@ -497,20 +530,20 @@ inline void MessageSensorsReport( void *ptr )
 {
 	RMESSAGE_SENSORS_REPORT	*pMessage = (RMESSAGE_SENSORS_REPORT *)ptr;
 
-//	TRACE_ERROR(F("MessageSensorsReport - processing message from station %d\n"), (int)(pMessage->Header.FromUnitID));
-//	TRACE_ERROR(F("Header.Length=%d, FirstSensor=%d, NumSensors=%d\n"), (int)(pMessage->Header.Length), (int)(pMessage->FirstSensor), (int)(pMessage->NumSensors) );
+//	SYSEVT_ERROR(F("MessageSensorsReport - processing message from station %d\n"), (int)(pMessage->Header.FromUnitID));
+//	SYSEVT_ERROR(F("Header.Length=%d, FirstSensor=%d, NumSensors=%d\n"), (int)(pMessage->Header.Length), (int)(pMessage->FirstSensor), (int)(pMessage->NumSensors) );
 
 	// parameters length check
 	if( pMessage->Header.Length != ((sizeof(RMESSAGE_SENSORS_REPORT)-sizeof(RMESSAGE_HEADER)) + (pMessage->NumSensors-1)*2) )
 	{
-		TRACE_ERROR(F("MessageSensorsReport - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessageSensorsReport - bad parameters length"));
 		return;		
 	}
 	
 // Basic parameters validity check.
 	if( pMessage->Header.FromUnitID > MAX_REMOTE_STATIONS )
 	{
-		TRACE_ERROR(F("MessageSensorsReport - wrong payload data.\n"));
+		SYSEVT_ERROR(F("MessageSensorsReport - wrong payload data."));
 		return;	
 	}
 // OK, payload seems to be valid.
@@ -520,9 +553,9 @@ inline void MessageSensorsReport( void *ptr )
 
 	for( uint8_t i=0; i<nSensors; i++ )
 	{
-//		TRACE_ERROR(F("MessageSensorsReport - reporting sensor reading, station=%d, channel=%d\n"), (int)(pMessage->Header.FromUnitID), (int)(nFirstSensor+i));		
+//		SYSEVT_ERROR(F("MessageSensorsReport - reporting sensor reading, station=%d, channel=%d\n"), (int)(pMessage->Header.FromUnitID), (int)(nFirstSensor+i));		
 		sensorsModule.ReportSensorReading(pMessage->Header.FromUnitID, nFirstSensor+i, (int) (pMessage->SensorsData[i]));
-//		TRACE_ERROR(F("station=%d after return from ReportSensorReading\n"), (int)(pMessage->Header.FromUnitID));
+//		SYSEVT_ERROR(F("station=%d after return from ReportSensorReading\n"), (int)(pMessage->Header.FromUnitID));
 	}
 }
  
@@ -531,6 +564,42 @@ inline void MessageSystemRegistersReport( void *ptr )
 
 }
 
+//
+// Remote SysEvent message
+//
+
+inline void MessageSysEvtReport( void *ptr )
+{
+	RMESSAGE_SYSEVT_REPORT	*pMessage = (RMESSAGE_SYSEVT_REPORT *)ptr;
+
+	TRACE_VERBOSE(F("MessageSysEvtReport - processing message\n"));
+
+	// parameters length check
+	if( pMessage->Header.Length <= (sizeof(RMESSAGE_SYSEVT_REPORT)-sizeof(RMESSAGE_HEADER)) )
+	{
+		SYSEVT_ERROR(F("MessageSysEvtReport - bad parameters length"));
+		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
+	}
+	
+// Parameters validity check.
+
+// Note: since currently we have no more than 8 zones in the Remote station, we hardcode response size to 1 byte
+	if( pMessage->NumDataBytes > SYSEVENT_MAX_STRING_LENGTH )
+	{
+		SYSEVT_ERROR(F("MessageSysEvtReport - payload data is too long"));
+		return;	
+	}
+// OK, payload seems to be valid.
+
+	uint8_t		evtBuf[SYSEVENT_MAX_STRING_LENGTH+1];
+	memcpy(evtBuf, (void *)(pMessage->EvtString), pMessage->NumDataBytes);
+	evtBuf[pMessage->NumDataBytes] = 0; // we need to bull-terminate the string since incoming message has string without termination (but with explicit length)
+
+	syslog_evt(pMessage->EventType, F("RemoteEvent: %s"), evtBuf);
+}
+
+
+
 inline void MessagePingReply( void *ptr )
 {
 	RMESSAGE_PING_REPLY	*pMessage = (RMESSAGE_PING_REPLY *)ptr;
@@ -538,11 +607,11 @@ inline void MessagePingReply( void *ptr )
 	// parameters length check
 	if( pMessage->Header.Length != (sizeof(RMESSAGE_PING_REPLY)-sizeof(RMESSAGE_HEADER)) )
 	{
-		TRACE_ERROR(F("MessagePingReply - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessagePingReply - bad parameters length"));
 		return;		
 	}
 	
-	TRACE_ERROR(F("MessagePingReply - Received from station: %d\n"), (int)(pMessage->Header.FromUnitID) );
+	SYSEVT_ERROR(F("MessagePingReply - Received from station: %d"), (int)(pMessage->Header.FromUnitID) );
 }
 
 inline void MessageEvtMasterReport( void *ptr )
@@ -552,11 +621,11 @@ inline void MessageEvtMasterReport( void *ptr )
 	// parameters length check
 	if( pMessage->Header.Length != (sizeof(RMESSAGE_EVTMASTER_REPORT)-sizeof(RMESSAGE_HEADER)) )
 	{
-		TRACE_ERROR(F("MessageEvtMasterReport - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessageEvtMasterReport - bad parameters length"));
 		return;		
 	}
 	
-//	TRACE_ERROR(F("MessageEvtMasterReport - Received from station: %d, EvtMaster=%d, NetAddr=%d\n"), (int)(pMessage->Header.FromUnitID), (int)(pMessage->MasterStationID), (int)(pMessage->MasterStationAddress) );
+//	SYSEVT_ERROR(F("MessageEvtMasterReport - Received from station: %d, EvtMaster=%d, NetAddr=%d\n"), (int)(pMessage->Header.FromUnitID), (int)(pMessage->MasterStationID), (int)(pMessage->MasterStationAddress) );
 }
 
 inline void MessageResponseError( void *ptr )
@@ -566,11 +635,11 @@ inline void MessageResponseError( void *ptr )
 	// parameters length check
 	if( pMessage->Header.Length != (sizeof(RMESSAGE_RESPONSE_ERROR)-sizeof(RMESSAGE_HEADER)) )
 	{
-		TRACE_ERROR(F("MessageResponseError - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessageResponseError - bad parameters length"));
 		return;		
 	}
 	
-	TRACE_ERROR(F("MessageResponseError - Received from station: %d, FailedFCode=%d, ExceptionCode=%d\n"), (int)(pMessage->Header.FromUnitID), (int)(pMessage->FailedFCode), (int)(pMessage->ExceptionCode) );
+	SYSEVT_ERROR(F("MessageResponseError - Received from station: %d, FailedFCode=%d, ExceptionCode=%d"), (int)(pMessage->Header.FromUnitID), (int)(pMessage->FailedFCode), (int)(pMessage->ExceptionCode) );
 }
 
 
@@ -604,7 +673,7 @@ bool RProtocolMaster::SendReadZonesStatus( uint8_t stationID, uint16_t transacti
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_ZONES_READ;
         Message.Header.ToUnitID = stationID;
-        Message.Header.FromUnitID = MY_STATION_ID;
+        Message.Header.FromUnitID = GetMyStationID();
         Message.Header.Length = sizeof(RMESSAGE_ZONES_READ)-sizeof(RMESSAGE_HEADER);
 		Message.Header.TransactionID = transactionID;
 
@@ -725,7 +794,7 @@ bool RProtocolMaster::SendForceSingleZone( uint8_t stationID, uint8_t channel, u
 		ShortStation	sStation;
 		LoadShortStation(stationID, &sStation);
 
-		TRACE_ERROR(F("SendForceSingleZone - sending request\n"));
+		SYSEVT_ERROR(F("SendForceSingleZone - sending request"));
 
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_ZONES_SET;
@@ -869,7 +938,7 @@ bool RProtocolMaster::SendRegisterEvtMaster( uint8_t stationID, uint8_t eventsMa
 		ShortStation	sStation;
 		LoadShortStation(stationID, &sStation);
 
-//		TRACE_ERROR(F("SendRegisterEventsMaster - sending request\n"));
+//		SYSEVT_ERROR(F("SendRegisterEventsMaster - sending request\n"));
 
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_EVTMASTER_SET;
@@ -898,7 +967,7 @@ void RProtocolMaster::SendTimeBroadcast(void)
 {
 	RMESSAGE_TIME_BROADCAST Message;
 
-//	TRACE_ERROR(F("Sending time broadcast\n"));
+//	SYSEVT_ERROR(F("Sending time broadcast\n"));
 
 		if( _SendMessage == 0 )
 			return;					// protection - transport callback is not registered
@@ -933,12 +1002,12 @@ inline void MessageTimeBroadcast( void *ptr )
 {
 	register RMESSAGE_TIME_BROADCAST  *pMessage = (RMESSAGE_TIME_BROADCAST *)ptr;
 
-//	TRACE_ERROR(F("MessageTimeBroadcast - entering\n"));
+//	SYSEVT_ERROR(F("MessageTimeBroadcast - entering\n"));
 
 // parameters length check
 	if( pMessage->Header.Length != (sizeof(RMESSAGE_TIME_BROADCAST)-sizeof(RMESSAGE_HEADER)) )
 	{
-		TRACE_ERROR(F("MessageTimeBroadcast - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessageTimeBroadcast - bad parameters length"));
 		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
 	}
 
@@ -989,13 +1058,13 @@ inline void MessageEvtMasterSet( void *ptr )
 	// parameters length check
 	if( pMessage->Header.Length != (sizeof(RMESSAGE_EVTMASTER_SET) - sizeof(RMESSAGE_HEADER)) )
 	{
-		TRACE_ERROR(F("MessageEvtMasterSet - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessageEvtMasterSet - bad parameters length"));
 		return;		
 	}
 	
 // OK, parameters are valid. Execute action and send response
 
-//	TRACE_ERROR(F("MessageEvtMasterSet - Setting EvtMaster, stationID=%d\n"), uint8_t(pMessage->Header.FromUnitID));
+//	SYSEVT_ERROR(F("MessageEvtMasterSet - Setting EvtMaster, stationID=%d\n"), uint8_t(pMessage->Header.FromUnitID));
 
 	SetEvtMasterFlags(pMessage->EvtFlags);
 	if( pMessage->EvtFlags & EVTMASTER_FLAGS_REGISTER_SELF )	// flag indicating that we should register sender of this message as the master
@@ -1035,7 +1104,7 @@ inline void MessageSensorsRead( void *ptr )
 	// parameters length check
 	if( pMessage->Header.Length != (sizeof(RMESSAGE_SENSORS_READ)-sizeof(RMESSAGE_HEADER)) )
 	{
-		TRACE_ERROR(F("MessageSensorsRead - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessageSensorsRead - bad parameters length"));
 		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
 	}
 
@@ -1046,7 +1115,7 @@ inline void MessageSensorsRead( void *ptr )
 
 	if( (pMessage->FirstSensor+pMessage->NumSensors) > GetNumSensors() )
 	{
-		TRACE_ERROR(F("MessageSensorsRead - wrong input parameters\n"));
+		SYSEVT_ERROR(F("MessageSensorsRead - wrong input parameters"));
 	
 		rprotocol.SendErrorResponse(pMessage->Header.TransactionID, pMessage->Header.ToUnitID, pMessage->Header.FromUnitID, pMessage->Header.FCode, 2);	// send error response with the same transaction ID, 
 		return;																										// unit ID, Exception Code=2 (Illegal Data Address)
@@ -1079,7 +1148,7 @@ inline void MessagePing( void *ptr )
 	// parameters length check
 	if( pMessage->Header.Length != (sizeof(RMESSAGE_PING)-sizeof(RMESSAGE_HEADER)) )
 	{
-		TRACE_ERROR(F("MessagePing - bad parameters length\n"));
+		SYSEVT_ERROR(F("MessagePing - bad parameters length"));
 		return;		
 	}
 	
@@ -1130,19 +1199,19 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 
         if( len < sizeof(RMESSAGE_GENERIC) )   // minimum valid packet length 
         {
-                TRACE_ERROR(F("ProcessNewFrame - Bad packet received, too short\n"));
+                SYSEVT_ERROR(F("ProcessNewFrame - Bad packet received, too short"));
 				return;
         }
 
         if( pMessage->Header.ProtocolID != RPROTOCOL_ID )
         {
-                TRACE_ERROR(F("ProcessNewFrame - Bad packet received, bad ProtocolID \n"));
+                SYSEVT_ERROR(F("ProcessNewFrame - Bad packet received, bad ProtocolID"));
                 return;
         }
 
 		if( len != (pMessage->Header.Length+sizeof(RMESSAGE_HEADER)) )		// overall packet length should equal header size + length field
         {
-                TRACE_ERROR(F("ProcessNewFrame - Bad packet received, length does not match\n"));
+                SYSEVT_ERROR(F("ProcessNewFrame - Bad packet received, length does not match"));
                 return;
         }
 
@@ -1160,7 +1229,7 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 
 		if( (_ARPAddressUpdate != 0) && (pNetAddress != 0) ) _ARPAddressUpdate(pMessage->Header.FromUnitID, pNetAddress);
 
-//		TRACE_ERROR(F("ProcessNewFrame - processing packet, FCode: %d\n"), pMessage->Header.FCode);
+//		SYSEVT_ERROR(F("ProcessNewFrame - processing packet, FCode: %d\n"), pMessage->Header.FCode);
 
         switch( pMessage->Header.FCode )
         {
@@ -1176,6 +1245,10 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
                 case FCODE_SYSREGISTERS_REPORT:
                                 MessageSystemRegistersReport( ptr );
                                 break;
+
+				case FCODE_SYSEVT_REPORT:
+								MessageSysEvtReport( ptr );
+								break;
 
                 case FCODE_PING_REPLY:
                                 MessagePingReply( ptr);
@@ -1233,7 +1306,7 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 #endif //SG_STATION_SLAVE	
 
 				default: 
-								TRACE_ERROR(F("Unknown packet received\n"));
+								SYSEVT_ERROR(F("Unknown packet received"));
 								break;
 		}
 

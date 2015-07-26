@@ -34,7 +34,7 @@ static void ParseResponse(EthernetClient & client, Weather::ReturnVals * ret)
 		if (recvbufptr >= recvbufend)
 		{
 			int len = client.read((uint8_t*) recvbuf, sizeof(recvbuf));
-//			TRACE_ERROR(F("Received Bytes:%d\n"), len);
+//			SYSEVT_ERROR(F("Received Bytes:%d"), len);
 			if (len <= 0)
 			{
 				if (!client.connected())
@@ -109,7 +109,7 @@ static void ParseResponse(EthernetClient & client, Weather::ReturnVals * ret)
 			{
 				current_state = FIND_QUOTE1;
 				*valptr = 0;
-				//TRACE_ERROR("%s:%s\n", key, val);
+				//SYSEVT_ERROR("%s:%s\n", key, val);
 				if (strcmp(key, "maxhumidity") == 0)
 				{
 					ret->valid = true;
@@ -192,7 +192,7 @@ Weather::ReturnVals Weather::GetVals(const IPAddress & ip, const char * key, uin
 			snprintf(getstring, sizeof(getstring), "GET /api/%s/yesterday/conditions/q/pws:%s.json HTTP/1.0\n\n", key, pws);
 		else
 			snprintf(getstring, sizeof(getstring), "GET /api/%s/yesterday/conditions/q/%ld.json HTTP/1.0\n\n", key, (long) zip);
-		//TRACE_ERROR(getstring);
+		//SYSEVT_ERROR(getstring);
 		client.write((uint8_t*) getstring, strlen(getstring));
 
 		ParseResponse(client, &vals);
@@ -201,17 +201,17 @@ Weather::ReturnVals Weather::GetVals(const IPAddress & ip, const char * key, uin
 		{
 			if (vals.keynotfound)
 			{
-				TRACE_ERROR(F("Invalid WUnderground Key\n"));
+				SYSEVT_ERROR(F("Invalid WUnderground Key"));
 			}
 			else
 			{
-				TRACE_ERROR(F("Bad WUnderground Response\n"));
+				SYSEVT_ERROR(F("Bad WUnderground Response"));
 			}
 		}
 	}
 	else
 	{
-		TRACE_ERROR(F("connection failed\n"));
+		SYSEVT_ERROR(F("connection failed"));
 		client.stop();
 	}
 	return vals;

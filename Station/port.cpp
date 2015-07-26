@@ -5,10 +5,16 @@
 
 static FILE serial;
 static Stream *_trace_serial;
-static bool bSerialSetup = false;
+static bool _trace_bSerialSetup = false;
 
 
 #ifdef ENABLE_TRACE
+
+void trace_char(char c)
+{
+	if( _trace_bSerialSetup )
+        _trace_serial->write(c);
+}
 
 static int serial_putchar(char c, FILE *stream)
 {
@@ -21,12 +27,12 @@ void trace_setup(Stream &tser, unsigned long speed)
         Serial.begin(speed); 
 		_trace_serial = &tser;
         fdev_setup_stream(&serial, serial_putchar, NULL, _FDEV_SETUP_WRITE);
-		bSerialSetup = true;
+		_trace_bSerialSetup = true;
 }
 
 void trace(const char * fmt, ...)
 {
-        if( !bSerialSetup )
+        if( !_trace_bSerialSetup )
            return;
 
         va_list parms;
@@ -37,7 +43,7 @@ void trace(const char * fmt, ...)
 
 void trace(const __FlashStringHelper * fmt, ...)
 {
-        if( !bSerialSetup )
+        if( !_trace_bSerialSetup )
            return;
 
         va_list parms;

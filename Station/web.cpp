@@ -860,7 +860,7 @@ void web::ProcessWebClients()
 
 		 if (!ParseHTTPHeader(client, &key_value_pairs, sPage, sizeof(sPage)))
 		 {
-			TRACE_ERROR(F("ERROR!\n"));
+			SYSEVT_ERROR(F("ERROR!"));
 			ServeError(pFile);
 		 }
 		 else

@@ -61,6 +61,7 @@ public:
 				bool SendOKResponse(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t FCode);
 				bool SendErrorResponse(uint8_t transactionID, uint8_t fromUnitID, uint8_t toUnitID, uint8_t fCode, uint8_t errorCode);
 
+				bool NotifySysEvent(uint8_t eventType, uint32_t timeStamp, uint16_t seqID, uint8_t flags, uint8_t eventDataLength, uint8_t *eventData);
 
 private:
 // transport callback, will be populated by the caller beforehand.
