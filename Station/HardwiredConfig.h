@@ -105,10 +105,10 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 //#define	SENSOR_CHANNEL_BMP180_PRESSURE		4
 
 // locally connected Humidity sensor via Analog port
-#define SENSOR_ENABLE_ANALOG				1	// enable Analog sensor port
-#define SENSOR_ANALOG_CHANNELS				1	// one Analog channel
+//#define SENSOR_ENABLE_ANALOG				1	// enable Analog sensor port
+//#define SENSOR_ANALOG_CHANNELS				1	// one Analog channel
 
-#define SENSOR_CHANNEL_ANALOG_1_PIN			A7	// moisture sensor connected to A7
+//#define SENSOR_CHANNEL_ANALOG_1_PIN			A7	// moisture sensor connected to A7
 #define SENSOR_CHANNEL_ANALOG_1_TYPE		SENSOR_TYPE_HUMIDITY	// humidity sensor
 #define SENSOR_CHANNEL_ANALOG_1_CHANNEL		2	// logical channel this sensor is mapped to
 
@@ -117,6 +117,14 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SENSOR_CHANNEL_ANALOG_1_MINVAL		0	// minimum sensor output value for this port
 #define SENSOR_CHANNEL_ANALOG_1_MAXVAL		100	// maximum sensor output value for this port
 #define SENSOR_CHANNEL_ANALOG_1_SCALE ((SENSOR_CHANNEL_ANALOG_1_MAXV-SENSOR_CHANNEL_ANALOG_1_MINV)/(SENSOR_CHANNEL_ANALOG_1_MAXVAL-SENSOR_CHANNEL_ANALOG_1_MINVAL))
+
+// locally connected "counter" - type sensor, typically this would be Waterflow meter
+#define SENSOR_ENABLE_COUNTERMETER			1	// enable Counter/Meter sensor port
+#define SENSOR_COUNTERMETER_CHANNELS		1	// one Counter/Meter channel
+
+#define SENSOR_CHANNEL_COUNTERMETER_1_PIN		A7	// Arduino pin for this sensor
+#define SENSOR_CHANNEL_COUNTERMETER_1_TYPE		SENSOR_TYPE_WATERFLOW	// waterflow meter/sensor
+#define SENSOR_CHANNEL_COUNTERMETER_1_CHANNEL	2	// logical channel this sensor is mapped to
 
 
 #if defined(SENSOR_ENABLE_DHT) && defined(SENSOR_ENABLE_BMP180)

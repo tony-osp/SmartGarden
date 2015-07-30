@@ -26,11 +26,15 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "XBeeRF.h"
 #include "RProtocolMS.h"
 
+#ifdef SENSOR_ENABLE_COUNTERMETER
+#include "TimerOne.h"
+#endif //SENSOR_ENABLE_COUNTERMETER
+
 // external reference
 extern Logging sdlog;
 
 #ifdef SENSOR_ENABLE_DHT
-// For DHT (AM2301 or similar) sensor we need to have an object, here called "dht"
+// For DHT (AM2301 or similar) sensor we need to have an object, here called "dht_sensor"
 DHT dht_sensor(DHTPIN, DHTTYPE);
 #endif
 
@@ -47,6 +51,7 @@ SFE_BMP180 bmp180;
 // local forward declarations
 
 byte  bmp180_Read(int *pressure, int *temperature);
+void  pollSensorIsr(void);
 
 // initialization. Intended to be called from setup()
 //
@@ -144,8 +149,29 @@ byte Sensors::begin(void)
 
 #endif //SENSOR_ENABLE_ANALOG
 
+#ifdef SENSOR_ENABLE_COUNTERMETER
+
+// Counter/Meter is handled using timer-driven polling. Polling is done using ISR driven by Arduino timer
+
+	 Timer1.initialize(10000);			// timer will fire every 10ms (10,000 microseconds)
+	 Timer1.attachInterrupt(pollSensorIsr);	
+
+#endif //SENSOR_ENABLE_COUNTERMETER
+
+
      return true;
 }
+
+#ifdef SENSOR_ENABLE_COUNTERMETER
+
+// poll sensor ISR
+void pollSensorIsr(void)
+{
+
+}
+
+#endif //SENSOR_ENABLE_COUNTERMETER
+
 
 // -- Operation --
 

@@ -49,6 +49,7 @@ This particular file (MasterStation.ino) is written by Tony-osp.
 #include <XBee.h>
 #include "XBeeRF.h"
 #include "port.h"
+#include "TimerOne.h"
 
 OSLocalUI localUI;
 //#ifdef HW_ENABLE_SD
