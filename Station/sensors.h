@@ -45,7 +45,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 struct SensorStruct 
 {
 	ShortSensor		config;
-	int				lastReading;
+	int32_t			lastReading;
 	time_t			lastReadingTimestamp;
 };
 
@@ -59,9 +59,9 @@ public:
   byte begin(void);                              // initialization. Intended to be called from setup()
 
     // -- Operation --
-  byte loop(void);                               // Main loop. Intended to be called regularly and frequently to handle sensors reading and logging. Usually  this will be called from Arduino loop()
+  void loop(void);								 // Main loop. Intended to be called regularly and frequently to handle sensors reading and logging. Usually  this will be called from Arduino loop()
   
-  void ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int sensorReading );
+  void ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int32_t sensorReading );
   bool TableLastSensorsData(FILE* stream_file);
 
 // Data

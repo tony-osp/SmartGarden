@@ -86,7 +86,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 // Sensors
 //
 // locally connected DHT (temp & humidity) sensor
-#define SENSOR_ENABLE_DHT				1
+//#define SENSOR_ENABLE_DHT				1
 #define SENSOR_CHANNEL_DHT_TEMPERATURE	0	// logical channel this sensor is mapped to
 #define SENSOR_CHANNEL_DHT_HUMIDITY		1	// logical channel this sensor is mapped to
 
@@ -121,10 +121,17 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 // locally connected "counter" - type sensor, typically this would be Waterflow meter
 #define SENSOR_ENABLE_COUNTERMETER			1	// enable Counter/Meter sensor port
 #define SENSOR_COUNTERMETER_CHANNELS		1	// one Counter/Meter channel
+#define SENSOR_COUNTERMETER_RING_DELAY		3	// 3 cycles (i.e. 30ms) delay before counter-meter change is registered
 
-#define SENSOR_CHANNEL_COUNTERMETER_1_PIN		A7	// Arduino pin for this sensor
+#define SENSOR_CHANNEL_COUNTERMETER_1_PIN		A5	// Arduino pin for this sensor
+#define SENSOR_CHANNEL_COUNTERMETER_1_ACTIVE	LOW	// active value for this CounterMeter is LOW or HIGH
 #define SENSOR_CHANNEL_COUNTERMETER_1_TYPE		SENSOR_TYPE_WATERFLOW	// waterflow meter/sensor
-#define SENSOR_CHANNEL_COUNTERMETER_1_CHANNEL	2	// logical channel this sensor is mapped to
+#define SENSOR_CHANNEL_COUNTERMETER_1_CHANNEL	1	// logical channel this sensor is mapped to
+
+// Normalized CounterMeter reading is calculated by multiplying actual tick delta reading by a constant1 (below) and then dividing by another constant, all in 32bit integer. 
+// This is equivalent to multiplying by floating point coefficient, but is a lot faster, while providing reasonable precision
+#define SENSOR_CHANNEL_COUNTERMETER_1_MULT		1	// multiplier for computing CounterMeter1 normalized reading
+#define SENSOR_CHANNEL_COUNTERMETER_1_DIV		1	// divider for computing CounterMeter1 normalized reading
 
 
 #if defined(SENSOR_ENABLE_DHT) && defined(SENSOR_ENABLE_BMP180)

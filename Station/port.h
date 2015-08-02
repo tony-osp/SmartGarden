@@ -13,8 +13,6 @@
 
 #ifdef ENABLE_TRACE
 
-
-
 // TRACE_LEVEL defines the level of tracing. I have separate trace macro for each trace type, and depending on the current TRACE_LEVEL
 //  some of these macros (or all of them) will be enabled.
 //

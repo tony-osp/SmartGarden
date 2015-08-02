@@ -104,8 +104,8 @@ public:
   static byte resume(void);                                             // Resume UI operation
 
   static byte set_mode(char mode);              // Switch UI to desired Mode
-  static void lcd_print_pgm(PGM_P PROGMEM str);
-  static void lcd_print_line_clear_pgm(PGM_P PROGMEM str, byte line);    // Print a program memory string to a given line with clearing
+  static void lcd_print_pgm(const prog_char * str);
+  static void lcd_print_line_clear_pgm(const prog_char * str, byte line);    // Print a program memory string to a given line with clearing
   static void lcd_print_2digit(int v);
   static void lcd_print_3digit(int v);
 

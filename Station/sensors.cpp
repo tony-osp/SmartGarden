@@ -96,6 +96,7 @@ byte Sensors::begin(void)
 
 // generate the list of remote stations to poll
 
+		numStationsToPoll = 0;
 		for( uint8_t i=0; i<MAX_STATIONS; i++ )
 		{
 			bool fFound = false;
@@ -158,15 +159,72 @@ byte Sensors::begin(void)
 
 #endif //SENSOR_ENABLE_COUNTERMETER
 
+#ifdef SENSOR_CHANNEL_COUNTERMETER_1_PIN
+	 pinMode(SENSOR_CHANNEL_COUNTERMETER_1_PIN, INPUT);
+	 digitalWrite(SENSOR_CHANNEL_COUNTERMETER_1_PIN, HIGH);
+#endif //SENSOR_CHANNEL_COUNTERMETER_1_PIN
 
      return true;
 }
+
+// CounterMeter handling logic
+//
+// CounterMeter input comes in the form of pulses counting water flow. The output (reported values) of the CounterMeter is just the running counter of normalized "ticks".
+// However - resolution of the input pulses (amount of water per tick) is specific to each water meter model, while 
+//  the output (reported values) is expected to be normalized to 1/10 liter per tick.
+//
+// The conversion of model-specific input ticks into normalized ticks is done using following logic:
+//
+//   - Input (raw) ticks are counted using 16-bit unsigned counter that will automatically handle overflow (no special logic required)
+//		- Input (raw) ticks are counted using ISR, and running counter is checked periodically from the main sensor poller 
+//	 - Sensor poller computes number of raw ticks since last check (delta), and then convers this delta into normalized ticks
+//		- Conversion is done using integer multiplication and then division on 32bit numbers - this is a lot faster than float but gives reasonable precision
+//	 - Converted/normalized tick delta is added to the separate normalized 16bit unsigned counter that is reported as output.
+
+#ifdef SENSOR_CHANNEL_COUNTERMETER_1_PIN
+
+volatile uint8_t  fCounterMeter1 = true;	// flag indicating that there was a change in raw counter. Note: we initialize it as true to ensure initial (empty) refresh.
+volatile uint16_t cCounterMeter1 = 0;	// raw/input ticks counter
+
+uint16_t	normalizedCM1 = 0;		// this is the output/normalized counter
+
+#endif //SENSOR_CHANNEL_COUNTERMETER_1_PIN
 
 #ifdef SENSOR_ENABLE_COUNTERMETER
 
 // poll sensor ISR
 void pollSensorIsr(void)
 {
+#ifdef SENSOR_CHANNEL_COUNTERMETER_1_PIN
+// first counter-meter is enabled, poll it and suppress ringing
+
+	static		uint8_t		uOldCounterMeter1 = 0;
+	static		uint8_t		urCounterMeter1 = 0;
+
+	register	uint8_t		newCounterMeter1;
+
+	newCounterMeter1 = digitalRead(SENSOR_CHANNEL_COUNTERMETER_1_PIN);
+	if( newCounterMeter1 != uOldCounterMeter1 )
+	{
+		// CounterMeter1 changed. Handle ring suppression.
+
+		if( urCounterMeter1 < SENSOR_COUNTERMETER_RING_DELAY )
+		{
+			urCounterMeter1++;
+		}
+		else
+		{
+			uOldCounterMeter1 = newCounterMeter1;
+			if( newCounterMeter1 == SENSOR_CHANNEL_COUNTERMETER_1_ACTIVE )
+			{
+				// OK, we detected change to Active state. 
+
+				cCounterMeter1++;		// increment global counter for this CounterMeter
+				fCounterMeter1 = true;	// and set a flag indicating the value was changed. This flag is checked and reset by the main program.
+			}
+		}
+	}
+#endif //SENSOR_CHANNEL_COUNTERMETER_1_PIN
 
 }
 
@@ -177,12 +235,12 @@ void pollSensorIsr(void)
 
 static unsigned long  old_millis = millis() - 60000;             // setup initial condition to make it trigger on the first loop
 // Main loop. Intended to be called regularly  to handle sensors readings. Usually this will be called from Arduino loop()
-byte Sensors::loop(void)
+void Sensors::loop(void)
 {
        unsigned long  new_millis = millis();    // Note: we are using built-in Arduino millis() function instead of now() or time-zone adjusted LocalNow(), because it is a lot faster
                                                 // and for detecting minutes changes it does not make any difference.
        if( (new_millis - old_millis) >= 60000 ){   // one minute detection
-//       if( (new_millis - old_millis) >= 10000 ){   // debug - 10 sec instead of 1 minute
+//       if( (new_millis - old_millis) >= 1000 ){   // debug - 1 sec instead of 1 minute
 
              old_millis = new_millis;             
              poll_MinTimer();             
@@ -292,6 +350,36 @@ void Sensors::poll_MinTimer(void)
 			}
 #endif //SENSOR_ENABLE_ANALOG
 
+#ifdef SENSOR_ENABLE_COUNTERMETER
+			{
+#ifdef SENSOR_CHANNEL_COUNTERMETER_1_PIN
+
+				TRACE_VERBOSE(F("CounterMeter1 - flag=%d, counter=%d\n"), int(fCounterMeter1), int(cCounterMeter1));
+
+				if( fCounterMeter1 )			// CounterMeter1 registered at least one tick since last check, read it
+				{
+					static		uint16_t	oldCM1 = 0;
+					uint16_t	newCM1;
+
+					noInterrupts();
+					newCM1 = cCounterMeter1;		// read current tick counter, have to do it under interrupts
+					fCounterMeter1 = false;			// reset the flag 
+					interrupts();
+
+					// calculate normalized change value
+					uint32_t  delta = newCM1 - oldCM1;	// raw change value
+					oldCM1 = newCM1;
+
+					delta = delta * SENSOR_CHANNEL_COUNTERMETER_1_MULT;
+					delta = delta / SENSOR_CHANNEL_COUNTERMETER_1_DIV;
+					
+					normalizedCM1 += uint16_t(delta);	// update the normalized counter
+
+					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_COUNTERMETER_1_CHANNEL, (int)normalizedCM1 );	
+				}
+#endif //SENSOR_CHANNEL_COUNTERMETER_1_PIN
+			}
+#endif //SENSOR_ENABLE_COUNTERMETER
 
 		}
 		else
@@ -360,7 +448,7 @@ byte bmp180_Read(int *pressure, int *temperature)
 //			sensorChannel	- channel on that station the sensor is connected to
 //			sensorReading	- actual sensor reading
 //
-void Sensors::ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int sensorReading )
+void Sensors::ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int32_t sensorReading )
 {
 	uint8_t			numS = GetNumSensors();
 
@@ -441,7 +529,7 @@ bool Sensors::TableLastSensorsData(FILE* stream_file)
 
 			memcpy( tmp_buf, fullStation.name, 20 );
 			fprintf_P(stream_file, PSTR("\n\t\t \"stationID\": %u, \n\t\t \"stationName\": \"%s\","), (unsigned int)(fullSensor.sensorStationID), tmp_buf);
-			fprintf_P(stream_file, PSTR("\n\t\t \"sensorChannel\": %u, \n\t\t \"lastReading\": %i,\n\t\t \"readingAge\": %lu"), fullSensor.sensorChannel, SensorsList[i].lastReading, (millis() - SensorsList[i].lastReadingTimestamp)/1000);
+			fprintf_P(stream_file, PSTR("\n\t\t \"sensorChannel\": %u, \n\t\t \"lastReading\": %ld,\n\t\t \"readingAge\": %lu"), fullSensor.sensorChannel, SensorsList[i].lastReading, (millis() - SensorsList[i].lastReadingTimestamp)/1000);
 		}
         fprintf_P(stream_file, PSTR("\n\t\t }\n\t ]\n"));    // close the last sensor if we emitted and the list
 

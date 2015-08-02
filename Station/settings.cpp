@@ -773,9 +773,9 @@ void ResetEEPROM()
 			uint16_t	ioPin;
 			uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = PARALLEL_PIN_OUT_MAP;
 
-			for( int i=0; i<parChannels; i++ )
+			for( uint16_t i=0; i<parChannels; i++ )
 			{
-				sprintf_P(tmpb, PSTR("Chan%d"), i+1);	// In ini file channels are numbered from 1
+				sprintf_P(tmpb, PSTR("Chan%u"), i+1);	// In ini file channels are numbered from 1
 				if( ini.getValue("ParallelIOMap", tmpb, buffer, bufferLen, ioPin) )
 					zoneToIOMap[i] = ioPin;
 			}
@@ -881,10 +881,10 @@ void ResetEEPROM()
 			uint16_t		netAddr;
 			uint8_t			fEnableRAccess = false;
 
-			for( int i=0; i<numStations; i++ )
+			for( uint16_t i=0; i<numStations; i++ )
 			{
 
-				sprintf_P(sectionName, PSTR("Station%d"), i+1);	// In ini file channels are numbered from 1
+				sprintf_P(sectionName, PSTR("Station%u"), i+1);	// In ini file channels are numbered from 1
 				strcpy_P(keyName, PSTR("StationID"));
 				TRACE_INFO(F("Reading station %s\n"), sectionName);
 				freeMemory();
@@ -1003,7 +1003,7 @@ skip_Station:;
 			uint16_t			sensStation;
 			uint16_t			sensChannel;
 
-			for( int i=1; i<=numSensors; i++ )
+			for( uint16_t i=1; i<=numSensors; i++ )
 			{
 
 				sprintf_P(sectionName, PSTR("Sensor%d"), i);	

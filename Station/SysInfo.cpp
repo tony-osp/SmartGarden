@@ -218,7 +218,6 @@ bool SysInfo(FILE* stream_file)
 	for( int i=0; i<GetNumZones(); i++ )
 	{
 		FullZone	fZone;
-		char		tmp_buf[16];
 		LoadZone(i, &fZone);
 
 		fprintf_P( stream_file, PSTR("</tr><tr class=\"auto-style3\">\n<td>%i</td><td>%s</td><td>%i:%i</td><td>%S</td><td>%S</td>\n"), i+1, fZone.name, (int)(fZone.stationID), (int)(fZone.channel), fZone.bEnabled? PSTR("Yes"):PSTR("No"), fZone.bPump? PSTR("Yes"):PSTR("No"));
@@ -227,5 +226,5 @@ bool SysInfo(FILE* stream_file)
 
 	fprintf_P( stream_file, PSTR("<p><br><b>(c) 2015 Tony-osp</b></p></div>\n</body>\n</html>\n"));
 
-
+	return true;
 }

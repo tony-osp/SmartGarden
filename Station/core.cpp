@@ -258,7 +258,7 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 //
 bool runStateClass::RemoteStartZone(int iSchedule, uint8_t stationID, uint8_t channel, uint8_t time2run )
 {
-	StartZoneWorker( iSchedule, stationID, channel, time2run );
+	return StartZoneWorker( iSchedule, stationID, channel, time2run );
 }
 
 //
@@ -272,7 +272,10 @@ bool runStateClass::StartZone(int iSchedule, uint8_t stationID, uint8_t channel,
 		if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_ZONES )
 			rprotocol.SendZonesReport(0, stationID, GetEvtMasterStationID(), 0, GetNumZones());	// Note: this would work correctly only on Remote station, with only one station defined
 #endif //SG_STATION_MASTER
+		return true;
 	}
+	else
+		return false;
 }
 //
 // Start individual zone. Technically it is done by creating quick schedule.

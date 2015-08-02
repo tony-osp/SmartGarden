@@ -357,7 +357,7 @@ byte OSLocalUI::modeHandler_Manual(byte forceRefresh)
 		  LoadShortStation(display_board, &sStation);	// load station information
 		  max_ch = sStation.numZoneChannels;
 
-          forceRefresh == 1;    // need to update the screen
+          forceRefresh = 1;    // need to update the screen
   }
   unsigned long new_millis = millis();
 
@@ -792,10 +792,10 @@ void OSLocalUI::lcd_print_station(char def_c, byte sel_stn, char sel_c, byte max
   
   LCD_SETCURSOR(lcd, 0, 1);
   if (display_board == 0) {
-    lcd_print_pgm(PSTR("MC:"));  // Master controller is display as 'MC'
+    lcd_print_pgm(PSTR("MC:"));  // Master controller is displayed as 'MC'
   }
   else {
-    lcd_print_pgm(PSTR("E"));
+    lcd_print_pgm(PSTR("S"));
     lcd.print((int)display_board, HEX);
     lcd_print_pgm(PSTR(":"));   // extension boards are displayed as E1, E2...
   }
@@ -810,7 +810,7 @@ void OSLocalUI::lcd_print_station(char def_c, byte sel_stn, char sel_c, byte max
 
 
 // Print a program memory string
-void OSLocalUI::lcd_print_pgm(PGM_P PROGMEM str) {
+void OSLocalUI::lcd_print_pgm(const prog_char * str) {
   uint8_t c;
   while((c=pgm_read_byte(str++))!= '\0') {
     OSLocalUI::lcd.print((char)c);
@@ -818,7 +818,7 @@ void OSLocalUI::lcd_print_pgm(PGM_P PROGMEM str) {
 }
 
 // Print a program memory string to a given line with clearing
-void OSLocalUI::lcd_print_line_clear_pgm(PGM_P PROGMEM str, byte line) {
+void OSLocalUI::lcd_print_line_clear_pgm(const prog_char * str, byte line) {
   LCD_SETCURSOR(lcd, 0, line);
   uint8_t c;
   int8_t cnt = 0;

@@ -14,8 +14,8 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 
 
-#ifndef SD-LOG_H_
-#define SD-LOG_H_
+#ifndef SD_LOG_H_
+#define SD_LOG_H_	
 
 #include "port.h"
 #include <Time.h>
@@ -168,7 +168,7 @@ public:
         bool TableZone(FILE* stream_file, time_t start, time_t end);
 
         // Sensors logging. It covers all types of basic sensors (e.g. temperature, pressure etc) that provide momentarily (immediate) readings
-        bool LogSensorReading(uint8_t sensor_type, int sensor_id, int sensor_reading);
+        bool LogSensorReading(uint8_t sensor_type, int sensor_id, int32_t sensor_reading);
 
 	bool EmitSensorLog(FILE* stream_file, time_t sdate, time_t edate, char sensor_type, int sensor_id, char summary_type);
         
@@ -189,4 +189,4 @@ private:
 extern Logging sdlog;
 
 
-#endif /* SD-LOG_H_ */
+#endif //SD_LOG_H_

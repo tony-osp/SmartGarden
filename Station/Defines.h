@@ -113,8 +113,11 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // Sensors
 // Default sensors logging interval, minutes
-#define SENSORS_POLL_DEFAULT_REPEAT  60
-//#define SENSORS_POLL_DEFAULT_REPEAT  1
+#if SG_HARDWARE == HW_V15_MASTER
+#define SENSORS_POLL_DEFAULT_REPEAT  60		// on Master station polling interval is 60minutes - quite high, but Master will poll all stations
+#else 
+#define SENSORS_POLL_DEFAULT_REPEAT  5		// on Remote station polling interval is 5minutes, to ensure local LCD display updates relatively quickly, and Remote station is not polling anybody else
+#endif
 
 // XBee RF network
 #define NETWORK_ADDRESS_BROADCAST	0x0FFFF

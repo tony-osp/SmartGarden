@@ -11,6 +11,7 @@ This particular file (MasterStation.ino) is written by Tony-osp.
 
 */
 #include "Defines.h"
+#include "port.h"
 
 #include <SdVolume.h>
 #include <SdStream.h>
@@ -48,7 +49,6 @@ This particular file (MasterStation.ino) is written by Tony-osp.
 #include <IniFile.h>
 #include <XBee.h>
 #include "XBeeRF.h"
-#include "port.h"
 #include "TimerOne.h"
 
 OSLocalUI localUI;

@@ -33,6 +33,7 @@ RProtocolMaster::RProtocolMaster()
 
 bool RProtocolMaster::begin(void)
 {
+	return true;
 }
 
 
@@ -112,7 +113,7 @@ inline uint16_t		getSingleSensor(uint8_t sensorID)
 		return 0;
 	}
 
-	return sensorsModule.SensorsList[sensorID].lastReading;
+	return uint16_t(sensorsModule.SensorsList[sensorID].lastReading & 0xFFFF);
 }
 
 //
@@ -1197,7 +1198,7 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 
 // first of all let's validate MBAP header and length constrains
 
-        if( len < sizeof(RMESSAGE_GENERIC) )   // minimum valid packet length 
+        if( (unsigned int)len < sizeof(RMESSAGE_GENERIC) )   // minimum valid packet length 
         {
                 SYSEVT_ERROR(F("ProcessNewFrame - Bad packet received, too short"));
 				return;
@@ -1209,7 +1210,7 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
                 return;
         }
 
-		if( len != (pMessage->Header.Length+sizeof(RMESSAGE_HEADER)) )		// overall packet length should equal header size + length field
+		if( (unsigned int)len != (pMessage->Header.Length+sizeof(RMESSAGE_HEADER)) )		// overall packet length should equal header size + length field
         {
                 SYSEVT_ERROR(F("ProcessNewFrame - Bad packet received, length does not match"));
                 return;

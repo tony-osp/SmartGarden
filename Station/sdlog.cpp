@@ -25,13 +25,13 @@ extern SdFat sd;
 
 static FILE _syslog_file;
 
-//#ifndef SG_STATION_MASTER
+#ifndef SG_STATION_MASTER
 static uint8_t  _syslog_EvtBuffer[SYSEVENT_MAX_STRING_LENGTH];
 static uint8_t  _syslog_EvtType;
 static uint32_t  _syslog_EvtTimeStamp;
 static uint8_t  _syslog_EvtByteCounter;
 static uint8_t  _syslog_EvtContFlag;
-//#endif
+#endif
 
 // local logger helper
 static int syslog_putchar(char c, FILE *stream)
@@ -316,9 +316,9 @@ bool Logging::LogZoneEvent(time_t start, int zone, int duration, int schedule, i
 //
 // Returns true if successful and false if failure.
 //
-bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int sensor_reading)
+bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int32_t sensor_reading)
 {
-//	TRACE_ERROR(F("LogSensorReading - enter, sensor_type=%i, sensor_id=%i, sensor_reading=%i\n"), (int)sensor_type, sensor_id, sensor_reading);
+//	TRACE_ERROR(F("LogSensorReading - enter, sensor_type=%i, sensor_id=%i, sensor_reading=%ld\n"), (int)sensor_type, sensor_id, sensor_reading);
 
 	if( !logger_ready ) return false;  //check if the logger is ready
 
@@ -371,7 +371,7 @@ bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int sensor_re
       }
 //	  TRACE_ERROR(F("Opened log file %s, len=%i\n"), tmp_buf, strlen(tmp_buf));
 
-      sprintf_P(tmp_buf, PSTR("%u,%u:%u,%d\n"), day(t), hour(t), minute(t), sensor_reading);
+      sprintf_P(tmp_buf, PSTR("%u,%u:%u,%ld\n"), day(t), hour(t), minute(t), sensor_reading);
 
 //	  TRACE_ERROR(F("Writing log string %s, len=%d\n"), tmp_buf, strlen(tmp_buf));
 	  lfile.write(tmp_buf, strlen(tmp_buf));
@@ -410,14 +410,14 @@ bool Logging::GraphZone(FILE* stream_file, time_t start, time_t end, GROUPING gr
                 break;
         }
 
-        int current_zone = -1;
-        bool bFirstZone = true;
+//        int current_zone = -1;
+//        bool bFirstZone = true;
         long int bin_data[24];		// maximum bin size is 24
 
         if (start == 0)
                 start = now();
 
-        int    nyear=year(start);
+//        int    nyear=year(start);
 
         end = max(start,end) + 24*3600;  // add 1 day to end time.
 
@@ -514,7 +514,7 @@ int Logging::getZoneBins( int zone, time_t start, time_t end, long int bin_data[
                     if( (nmonth > nmend) || ((nmonth == nmend) && (nday > ndayend)) )    // check for the end date
                                  break;
 
-                    if( (nmonth > month(start)) || ((nmonth == month(start)) && (nday >= day(start)) )  ){        // the record is within required range. nmonth is the month, nday is the day of the month, xzone is the zone we are currently emitting
+                    if( (nmonth > (unsigned int)month(start)) || ((nmonth == (unsigned int)month(start)) && (nday >= day(start)) )  ){        // the record is within required range. nmonth is the month, nday is the day of the month, xzone is the zone we are currently emitting
 
                          switch (grouping)
                          {
@@ -574,7 +574,6 @@ int Logging::getZoneBins( int zone, time_t start, time_t end, long int bin_data[
 
 bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 {
-        char m;
         char tmp_buf[MAX_LOG_RECORD_SIZE];
 
         if (start == 0)
@@ -584,8 +583,8 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 
         end = max(start,end) + 24*3600;  // add 1 day to end time.
 
-        unsigned int  nmend = month(end);
-        unsigned int  ndayend = day(end);
+        int  nmend = month(end);
+        int  ndayend = day(end);
 
 //		TRACE_ERROR(F("TableZone - entering, start year=%u, month=%u, day=%u\n"), year(start), month(start), day(start));
 
@@ -796,9 +795,9 @@ bool Logging::EmitSensorLog(FILE* stream_file, time_t start, time_t end, char se
 
         end = max(start,end) + 24*3600;  // add 1 day to end time.
 
-        unsigned int    nyear, nyearend=year(end), nyearstart=year(start);
-        unsigned int    nmonth, nmend = month(end), nmstart=month(start);
-        unsigned int    ndayend = day(end), ndaystart=day(start);
+        int    nyear, nyearend=year(end), nyearstart=year(start);
+        int    nmonth, nmend = month(end), nmstart=month(start);
+        int    ndayend = day(end), ndaystart=day(start);
 
         char bFirstRow = true, bHeader = true;
 
