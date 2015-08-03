@@ -35,10 +35,10 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define WATERING_LOG_DIR_LEN		13
 #define WATERING_LOG_FNAME_FORMAT "/watering.log/wat-%4.4u.%3.3u"
 
-// Water flow data directory and file name format (wfl-yyyy.nnn)
+// Water flow data directory and file name format (wflMM-YY.nnn)
 #define WFLOW_LOG_DIR			"/wflow.log"
 #define WFLOW_LOG_DIR_LEN		10
-#define WFLOW_LOG_FNAME_FORMAT "/wflow.log/wfl-%4.4u.%3.3u"
+#define WFLOW_LOG_FNAME_FORMAT "/wflow.log/wfl%2.2u-%2.2u.%3.3u"
 
 // Temperature data directory and file name format (temMM-YY.nnn)
 #define TEMPERATURE_LOG_DIR		 	 "/tempr.log"

@@ -349,11 +349,17 @@ bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int32_t senso
                      sensorName = PSTR("Humidity");
                      break; 
       
+           case  SENSOR_TYPE_WATERFLOW:
+          
+                     sprintf_P(tmp_buf, PSTR(WFLOW_LOG_FNAME_FORMAT), (int)month(t), (int)(year(t)%100), sensor_id );
+                     sensorName = PSTR("Waterflow");
+                     break; 
+
             default:
                      return false;    // sensor_type not recognized
                      break;           
       }
-//      TRACE_ERROR(F("LogSensorReading - about to open file: %s, len=%d\n"), tmp_buf, strlen(tmp_buf));
+      TRACE_VERBOSE(F("LogSensorReading - about to open file: %s, len=%d\n"), tmp_buf, strlen(tmp_buf));
 
       if( !lfile.open(tmp_buf, O_WRITE | O_APPEND) ){    // we are trying to open existing log file for write/append
 
@@ -369,11 +375,11 @@ bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int32_t senso
          
          TRACE_INFO(F("creating new log file for sensor:%S\n"), sensorName);
       }
-//	  TRACE_ERROR(F("Opened log file %s, len=%i\n"), tmp_buf, strlen(tmp_buf));
+//	  TRACE_VERBOSE(F("Opened log file %s, len=%i\n"), tmp_buf, strlen(tmp_buf));
 
       sprintf_P(tmp_buf, PSTR("%u,%u:%u,%ld\n"), day(t), hour(t), minute(t), sensor_reading);
 
-//	  TRACE_ERROR(F("Writing log string %s, len=%d\n"), tmp_buf, strlen(tmp_buf));
+//	  TRACE_VERBOSE(F("Writing log string %s, len=%d\n"), tmp_buf, strlen(tmp_buf));
 	  lfile.write(tmp_buf, strlen(tmp_buf));
 
       lfile.close();
@@ -745,7 +751,8 @@ void Logging::LogsHandler(char *sPage, FILE *pFile, EthernetClient client)
 		   (strncmp_P(path, PSTR(TEMPERATURE_LOG_DIR), TEMPERATURE_LOG_DIR_LEN)==0) ||
 	       (strncmp_P(path, PSTR(HUMIDITY_LOG_DIR), HUMIDITY_LOG_DIR_LEN)==0) ||
 	       (strncmp_P(path, PSTR(PRESSURE_LOG_DIR), PRESSURE_LOG_DIR_LEN)==0) ||
-		   (strncmp_P(path, PSTR(WFLOW_LOG_DIR), WFLOW_LOG_DIR_LEN)==0) )
+		   (strncmp_P(path, PSTR(WFLOW_LOG_DIR), WFLOW_LOG_DIR_LEN)==0) 	  ||
+		   (strncmp_P(path, PSTR(SYSTEM_LOG_DIR), SYSTEM_LOG_DIR_LEN)==0) )
 		{
 			;
 	    }
@@ -759,7 +766,7 @@ void Logging::LogsHandler(char *sPage, FILE *pFile, EthernetClient client)
 
 		if( !logfile.open(path, O_READ) ){
 
-			TRACE_ERROR(F("Cannot open %s file or directory\n"), sPage+4);
+			TRACE_ERROR(F("Cannot open %s file or directory\n"), path);
 		    Serve404(pFile);
 			return;    // failed to open logs directory
 		}

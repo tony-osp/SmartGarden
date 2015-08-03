@@ -20,9 +20,9 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // Supported hardware version definitions
 
-#define HW_V10_MASTER			1	// compile for Master station, hardware version 1.0 (Mega 2560-based)
-#define HW_V15_MASTER			2	// compile for Master station, hardware version 1.5 (Moteino Mega-based)
-#define HW_V15_REMOTE			3	// compile for Remote station, hardware version 1.5 (Moteino Mega-based)
+#define HW_V10_MASTER			1	// Master station, hardware version 1.0 (Mega 2560-based)
+#define HW_V15_MASTER			2	// Master station, hardware version 1.5 (Moteino Mega-based)
+#define HW_V15_REMOTE			3	// Remote station, hardware version 1.5 (Moteino Mega-based)
 
 // Uncomment the line that corresponds to the actual hardware
 
