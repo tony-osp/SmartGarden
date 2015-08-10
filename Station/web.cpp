@@ -114,6 +114,36 @@ static void ServeError(FILE * stream_file)
 	fprintf_P(stream_file, PSTR("NOT ALLOWED"));
 }
 
+static void JSONNextEvent(const KVPairs & key_value_pairs, FILE * stream_file)
+{
+	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
+
+	uint8_t	 nextSchedID, nextZoneID;
+	short	 nextTime;
+
+	if( GetNextEvent(&nextSchedID, &nextZoneID, &nextTime) )
+	{
+		TRACE_VERBOSE(F("JSONNextEvent - GetNextEvent returned true. SchedID=%d, ZoneID=%d, Time=%d\n"), int(nextSchedID), int(nextZoneID), nextTime);
+
+		short nextHour, nextMinute;
+		nextHour = nextTime/60;
+		nextMinute = nextTime - nextHour*60;
+
+        Schedule sched;
+        LoadSchedule( nextSchedID, &sched );
+		FullZone zone;
+		LoadZone(nextZoneID, &zone);
+
+		fprintf_P(stream_file, PSTR("{\n\"NextSchedID\" : \"%u\",\n\"NextSchedName\" : \"%s\",\n\"NextZoneID\" : \"%u\",\n\"NextZoneName\" : \"%s\",\n\"NextEventTime\" : \"%2.2u:%2.2u\"\n}"), 
+									short(nextSchedID), sched.name, short(nextZoneID), zone.name, nextHour, nextMinute);
+	}
+	else
+	{
+		fprintf_P(stream_file, PSTR("{ }"));
+	}
+
+}
+
 static void JSONSchedules(const KVPairs & key_value_pairs, FILE * stream_file)
 {
 	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
@@ -128,6 +158,7 @@ static void JSONSchedules(const KVPairs & key_value_pairs, FILE * stream_file)
 	}
 	fprintf_P(stream_file, PSTR("\n]}"));
 }
+
 
 static void JSONZones(const KVPairs & key_value_pairs, FILE * stream_file)
 {
@@ -308,8 +339,11 @@ static void JSONwCheck(const KVPairs & key_value_pairs, FILE * stream_file)
 	GetApiKey(key);
 	char pws[12] = {0};
 	GetPWS(pws);
+
 	const Weather::ReturnVals vals = w.GetVals(GetWUIP(), key, GetZip(), pws, GetUsePWS());
 	const int scale = w.GetScale(vals);
+
+	TRACE_VERBOSE(F("JSONwCheck - GetVals complete. Scale=%d\n"), scale);
 
 	fprintf_P(stream_file, PSTR("{\n"));
 	fprintf_P(stream_file, PSTR("\t\"valid\" : \"%s\",\n"), vals.valid ? "true" : "false");
@@ -1011,6 +1045,12 @@ void web::ProcessWebClients()
 			     {
 					JSONSensorsNow(pFile);
 			     }
+
+			     else if (strcmp_P(xP5, PSTR("nextEvent")) == 0)
+			     {
+					JSONNextEvent(key_value_pairs, pFile);
+			     }
+
 
             }
 // simple scheduling debug requests, enable when required (to reduce unnecessary overhead on each web request)

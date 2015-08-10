@@ -536,7 +536,7 @@ void LoadSchedTimeEvents(int8_t sched_num, bool bQuickSchedule)
                 LoadShortZone(k, &zone);
                 if (zone.bEnabled && (sched.zone_duration[k] > 0))
                 {
-                        if (iNumEvents >= MAX_EVENTS - 1)
+                        if (iNumEvents >= (MAX_EVENTS - 1) )
                         {  // make sure we have room for the on && the off events.. hence the -1
                                 SYSEVT_ERROR(F("ERROR: Too Many Events!"));
                         }
@@ -665,6 +665,64 @@ void ProcessEvents()
                 }
         }
 }
+
+// finds next watering event
+// by scanning schedules
+//
+// Input - none
+//
+// Output - true if found and false otherwise
+//			if true, will set schedule ID and zone ID of the next event, as well as time (in minutes since midnight) when it is supposed to run
+
+bool GetNextEvent(uint8_t *pSchedID, uint8_t *pZoneID, short *pTime)
+{
+		bool	fRet = false;
+
+        // Make sure we're running now
+        if( !GetRunSchedules() )
+                return false;		// schedules are disabled, so no next event
+
+		*pTime = 32000;		// initial bogus number, any real value will be smaller than that (time is expressed in minutes since midnight)
+
+        const time_t time_now = now();
+        const uint8_t iNumSchedules = GetNumSchedules();
+
+		for( uint8_t i = 0; i < iNumSchedules; i++ )
+        {
+                Schedule sched;
+                LoadSchedule( i, &sched );
+                if( IsRunToday(sched, time_now) )
+                {
+                        // now scan events for each of the start times.
+                        for( uint8_t j = 0; j <= 3; j++ )
+                        {
+                                const short start_time = sched.time[j];	//Note: schedule may have up to 4 start times specified, stored as minutes (since midnight?)
+                                if( start_time != -1 )
+                                {
+										if( start_time < *pTime )
+										{
+											for( uint8_t iZone = 0; iZone < MAX_ZONES; iZone++ )
+											{
+												if( sched.zone_duration[iZone] != 0 )
+												{
+													*pTime = start_time;
+													*pZoneID = iZone;
+													*pSchedID = i;
+													fRet = true;
+													
+													break;
+												}
+											}
+										}
+                                }
+                        }
+                }
+        }
+
+		return fRet;
+}
+
+
 
 void mainLoop()
 {

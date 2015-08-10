@@ -48,6 +48,8 @@ void TurnOffZones();
 void io_setup();
 int ActiveZoneNum(void);
 
+bool GetNextEvent(uint8_t *pSchedID, uint8_t *pZoneID, short *pTime);
+
 
 class runStateClass
 {
