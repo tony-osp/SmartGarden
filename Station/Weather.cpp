@@ -186,13 +186,13 @@ Weather::ReturnVals Weather::GetVals(const IPAddress & ip, const char * key, uin
 	EthernetClient client;
 	if (client.connect(ip, 80))
 	{
-		char getstring[90];
-		TRACE_INFO(F("Connected\n"));
+		char getstring[128];
+		TRACE_VERBOSE(F("Weather::GetVals - Connected\n"));
 		if (usePws)
 			snprintf(getstring, sizeof(getstring), "GET /api/%s/yesterday/conditions/q/pws:%s.json HTTP/1.0\n\n", key, pws);
 		else
-			snprintf(getstring, sizeof(getstring), "GET /api/%s/yesterday/conditions/q/%ld.json HTTP/1.0\n\n", key, (long) zip);
-		//SYSEVT_ERROR(getstring);
+			snprintf(getstring, sizeof(getstring), "GET /api/%s/yesterday/conditions/q/%ld.json HTTP/1.0\nHost: api.wunderground.com\n\n", key, (long) zip);
+		TRACE_VERBOSE(getstring);
 		client.write((uint8_t*) getstring, strlen(getstring));
 
 		ParseResponse(client, &vals);
