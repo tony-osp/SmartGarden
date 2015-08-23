@@ -213,14 +213,14 @@ bool SysInfo(FILE* stream_file)
 	fprintf_P( stream_file, PSTR("<h3 class=\"auto-style1\">Zones</h3>\n<p>Number of Zones:&nbsp; %i</p>\n"), (int)GetNumZones());
 
 	fprintf_P( stream_file, PSTR("<table align=\"center\" border=\"1\" style=\"border:medium\"><tr class=\"auto-style2\">\n"
-								 "<td>&nbsp Zone Number&nbsp</td><td>&nbsp Zone Name&nbsp</td><td>&nbsp Address&nbsp</td><td>&nbsp Enabled&nbsp</td><td>&nbsp Pump&nbsp</td>\n"));
+								 "<td>&nbsp Zone Number&nbsp</td><td>&nbsp Zone Name&nbsp</td><td>&nbsp Address&nbsp</td><td>&nbsp Enabled&nbsp</td>\n"));
 
 	for( int i=0; i<GetNumZones(); i++ )
 	{
 		FullZone	fZone;
 		LoadZone(i, &fZone);
 
-		fprintf_P( stream_file, PSTR("</tr><tr class=\"auto-style3\">\n<td>%i</td><td>%s</td><td>%i:%i</td><td>%S</td><td>%S</td>\n"), i+1, fZone.name, (int)(fZone.stationID), (int)(fZone.channel), fZone.bEnabled? PSTR("Yes"):PSTR("No"), fZone.bPump? PSTR("Yes"):PSTR("No"));
+		fprintf_P( stream_file, PSTR("</tr><tr class=\"auto-style3\">\n<td>%i</td><td>%s</td><td>%i:%i</td><td>%S</td>\n"), i+1, fZone.name, (int)(fZone.stationID), (int)(fZone.channel), fZone.bEnabled? PSTR("Yes"):PSTR("No"));
 	}
 	fprintf_P( stream_file, PSTR("</tr></table>\n"));
 

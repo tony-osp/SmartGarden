@@ -52,23 +52,29 @@ public:
 	void SetWAdj(bool val) { m_type = val ? (m_type | 0x04) : (m_type & ~0x04); }
 };
 
+// Zone definition structure
+//
+// Zones are identified by ZoneID, which is the index in the zones list (starting from 0).
+//
 struct FullZone
 {
-	bool bEnabled :1;
-	bool bPump :1;
-	uint8_t	stationID;
-	uint8_t channel;
+	bool		bEnabled :1;
+	uint8_t		stationID;
+	uint8_t		channel;
+	uint16_t	waterFlowRate;		// water flow rate of this zone, in 1/100 gal per minute
 
 	char name[20];
 };
 
 struct ShortZone
 {
-	bool bEnabled :1;
-	bool bPump :1;
-	uint8_t	stationID;
-	uint8_t channel;
+	bool		bEnabled:1;
+	uint8_t		stationID;
+	uint8_t		channel;
+	uint16_t	waterFlowRate;		// water flow rate of this zone, in 1/100 gal per minute
 };
+
+#define ZONE_DEFAULT_FLOWRATE		100	// basic default of 1 gpm/min
 
 //	Sensor definition structure. This structure reflects sensor definition in EEPROM.
 //
@@ -92,6 +98,14 @@ struct ShortSensor
 	uint8_t		sensorStationID;		// StationID
 	uint8_t		sensorChannel;			// Sensor Channel this particular sensor is connected to on that Station.
 };
+
+// Sensor flags. Flags are represented as bit values, stored in flags element of the sensor structure.
+// Note: some of the sensors may not have Dashboard or Home flags set, typically these will be sensors that monitor device voltage or other internal things
+//
+#define SENSOR_FLAGS_ENABLED		1	// enable/disable flag. Sensors that are not enabled are not polled.
+#define SENSOR_FLAGS_LOG			2	// Flag indicating whether the sensor data should be logged (to SD card).
+#define SENSOR_FLAGS_DASHBOARD		16	// this sensor should be shown on Sensors Dashboard
+#define SENSOR_FLAGS_HOMEPAGE		32	// this sensor should be shown on the Home page
 
 
 //	Station definition structure. This structure reflects station definition in EEPROM.
@@ -239,6 +253,14 @@ void SaveShortSensor(uint8_t num, ShortSensor * pSensor);
 uint8_t GetNumSensors(void);
 void SetNumSensors(uint8_t numSensors);
 
+// water counters
+void SetWWCounter(uint8_t cID, uint16_t value);
+uint16_t GetWWCounter(uint8_t cID);
+void SetTotalWCounter(uint32_t val);
+uint32_t GetTotalWCounter(void);
+uint32_t GetTotalWCounterDate(void);
+void SetTotalWCounterDate(uint32_t val);
+
 
 // XBee RF
 
@@ -262,6 +284,7 @@ bool SetSchedule(const KVPairs & key_value_pairs);
 bool SetZones(const KVPairs & key_value_pairs);
 bool DeleteSchedule(const KVPairs & key_value_pairs);
 bool SetSettings(const KVPairs & key_value_pairs);
+bool SetOneZones(const KVPairs & key_value_pairs);
 
 // Misc
 bool IsFirstBoot();

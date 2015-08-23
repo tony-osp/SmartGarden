@@ -341,6 +341,74 @@ void SetMyStationID(uint8_t stationID)
 	EEPROM.write(ADDR_MY_STATION_ID, stationID);
 }
 
+void SetWWCounter(uint8_t cID, uint16_t value)
+{
+	if( cID > 6 ) return;	// basic protection - range checking
+		
+	register uint8_t vh = (value & 0x0FF00) >> 8;
+	register uint8_t vl = value & 0x0FF;
+
+	EEPROM.write(ADDR_WWCOUNTERS+cID*2, vl);
+	EEPROM.write(ADDR_WWCOUNTERS+1+cID*2, vh);
+}
+
+uint16_t GetWWCounter(uint8_t cID)
+{
+	if( cID > 6 ) return 0;	// basic protection - range checking
+		
+	register uint16_t val;
+
+	val =  EEPROM.read(ADDR_WWCOUNTERS+1+cID*2) << 8;
+	val += EEPROM.read(ADDR_WWCOUNTERS+cID*2);
+
+	return val;
+}
+
+
+void SetTotalWCounter(uint32_t val)
+{
+	register uint8_t *pB;
+	pB = (uint8_t *) &val;
+
+	EEPROM.write(ADDR_TOTAL_WCOUNTER, pB[0]);
+	EEPROM.write(ADDR_TOTAL_WCOUNTER+1, pB[1]);
+	EEPROM.write(ADDR_TOTAL_WCOUNTER+2, pB[2]);
+	EEPROM.write(ADDR_TOTAL_WCOUNTER+3, pB[3]);
+}
+
+uint32_t GetTotalWCounter(void)
+{
+	register uint32_t val;
+	val  = EEPROM.read(ADDR_TOTAL_WCOUNTER+3) << 24;
+	val += EEPROM.read(ADDR_TOTAL_WCOUNTER+2) << 16;
+	val += EEPROM.read(ADDR_TOTAL_WCOUNTER+1) << 8;
+	val += EEPROM.read(ADDR_TOTAL_WCOUNTER);
+
+	return val;
+}
+
+uint32_t GetTotalWCounterDate(void)
+{
+	register uint32_t val;
+	val  = EEPROM.read(ADDR_D_TOTAL_WCOUNTER+3) << 24;
+	val += EEPROM.read(ADDR_D_TOTAL_WCOUNTER+2) << 16;
+	val += EEPROM.read(ADDR_D_TOTAL_WCOUNTER+1) << 8;
+	val += EEPROM.read(ADDR_D_TOTAL_WCOUNTER);
+
+	return val;
+}
+
+void SetTotalWCounterDate(uint32_t val)
+{
+	register uint8_t *pB;
+	pB = (uint8_t *) &val;
+
+	EEPROM.write(ADDR_D_TOTAL_WCOUNTER, pB[0]);
+	EEPROM.write(ADDR_D_TOTAL_WCOUNTER+1, pB[1]);
+	EEPROM.write(ADDR_D_TOTAL_WCOUNTER+2, pB[2]);
+	EEPROM.write(ADDR_D_TOTAL_WCOUNTER+3, pB[3]);
+}
+
 
 
 // Decode an IP address in dotted decimal format.
@@ -534,13 +602,6 @@ bool SetZones(const KVPairs & key_value_pairs)
                                 else
                                         fullZone.bEnabled = false;
                         }
-                        else if ((key[2] == 'p') && (key[3] == 0))
-                        {
-                                if (strcmp_P(value, PSTR("on")) == 0)
-                                        fullZone.bPump = true;
-                                else
-                                        fullZone.bPump = false;
-                        }
                 }
 			}
 			if( fzChanged ) SaveZone(zn, &fullZone);
@@ -548,6 +609,53 @@ bool SetZones(const KVPairs & key_value_pairs)
 
         return true;
 }
+
+bool SetOneZones(const KVPairs & key_value_pairs)
+{
+		FullZone	fullZone;
+		bool		fzChanged = false;
+		int			zn;
+
+			for (int i = 0; i < key_value_pairs.num_pairs; i++)
+			{
+                const char * key = key_value_pairs.keys[i];
+                const char * value = key_value_pairs.values[i];
+                
+				if( strcmp_P(key, PSTR("id")) == 0)
+				{
+					zn = atoi(value);
+					if( (zn<0) || (zn>=GetNumZones()) )
+						return false;	// wrong zone number
+					
+					LoadZone(zn, &fullZone);
+					fzChanged = true;
+				}
+				else if( strcmp_P(key, PSTR("name")) == 0)
+				{
+                    strncpy(fullZone.name, value, sizeof(fullZone.name));
+				}
+				else if( strcmp_P(key, PSTR("enabled")) == 0)
+				{
+                    if (strcmp_P(value, PSTR("on")) == 0)
+                         fullZone.bEnabled = true;
+                    else
+                         fullZone.bEnabled = false;
+				}
+				else if( strcmp_P(key, PSTR("wfrate")) == 0)
+				{
+					int wfrate = atoi(value);
+					if( wfrate>=0 )
+					{
+						fullZone.waterFlowRate = wfrate;
+					}
+				}
+			}
+
+			if( fzChanged ) SaveZone(zn, &fullZone);
+
+        return true;
+}
+
 
 bool SetSettings(const KVPairs & key_value_pairs)
 {
@@ -1103,12 +1211,12 @@ skip_Sensor:;
 						}
 
 						zone.bEnabled = 1;
-						zone.bPump = false;
+						zone.waterFlowRate = ZONE_DEFAULT_FLOWRATE;
 						zone.stationID = st;
 						zone.channel = j;
 						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), uint16_t(zoneIndex+1), uint16_t(zone.stationID), uint16_t(zone.channel+1));
 						
-//						SYSEVT_ERROR(F("Created zone %d, \"%s\"\n"), (uint8_t)(zoneIndex + 1), zone.name);
+						TRACE_VERBOSE(F("Created zone %d, \"%s\"\n"), (uint8_t)(zoneIndex + 1), zone.name);
 						
 						SaveZone(zoneIndex, &zone);
 						zoneIndex++;
@@ -1149,6 +1257,13 @@ skip_Sensor:;
 					SetXBeeChan(NETWORK_XBEE_DEFAULT_CHAN);
 			}
 		}
+
+// Reset running water counters
+
+		for( uint8_t ii=0; ii<7; ii++ )
+			SetWWCounter(ii,0);
+		SetTotalWCounter(0);
+		SetTotalWCounterDate(0);
 
 		localUI.lcd_print_line_clear_pgm(PSTR("EEPROM reloaded"), 0);
 		localUI.lcd_print_line_clear_pgm(PSTR("Rebooting..."), 1);
@@ -1349,12 +1464,12 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 						}
 
 						zone.bEnabled = 1;
-						zone.bPump = false;
+						zone.waterFlowRate = ZONE_DEFAULT_FLOWRATE;
 						zone.stationID = st;
 						zone.channel = j;
 						sprintf_P(zone.name, PSTR("Zone %d, Loc %X:%d"), uint16_t(zoneIndex + 1), uint16_t(zone.stationID), uint16_t(zone.channel+1));
 						
-//						SYSEVT_ERROR(F("Created zone %d, \"%s\""), uint16_t(zoneIndex + 1), zone.name);
+						TRACE_VERBOSE(F("Created zone %d, \"%s\""), uint16_t(zoneIndex + 1), zone.name);
 						
 						SaveZone(zoneIndex, &zone);
 						zoneIndex++;

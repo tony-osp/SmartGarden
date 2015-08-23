@@ -168,8 +168,8 @@ static void JSONZones(const KVPairs & key_value_pairs, FILE * stream_file)
 	for (int i = 0; i < GetNumZones(); i++)
 	{
 		LoadZone(i, &zone);
-		fprintf_P(stream_file, PSTR("%s\t{\"name\" : \"%s\", \"enabled\" : \"%s\", \"pump\" : \"%s\", \"state\" : \"%s\" }"), (i == 0) ? "" : ",\n", zone.name,
-				zone.bEnabled ? "on" : "off", zone.bPump ? "on" : "off", (GetZoneState(i + 1)==ZONE_STATE_OFF) ? "off" : "on");
+		fprintf_P(stream_file, PSTR("%s\t{\"name\" : \"%s\", \"enabled\" : \"%s\", \"state\" : \"%s\", \"loc\" : \"%d:%d\", \"wfrate\" : \"%d\" }"), (i == 0) ? "" : ",\n", zone.name,
+				zone.bEnabled ? "on" : "off", (GetZoneState(i + 1)==ZONE_STATE_OFF) ? "off" : "on", int(zone.stationID), int(zone.channel), zone.waterFlowRate);
 	}
 	fprintf_P(stream_file, PSTR("\n]}"));
 }
@@ -182,6 +182,31 @@ static void JSONSensorsNow(FILE * stream_file)
 	sensorsModule.TableLastSensorsData(stream_file);
 	fprintf_P(stream_file, PSTR("}"));
 
+}
+
+
+static void JSONWWCounters(const KVPairs & key_value_pairs, FILE * stream_file)
+{
+	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
+
+	uint8_t		dow = weekday(now());
+	uint8_t		index = dow;
+	uint16_t	cc;
+	bool		bFirstRow = true;
+
+	fprintf_P(stream_file, PSTR("{\n\"series\" : [{\n\t\"name\": \"Water usage\",\n\t\"data\": ["));
+
+	for( uint8_t i=0; i<7; i++ )
+	{
+		cc = GetWWCounter(index);
+		if( index > 0 ) index--;
+		else			index = 6;
+
+		fprintf_P(stream_file, PSTR("%s\n\t\t\t[-%d, %u]"), bFirstRow ? "":",", int(i), cc/100);
+		bFirstRow = false;
+	}
+
+	fprintf_P(stream_file, PSTR("\n\t\t]\n\t}]\n}\n"));
 }
 
 
@@ -362,18 +387,43 @@ static void JSONwCheck(const KVPairs & key_value_pairs, FILE * stream_file)
 static void JSONState(const KVPairs & key_value_pairs, FILE * stream_file)
 {
 	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
+
 	fprintf_P(stream_file,
-			PSTR("{\n\t\"version\" : \"%s\",\n\t\"run\" : \"%s\",\n\t\"zones\" : \"%d\",\n\t\"schedules\" : \"%d\",\n\t\"timenow\" : \"%lu\",\n\t\"events\" : \"%d\""),
-			VERSION, GetRunSchedules() ? "on" : "off", GetNumEnabledZones(), GetNumSchedules(), now(), iNumEvents);
+			PSTR("{\n\t\"version\" : \"%s\",\n\t\"run\" : \"%s\",\n\t\"zones\" : \"%d\",\n\t\"schedules\" : \"%d\",\n\t\"stations\" : \"%d\",\n\t\"timenow\" : \"%lu\",\n\t\"locationZip\" : \"%lu\""),
+			VERSION, GetRunSchedules() ? "on" : "off", GetNumEnabledZones(), int(GetNumSchedules()), int(GetNumStations()), now(), GetZip());
 	if (runState.isSchedule() || runState.isManual())
 	{
 		FullZone zone;
 		LoadZone(runState.getZone() - 1, &zone);
+        Schedule sched;
+		LoadSchedule(runState.getSchedule(), &sched);
+
 		long time_check = runState.getEndTime() * 60L - (now() - previousMidnight(now()));
 		if (runState.isManual())
 			time_check = 99999;
-		fprintf_P(stream_file, PSTR(",\n\t\"onzone\" : \"%s\",\n\t\"offtime\" : \"%ld\""), zone.name, time_check);
+		if( runState.getSchedule() == 99 )  // manual
+			strcpy_P(sched.name, PSTR("Manual"));
+		fprintf_P(stream_file, PSTR(",\n\t\"onZoneName\" : \"%s\",\n\t\"offTime\" : \"%ld\",\n\t\"onSchedID\" : \"%d\",\n\t\"onSchedName\" : \"%s\""), zone.name, time_check, int(runState.getSchedule()), sched.name);
 	}
+
+	uint8_t	 nextSchedID, nextZoneID;
+	short	 nextTime;
+
+	if( GetNextEvent(&nextSchedID, &nextZoneID, &nextTime) )
+	{
+		short nextHour, nextMinute;
+		nextHour = nextTime/60;
+		nextMinute = nextTime - nextHour*60;
+
+        Schedule sched;
+        LoadSchedule( nextSchedID, &sched );
+		FullZone zone;
+		LoadZone(nextZoneID, &zone);
+
+		fprintf_P(stream_file, PSTR(",\n\t\"nextSchedID\" : \"%u\",\n\t\"nextSchedName\" : \"%s\",\n\t\"nextZoneID\" : \"%u\",\n\t\"nextZoneName\" : \"%s\",\n\t\"NextEventTime\" : \"%2.2u:%2.2u\""), 
+									short(nextSchedID), sched.name, short(nextZoneID), zone.name, nextHour, nextMinute);
+	}
+
 	fprintf_P(stream_file, (PSTR("\n}")));
 }
 
@@ -473,80 +523,8 @@ static void ServeSysInfoPage(FILE * stream_file)
 	SysInfo(stream_file);
 }
 
-static void ServeEventPage(FILE * stream_file)
-{
-	ServeHeader(stream_file, 200, PSTR("OK"), false);
-	freeMemory();
-	const time_t timeNow = now();
-	fprintf_P(stream_file, PSTR("<h1>%d Events</h1><h3>%02d:%02d:%02d %d/%d/%d (%d)</h3>"), iNumEvents, hour(timeNow), minute(timeNow), second(timeNow),
-			year(timeNow), month(timeNow), day(timeNow), weekday(timeNow));
-	for (uint8_t i = 0; i < iNumEvents; i++)
-		fprintf_P(stream_file, PSTR("Event [%02d] Time:%02d:%02d(%d) Command %d data %d,%d<br/>"), i, events[i].time / 60, events[i].time % 60, events[i].time,
-				events[i].command, events[i].data[0], events[i].data[1]);
-}
 
-static void ServeSchedPage(FILE * stream_file)
-{
-	Schedule sched;
-	freeMemory();
-	ServeHeader(stream_file, 200, PSTR("OK"), false);
-	const uint8_t numSched = GetNumSchedules();
-	for (uint8_t iSchedNum = 0; iSchedNum < numSched; iSchedNum++)
-	{
-		LoadSchedule(iSchedNum, &sched);
-		fprintf_P(stream_file, PSTR("<hr/>Schedule #%d<br/>"), iSchedNum);
-		if (sched.IsEnabled())
-			fprintf_P(stream_file, PSTR("Enabled"));
-		else
-			fprintf_P(stream_file, PSTR("Not Enabled"));
-		fprintf_P(stream_file, PSTR("<br/>Name:%s<br/>"), sched.name);
-		if (sched.IsInterval())
-			fprintf_P(stream_file, PSTR("Interval : %d"), sched.interval);
-		else
-		{
-			fprintf_P(stream_file, PSTR("Day :"));
-			if (sched.day & 0x01)
-				fprintf_P(stream_file, PSTR("Su"));
-			if (sched.day & 0x02)
-				fprintf_P(stream_file, PSTR("M"));
-			if (sched.day & 0x04)
-				fprintf_P(stream_file, PSTR("T"));
-			if (sched.day & 0x08)
-				fprintf_P(stream_file, PSTR("W"));
-			if (sched.day & 0x10)
-				fprintf_P(stream_file, PSTR("R"));
-			if (sched.day & 0x20)
-				fprintf_P(stream_file, PSTR("F"));
-			if (sched.day & 0x40)
-				fprintf_P(stream_file, PSTR("Sa"));
-			fprintf_P(stream_file, PSTR("(%d)"), sched.day);
-		}
-		for (uint8_t i = 0; i < 4; i++)
-			fprintf_P(stream_file, PSTR("<br/>Time %d:%02d:%02d(%d)"), i + 1, sched.time[i] / 60, sched.time[i] % 60, sched.time[i]);
-		for (uint8_t i = 0; i < GetNumZones(); i++)
-			fprintf_P(stream_file, PSTR("<br/>Zone %d Duration:%d"), i + 1, sched.zone_duration[i]);
-	}
-}
 
-static void ServeZonesPage(FILE * stream_file)
-{
-	FullZone zone;
-	ServeHeader(stream_file, 200, PSTR("OK"), false);
-	for (uint8_t iZoneNum = 0; iZoneNum < GetNumZones(); iZoneNum++)
-	{
-		LoadZone(iZoneNum, &zone);
-		fprintf_P(stream_file, PSTR("<hr/>Zone #%d<br/>"), iZoneNum);
-		if (zone.bEnabled)
-			fprintf_P(stream_file, PSTR("Enabled"));
-		else
-			fprintf_P(stream_file, PSTR("Not Enabled"));
-		fprintf_P(stream_file, PSTR("<br/>Name:%s<br/>"), zone.name);
-		if (zone.bPump)
-			fprintf_P(stream_file, PSTR("Pump ON"));
-		else
-			fprintf_P(stream_file, PSTR("Pump OFF"));
-	}
-}
 
 static bool RunSchedules(const KVPairs & key_value_pairs)
 {
@@ -924,6 +902,16 @@ void web::ProcessWebClients()
 				     else
 					     ServeError(pFile);
 			     }
+			     else if (strcmp_P(xP4, PSTR("set1Zone")) == 0)
+			     {
+				     if (SetOneZones(key_value_pairs))
+				     {
+					     ReloadEvents();
+					     ServeHeader(pFile, 200, PSTR("OK"), false);
+				     }
+				     else
+					     ServeError(pFile);
+			     }
 			     else if (strcmp_P(xP4, PSTR("setZones")) == 0)
 			     {
 				     if (SetZones(key_value_pairs))
@@ -1050,32 +1038,12 @@ void web::ProcessWebClients()
 			     {
 					JSONNextEvent(key_value_pairs, pFile);
 			     }
-
+			     else if (strcmp_P(xP5, PSTR("wCounters")) == 0)
+			     {
+					JSONWWCounters(key_value_pairs, pFile);
+			     }
 
             }
-// simple scheduling debug requests, enable when required (to reduce unnecessary overhead on each web request)
-#ifdef SCHEDULE_WEB_DEBUG
-			else if (strcmp_P(sPage, PSTR("ShowSched")) == 0)
-			{
-				freeMemory();
-				ServeSchedPage(pFile);
-			}
-			else if (strcmp_P(sPage, PSTR("ShowZones")) == 0)
-			{
-				freeMemory();
-				ServeZonesPage(pFile);
-			}
-			else if (strcmp_P(sPage, PSTR("ShowEvent")) == 0)
-			{
-				ServeEventPage(pFile);
-			}
-			else if (strcmp_P(sPage, PSTR("ReloadEvent")) == 0)
-			{
-				ReloadEvents(true);
-				ServeEventPage(pFile);
-			}
-#endif  // SCHEDULE_WEB_DEBUG
-
 			// Access sysinfo page
 			else if (strncmp_P(sPage, PSTR("SysInfo"), 7) == 0)
 			{

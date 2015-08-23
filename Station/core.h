@@ -24,7 +24,7 @@ extern Logging sdlog;
 #endif
 
 #ifndef VERSION
-#define VERSION "2.0.5M"
+#define VERSION "SG 1.5"
 #endif
 
 // We are using upper nibble for status, and lower nibble as a timer for transitional states
@@ -81,6 +81,10 @@ public:
 	short getEndTime()
 	{
 		return m_endTime;
+	}
+	int8_t getSchedule()
+	{
+		return m_iSchedule;
 	}
 
 	void TurnOnZone(uint8_t nZone, uint8_t ttr);

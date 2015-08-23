@@ -280,9 +280,37 @@ void Logging::Close()
 
 bool Logging::LogZoneEvent(time_t start, int zone, int duration, int schedule, int sadj, int wunderground)
 {
+	  time_t t = now();
+	  
+// running counters (in flash)
+// Running water counters are stored on per-day of week basis, and we also store the date when we last updated running water counter
+// When switching to the new day, we reset running water counter for that day and start new accumulation
+// Also when day change occurs, we are adding previously accumulated running water counter to the global lifetime water counter
+//
+	  {
+			register uint8_t  dow = weekday(t)-1;
+			register uint16_t  cc = GetWWCounter(dow);	
+			register uint32_t  last_t = GetTotalWCounterDate();
+
+			ShortZone   szone;
+			LoadShortZone(zone, &szone);
+
+			if( (day(t)!=day(last_t)) || (month(t)!=month(last_t)) || (year(t)!=year(last_t)) )
+			{
+				SetTotalWCounterDate(GetTotalWCounter() + uint32_t(cc/100));	// note: running water counters are in 1/100 GPM, while lifetime water counter is in GPM
+				SetTotalWCounterDate(t);
+
+				cc = (duration * szone.waterFlowRate);	
+			}
+			else
+			{
+				cc += duration * szone.waterFlowRate;
+			}
+			SetWWCounter(dow, cc);
+	  }
+
    if( !logger_ready ) return false;  //check if the logger is ready
 	
-	  time_t t = now();
 // temp buffer for log strings processing
       char tmp_buf[MAX_LOG_RECORD_SIZE];
 

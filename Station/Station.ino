@@ -69,6 +69,14 @@ void setup() {
 	TRACE_CRIT(F("Start!\n"));
 
     localUI.begin();
+
+#ifdef HW_ENABLE_ETHERNET
+
+	pinMode(SS, OUTPUT); digitalWrite(SS, HIGH);	// prep SDI port and turn Off Moteino Mega receiver (it is sitting on SS)
+	pinMode(SD_SS, OUTPUT); digitalWrite(SD_SS, HIGH);
+	pinMode(W5500_SS, OUTPUT); digitalWrite(W5500_SS, HIGH);
+#endif //HW_ENABLE_ETHERNET
+
     
 	if (IsFirstBoot())
 	{
@@ -79,7 +87,11 @@ void setup() {
 #ifdef HW_ENABLE_ETHERNET
 		Ethernet.begin(mac, IPAddress(1,1,1,2), INADDR_NONE, IPAddress(1,1,1,1), IPAddress(255,255,255,0));
 #ifdef HW_ENABLE_SD
-		if (!sd.begin(4, SPI_HALF_SPEED)) 
+#ifdef SD_USE_CUSOM_SS
+		if (!sd.begin(SD_SS, SPI_FULL_SPEED) )  
+#else //SD_USE_CUSOM_SS
+	if (!sd.begin(4, SPI_HALF_SPEED) ) 
+#endif //SD_USE_CUSOM_SS
 		{
 			SYSEVT_ERROR(F("Could not Initialize SDCard"));
 			localUI.lcd_print_line_clear_pgm(PSTR("EEPROM Corrupted"), 0);
