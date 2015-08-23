@@ -64,7 +64,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define MAX_SCHEDULES	4
 #define MAX_STATIONS	16
 #define MAX_ZONES		64
-#define MAX_SENSORS		10
+#define MAX_SENSORS		16
 
 // remote stations may have numbers from 1 to 9
 #define MAX_REMOTE_STATIONS  9
@@ -75,7 +75,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define MAX_STATTION_NAME_LENGTH	20
 #define MAX_SENSOR_NAME_LENGTH		20
 
-#define EEPROM_SHEADER "T2.7"
+#define EEPROM_SHEADER "SG15"
 #define SG_FIRMWARE_VERSION	27
 
 #define EEPROM_INI_FILE	"/device.ini"

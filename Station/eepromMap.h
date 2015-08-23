@@ -67,7 +67,12 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #define SENSOR_INDEX			24
 #define SENSOR_OFFSET			257
-#define END_OF_SENSORS_BLOCK	512
+#define END_OF_SENSORS_BLOCK	641
+
+#define ADDR_WWCOUNTERS			642			// last 7 days water counters (16bit, one per day of the week)
+#define ADDR_DOW_WWCOUNTERS		657			// DOW of the last water counter update (1 byte)
+#define	ADDR_TOTAL_WCOUNTER		658			// lifetime water counter, 32bit, updated daily
+#define ADDR_D_TOTAL_WCOUNTER	662			// date stamp of the last update of the lifetime water counter, 32bit
 
 #if ZONE_OFFSET + (ZONE_INDEX * MAX_ZONES) > END_OF_ZONE_BLOCK
 #error Number of Zones is too large
