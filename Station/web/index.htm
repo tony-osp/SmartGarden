@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8">
     <title>SmartGarden</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.1/jquery.mobile-1.4.1.min.css" type="text/css">
@@ -8,7 +9,6 @@
     <script src="http://code.jquery.com/jquery-1.11.3.min.js" type="text/javascript"></script>
     <script src="http://code.jquery.com/mobile/1.4.1/jquery.mobile-1.4.1.min.js" type="text/javascript"></script>
     <script src="http://code.highcharts.com/highcharts.js"></script>
-    <script src="http://code.highcharts.com/modules/exporting.js"></script>
   </head>
   
   <body>
@@ -19,6 +19,8 @@
 // Globals
           var timeout = 0;
           var locationZip = 0;
+          var int_requestSensorsData=null;
+          var int_refreshState = null;
 
 
         $(document).bind('pageinit', function () {
@@ -33,14 +35,12 @@
               });
           });
 
-          setInterval(refreshState, 60000);       // schedule data and time refresh every 1 min
-          window.setTimeout(function () { requestWaterUsage(); }, 150);
-          window.setTimeout(function () { requestSensorsData(); }, 250);   
-          setInterval(function () { requestSensorsData(); }, 600000);       // schedule sensors refresh every 10 min
         });
 
         function refreshState() {
-            $.ajax("json/state", {async: true, dataType: "json", error: function () { alert ("Communications Failure" ); }, success: function (data) {
+            if ($.mobile.activePage.attr("id") != "page1") return;
+            $.ajax("json/state", {
+                async: true, dataType: "json", error: function () { alert("Communications Failure"); }, success: function (data) {
 
                     if (locationZip == 0) {     // first time after page load
                         locationZip = data.locationZip;
@@ -71,6 +71,12 @@
         }
         $('#page1').on('pagebeforeshow', function () {
             refreshState();
+            if (int_refreshState == null)
+                int_refreshState = setInterval(refreshState, 60000);       // schedule data and time refresh every 1 min
+            window.setTimeout(function () { requestWaterUsage(); }, 150);
+            window.setTimeout(function () { requestSensorsData(); }, 250);
+            if (int_requestSensorsData = null);
+            int_requestSensorsData = setInterval(function () { requestSensorsData(); }, 600000);       // schedule sensors refresh every 10 min
         });
 
         var bCurrRunning = false;
@@ -251,6 +257,7 @@
           // Sensors fill up code
         requestSensorsData = function () {
 
+            if ($.mobile.activePage.attr("id") != "page1") return;
             $.ajax("json/sensNow", {
                 async: true, dataType: "json", error: function () { alert("requestSensorsData - Communications Failure"); }, success: function (data) {
 
@@ -329,27 +336,15 @@
             <td style="width:25%">
 
                 <ul data-role="listview" data-divider-theme="b" data-inset="true" data-split-theme="b">
-                  <li data-theme="c"><a href="Scheds.htm" data-transition="slide" id="n_schedules">Schedules
-                <span class="ui-li-count">0</span></a>
-                  </li>
-                  <li data-theme="c"><a href="QSched.htm" data-transition="slide">Quick Schedule</a>
-                  </li>
-                  <li data-theme="c"><a href="sensdash.htm" data-transition="slide">Sensors</a>
-                  </li>
-                  <li data-theme="c"><a href="Zones.htm" data-transition="slide" id="n_zones">Zones <span class=
-                "ui-li-count">0</span></a>
-                  </li>
-                  <li data-theme="c"><a href="Stations.htm" data-transition="slide" id="n_stations">Stations <span class=
-                "ui-li-count">0</span></a>
-                  </li>
-                  <li data-theme="c"><a href="Logs.htm" data-transition="slide">Logs</a>
-                  </li>
-                  <li data-theme="c"><a href="Advanced.htm" data-transition="slide">Advanced</a>
-                  </li>
-                  <li data-theme="c"><a href="Settings.htm" data-transition="slide">Settings</a>
-                  </li>
-                  <li data-theme="c"><a href="Help.htm" data-transition="slide">Help</a>
-                  </li>
+                  <li data-theme="c"><a href="Scheds.htm" data-transition="slide" id="n_schedules">Schedules <span class="ui-li-count">0</span></a></li>
+                  <li data-theme="c"><a href="QSched.htm" data-transition="slide">Quick Schedule</a></li>
+                  <li data-theme="c"><a href="sensdash.htm" target="_blank">Sensors</a></li>
+                  <li data-theme="c"><a href="Zones.htm" data-transition="slide" id="n_zones">Zones <span class="ui-li-count">0</span></a></li>
+                  <li data-theme="c"><a href="Stations.htm" data-transition="slide" id="n_stations">Stations <span class="ui-li-count">0</span></a></li>
+                  <li data-theme="c"><a href="Logs.htm" data-transition="slide">Logs</a></li>
+                  <li data-theme="c"><a href="Advanced.htm" data-transition="slide">Advanced</a></li>
+                  <li data-theme="c"><a href="Settings.htm" data-transition="slide">Settings</a></li>
+                  <li data-theme="c"><a href="Help.htm" data-transition="slide">Help</a></li>
                 </ul>
             </td>
             <td  style="width:40%; vertical-align:top" >
