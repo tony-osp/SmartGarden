@@ -13,8 +13,9 @@
     <link rel="stylesheet" href="custom.css" />
     <script src="http://code.jquery.com/jquery-1.11.3.min.js" type="text/javascript"></script>
     <script src="http://code.jquery.com/mobile/1.4.1/jquery.mobile-1.4.1.min.js" type="text/javascript"></script>
-    <script src="http://code.highcharts.com/highcharts.js"></script>
- <style>    
+     <script src="http://code.highcharts.com/highcharts.js"></script>
+    <script src="http://code.highcharts.com/highcharts-more.js"></script>
+<style>    
 .thermometer-outer {
     background: #c4f0ff;
     border: 1px solid #c4c4c4;
@@ -40,9 +41,8 @@
 <body>
     <div data-role="page" id="sensors">
 
-    <script src="jqtherm.js" type="text/javascript"></script>
-    <script src="therm.js" type="text/javascript"></script>
-    <script src="http://code.highcharts.com/highcharts-more.js" type="text/javascript"></script>
+    <script src="jqtherm.js"></script>
+    <script src="therm.js"></script>
 
     <script type="text/javascript">
         setupTempSens = function (sID, val) {
@@ -440,7 +440,9 @@
         var int_sd_refreshSensorsData = null;
 
         $('#sensors').on('pagebeforeshow', function () {
-            setupSensors();                         // refresh it right away 
+            //window.setTimeout(function () { setupSensors(); }, 250);  // setup sensors with a small delay
+            setupSensors();   // setup sensors right away
+
             if( int_sd_refreshSensorsData == null )
                 int_sd_refreshSensorsData = setInterval(sd_refreshSensorsData, 600000);       // also schedule data refresh every 10 min
         });
