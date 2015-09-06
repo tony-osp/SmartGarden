@@ -343,6 +343,8 @@ void SetMyStationID(uint8_t stationID)
 
 void SetWWCounter(uint8_t cID, uint16_t value)
 {
+	//TRACE_CRIT(F("SetWWCounter, id=%d, value=%d\n"), int(cID), value);
+
 	if( cID > 6 ) return;	// basic protection - range checking
 		
 	register uint8_t vh = (value & 0x0FF00) >> 8;
@@ -361,6 +363,7 @@ uint16_t GetWWCounter(uint8_t cID)
 	val =  EEPROM.read(ADDR_WWCOUNTERS+1+cID*2) << 8;
 	val += EEPROM.read(ADDR_WWCOUNTERS+cID*2);
 
+	//TRACE_CRIT(F("GetWWCounter, id=%d, value=%d\n"), int(cID), val);
 	return val;
 }
 
@@ -378,22 +381,28 @@ void SetTotalWCounter(uint32_t val)
 
 uint32_t GetTotalWCounter(void)
 {
-	register uint32_t val;
-	val  = EEPROM.read(ADDR_TOTAL_WCOUNTER+3) << 24;
-	val += EEPROM.read(ADDR_TOTAL_WCOUNTER+2) << 16;
-	val += EEPROM.read(ADDR_TOTAL_WCOUNTER+1) << 8;
-	val += EEPROM.read(ADDR_TOTAL_WCOUNTER);
+	uint32_t val;
+	register uint8_t *pB;
+	pB = (uint8_t *) &val;
+
+	pB[0] = EEPROM.read(ADDR_TOTAL_WCOUNTER);
+	pB[1] = EEPROM.read(ADDR_TOTAL_WCOUNTER+1);
+	pB[2] = EEPROM.read(ADDR_TOTAL_WCOUNTER+2);
+	pB[3] = EEPROM.read(ADDR_TOTAL_WCOUNTER+3);
 
 	return val;
 }
 
 uint32_t GetTotalWCounterDate(void)
 {
-	register uint32_t val;
-	val  = EEPROM.read(ADDR_D_TOTAL_WCOUNTER+3) << 24;
-	val += EEPROM.read(ADDR_D_TOTAL_WCOUNTER+2) << 16;
-	val += EEPROM.read(ADDR_D_TOTAL_WCOUNTER+1) << 8;
-	val += EEPROM.read(ADDR_D_TOTAL_WCOUNTER);
+	uint32_t val;
+	register uint8_t *pB;
+	pB = (uint8_t *) &val;
+
+	pB[0] = EEPROM.read(ADDR_D_TOTAL_WCOUNTER);
+	pB[1] = EEPROM.read(ADDR_D_TOTAL_WCOUNTER+1);
+	pB[2] = EEPROM.read(ADDR_D_TOTAL_WCOUNTER+2);
+	pB[3] = EEPROM.read(ADDR_D_TOTAL_WCOUNTER+3);
 
 	return val;
 }
