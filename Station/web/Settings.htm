@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.1/jquery.mobile-1.4.1.min.css" type="text/css">
     <link rel="stylesheet" href="custom.css" />
-    <script src="http://code.jquery.com/jquery-1.9.1.min.js" type="text/javascript"></script>
+    <script src="http://code.jquery.com/jquery-1.11.3.min.js" type="text/javascript"></script>
     <script src="http://code.jquery.com/mobile/1.4.1/jquery.mobile-1.4.1.min.js" type="text/javascript"></script>
   </head>
   
@@ -66,77 +66,73 @@
       </div> <!-- /header -->
       <div data-role="content">
         <form id="setForm" action="#">
-          <div id="ipdiv" data-role="fieldcontain">
-            <label for="ip">IP:</label>
-            <input type="text" name="ip" id="ip" value="" maxlength=15 />
-          </div>
-          <div id="netmaskdiv" data-role="fieldcontain">
-            <label for="netmask">Netmask:</label>
-            <input type="text" name="netmask" id="netmask" value="" maxlength=15 />
-          </div>
-          <div id="gatewaydiv" data-role="fieldcontain">
-            <label for="gateway">Gateway:</label>
-            <input type="text" name="gateway" id="gateway" value="" maxlength=15 />
-          </div>
-          <div id="wuipdiv" data-role="fieldcontain">
-            <label for="wuip">WUndgerground IP:</label>
-            <input type="text" name="wuip" id="wuip" value="" maxlength=15 />
-          </div>
-          <div id="apikeydiv" data-role="fieldcontain">
-            <label for="apikey">API Key:</label>
-            <input type="text" name="apikey" id="apikey" value="" maxlength=16 />
-          </div>
-          <div id="wutypediv" data-role="fieldcontain">
-            <fieldset data-role="controlgroup" data-type="horizontal">
-              <legend>WUnderground Type:</legend>
-              <input type="radio" name="wutype" id="wutypezip" value="zip"/>
-              <label for="wutypezip">Zip</label>
-              <input type="radio" name="wutype" id="wutypepws" value="pws" />
-              <label for="wutypepws">PWS</label>
-            </fieldset>
-          </div>
-          <div id="zipdiv" data-role="fieldcontain">
-            <label for="zip">Zip Code:</label>
-            <input type="number" name="zip" id="zip" value="" min="0" max="99999" />
-          </div>
-          <div id="pwsdiv" data-role="fieldcontain">
-            <label for="pws">PWS ID:</label>
-            <input type="text" name="pws" id="pws" value="" maxlength=11 />
-          </div>
-          <div id="NTPipdiv" data-role="fieldcontain">
-            <label for="NTPip">NTP IP:</label>
-            <input type="text" name="NTPip" id="NTPip" value="" maxlength=15 />
-          </div>
-          <div id="NTPoffsetdiv" data-role="fieldcontain">
-            <label for="NTPoffset">Timezone Offset:</label>
-            <input type="number" name="NTPoffset" id="NTPoffset" value="" min="-12" max="14"/>
-          </div>
-          <div id="webportdiv" data-role="fieldcontain">
-            <label for="zip">Web Port:</label>
-            <input type="number" name="webport" id="webport" value="" min="0" max="32767" />
-          </div>
-          <div id="sadjdiv" data-role="fieldcontain">
-            <label for="sadj">Seasonal Adjust %</label>
-            <input type="range" name="sadj" id="sadj" value="" min="0" max="200" />
-          </div>
-	  <div id="otdiv" data-role="fieldcontain">
-            <fieldset data-role="controlgroup" data-type="vertical" data-mini="true">
-              <legend>Output:</legend>
-              <input type="radio" name="ot" id="ot0" value="0"/>
-              <label for="ot0">None</label>
-              <input type="radio" name="ot" id="ot1" value="1" />
-              <label for="ot1">Direct Positive</label>
-              <input type="radio" name="ot" id="ot2" value="2" />
-              <label for="ot2">Direct Negative</label>
-              <input type="radio" name="ot" id="ot3" value="3" />
-              <label for="ot3">OpenSprinkler</label>
-            </fieldset>
-          </div>
+
+            <div class="ui-block-a"> 
+                <div  style="margin-right:2em; margin-left:2em">
+
+                  <div id="ipdiv" data-role="fieldcontain" class="ll-input">
+                    <label for="ip">IP:</label>
+                    <input type="text" name="ip" id="ip" value="" maxlength=15/>
+                  </div>
+                  <div id="webportdiv" data-role="fieldcontain" class="ll-input">
+                    <label for="webport">Web Port:</label>
+                    <input type="number" name="webport" id="webport" value="" min="0" max="32767" />
+                  </div>
+                  <div id="netmaskdiv" data-role="fieldcontain" class="ll-input">
+                    <label for="netmask">Netmask:</label>
+                    <input type="text" name="netmask" id="netmask" value="" maxlength=15 />
+                  </div>
+                  <div id="gatewaydiv" data-role="fieldcontain" class="ll-input">
+                    <label for="gateway">Gateway:</label>
+                    <input type="text" name="gateway" id="gateway" value="" maxlength=15 />
+                  </div>
+                  <div id="wuipdiv" data-role="fieldcontain" class="ll-input">
+                    <label for="wuip">WUndgerground IP:</label>
+                    <input type="text" name="wuip" id="wuip" value="" maxlength=15 />
+                  </div>
+                  <div id="NTPipdiv" data-role="fieldcontain" class="ll-input">
+                    <label for="NTPip">NTP IP:</label>
+                    <input type="text" name="NTPip" id="NTPip" value="" maxlength=15 />
+                  </div>
+                </div>
+            </div>
+            <div class="ui-block-b"> 
+                <div  style="margin-right:2em; margin-left:2em">
+
+                  <div id="wutypediv" data-role="fieldcontain" class="ll-input">
+                    <label for="wutypefs">WUnderground Type:</label>
+                    <fieldset data-role="controlgroup" data-type="horizontal" class="ll-input" id="wutypefs">
+                      <input type="radio" name="wutype" id="wutypezip" value="zip"/>
+                      <label for="wutypezip">Zip</label>
+                      <input type="radio" name="wutype" id="wutypepws" value="pws" />
+                      <label for="wutypepws">PWS</label>
+                    </fieldset>
+                  </div>
+                  <div id="apikeydiv" data-role="fieldcontain" class="ll-input">
+                    <label for="apikey">API Key:</label>
+                    <input type="text" name="apikey" id="apikey" value="" maxlength=16 />
+                  </div>
+                  <div id="pwsdiv" data-role="fieldcontain" class="ll-input">
+                    <label for="pws">PWS ID:</label>
+                    <input type="text" name="pws" id="pws" value="" maxlength=11 />
+                  </div>
+                  <div id="zipdiv" data-role="fieldcontain" class="ll-input">
+                    <label for="zip">Zip Code:</label>
+                    <input type="number" name="zip" id="zip" value="" min="0" max="99999" />
+                  </div>
+                  <div id="NTPoffsetdiv" data-role="fieldcontain" class="ll-input">
+                    <label for="NTPoffset">Timezone Offset:</label>
+                    <input type="number" name="NTPoffset" id="NTPoffset" value="" min="-12" max="14"/>
+                  </div>
+                  <div id="sadjdiv" data-role="fieldcontain" class="ll-input">
+                    <label for="sadj">Seasonal Adj %</label>
+                    <input type="range" name="sadj" id="sadj" value="" min="0" max="200" data-mini="true"/>
+                  </div>
+                </div>
+            </div>
+
         </form>
       </div> <!-- /content -->
-      <div data-role="footer" class="footer-docs" data-theme="c">
-        <p>&copy; 2013 Richard Zimmerman</p>
-      </div>
     </div> <!-- /page -->
   </body>
 

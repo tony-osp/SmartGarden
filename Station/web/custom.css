@@ -34,6 +34,11 @@ table.tablepane tr:last-child td {
     border-bottom: none;
 }
 
+.ll-input>label { width: 40% !important; }
+.ll-input>div.ui-input-text { width: 58% !important; }
+.ll-input>div.ui-slider { width: 58% !important; }
+.ll-input>fieldset { width: 58% !important; }
+
 #weather {
     text-align: center;
     overflow: hidden;
