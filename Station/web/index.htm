@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>SmartGarden</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.1/jquery.mobile-1.4.1.min.css" type="text/css">
+    <link rel="stylesheet" href="custom.css" />
+    <script src="http://code.jquery.com/jquery-1.11.3.min.js" type="text/javascript"></script>
+    <script src="http://code.jquery.com/mobile/1.4.1/jquery.mobile-1.4.1.min.js" type="text/javascript"></script>
+    <script src="http://code.highcharts.com/highcharts.js"></script>
+    <script src="http://code.highcharts.com/highcharts-more.js"></script>
+  </head>
+  
+  <body>
+    <!-- Home -->
+    <div data-role="page" id="page1">
+      <script>
+
+// Globals
+          var timeout = 0;
+          var locationZip = 0;
+          var int_requestSensorsData=null;
+          var int_refreshState = null;
+
+
+        $(document).bind('pageinit', function () {
+          $('#systemz').bind('change', function (e) {
+              $.get("bin/run", {
+                  system: this.value, success: function () {
+                      window.setTimeout(function () {
+                          bNextScheduled = false; // reset flag to ensure nextSched refresh
+                          $.getJSON("json/state", checkAnim);
+                      }, 250);
+                  }
+              });
+          });
+
+        });
+
+        function refreshState() {
+            if ($.mobile.activePage.attr("id") != "page1") return;
+            $.ajax("json/state", {
+                async: true, dataType: "json", error: function () { alert("Communications Failure"); }, success: function (data) {
+
+                    if (locationZip == 0) {     // first time after page load
+                        locationZip = data.locationZip;
+                        window.setTimeout(function () { update_weather(); }, 10);
+                    }
+                    else {  // subsequent update, just store new location
+                        if (locationZip != data.locationZip) {
+                            locationZip = data.locationZip;
+                            window.setTimeout(function () { update_weather(); }, 10);
+                        }
+                    }
+
+                    $('#n_zones span').text(data.zones);
+                    $('#n_schedules span').text(data.schedules);
+                    $('#n_stations span').text(data.stations);
+                    var dt = new Date(data.timenow * 1000);
+                    $('#version').text("Firmware: "+data.version);
+                    $('#timediv').empty().append('' + pad(dt.getUTCHours(),2) + ':' + pad(dt.getUTCMinutes(),2) + '   ' + pad(dt.getUTCFullYear(),4) + '/' + pad(dt.getUTCMonth()+1,2) + '/' + pad(dt.getUTCDate(),2) );
+                    checkAnim(data);
+                }
+                });
+        }
+
+        function pad(n, width, z) {
+          z = z || '0';
+          n = n + '';
+          return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+        }
+        $('#page1').on('pagebeforeshow', function () {
+            refreshState();
+            if (int_refreshState == null)
+                int_refreshState = setInterval(refreshState, 60000);       // schedule data and time refresh every 1 min
+            window.setTimeout(function () { requestWaterUsage(); }, 150);
+            window.setTimeout(function () { requestSensorsData(); }, 250);
+            if (int_requestSensorsData = null);
+            int_requestSensorsData = setInterval(function () { requestSensorsData(); }, 600000);       // schedule sensors refresh every 10 min
+        });
+
+        var bCurrRunning = false;
+        var bNextScheduled = false;
+
+        function showCRunning(data) {
+
+            if (bCurrRunning) return; //already shown
+
+            var status_html = '<div style="text-align: center; font-size: large; font-weight: bold;">Currently Running</div>';
+            status_html += '<table style="width:100%; height:100%">\n<tr>\n<td>\n';
+            status_html += '<div style="text-align:center; width:100%">\n <img src="rainbird.gif" height="54" width="70">\n';
+            status_html += '<div id="spantime">00:00</div>\n </div>\n </td>';
+            status_html += '<td style="width:20%; font-size: medium; font-weight: bold;">\n <span>\n Schedule:<br />\n Zone:\n </span>\n </td>';
+            status_html += '<td style="width:40%; font-size: medium;">' + data.onSchedName + '<br />\n' + data.onZoneName + '<br />\n </td>\n </tr>\n </table>';
+            d = document.getElementById('status_div');
+            d.innerHTML = status_html;
+
+            bCurrRunning = true;
+            bNextScheduled = false;
+        }
+
+        function showNextSched(data) {
+
+            if (bNextScheduled) return; //already shown
+
+            var status_html = '<div style="text-align: center; font-size: large; font-weight: bold;">Next Scheduled</div>';
+            status_html += '<table style="width:100%; height:100%">\n<tr>\n';
+            status_html += '<td style="width:40%; font-size: medium; font-weight: bold; padding-top:1em; padding-left:1em">\n <span>\n Schedule:<br />\n Scheduled Time:\n </span>\n </td>';
+            if ($('#systemz').val() == "off") data.nextSchedName = "~Disabled~";
+            else if (data.nextSchedName == undefined) data.nextSchedName = "Nothing today";
+            if (data.nextZoneName == undefined) data.nextZoneName = "N/A";
+            if (data.NextEventTime == undefined) data.NextEventTime = "N/A";
+            status_html += '<td style="width:60%; font-size: medium; padding-top:1em">' + data.nextSchedName + '<br />\n' + data.NextEventTime + '<br />\n </td>\n </tr>\n </table>';
+            d = document.getElementById('status_div');
+            d.innerHTML = status_html;
+
+            bCurrRunning = false;
+            bNextScheduled = true;
+        }
+
+        function checkAnim(data) {
+            $('#systemz').val(data.run).slider('refresh');
+            if ((data.offTime != undefined) && (data.offTime != null)) {
+                timeout = (new Date().getTime()) / 1000 + parseInt(data.offTime);
+                showCRunning(data);
+                if (parseInt(data.offTime) == 99999) {
+                  $('#spantime').text("--:--");
+                }
+                else
+                    window.setTimeout(function () { updateAnim(); }, 1);
+            } else {
+                showNextSched(data);
+            }
+        }
+        function updateAnim() {
+          if ($.mobile.activePage.attr("id") != "page1") return;
+          var remaining = Math.floor(timeout - (new Date().getTime()) / 1000);
+          if (remaining >= 0) {
+            $('#spantime').text(
+              Math.floor(remaining / 60).toString() + ":" + 
+              ("00" + (remaining % 60).toString()).substr(-2));
+              window.setTimeout(function () {updateAnim();}, 1000);
+          } else {
+            $.getJSON("json/state", checkAnim);
+          }
+        }
+
+// Weather support
+        function convert_temp(temp, region) {
+            if (region == "United States" || region == "Bermuda" || region == "Palau") {
+                temp = temp + "&#176;F";
+            } else {
+                temp = parseInt(Math.round((temp - 32) * (5 / 9))) + "&#176;C";
+            }
+            return temp;
+        }
+
+        function update_weather() {
+
+            var $weather = $("#weather");
+            //$weather.html("<p class='ui-icon ui-icon-loading mini-load'>Loading...</p>");
+            $.getJSON("http://query.yahooapis.com/v1/public/yql?q=select%20woeid%20from%20geo.placefinder%20where%20text=%22" + escape(locationZip) + "%22&format=json", function (woeid) {
+                $.getJSON("http://query.yahooapis.com/v1/public/yql?q=select%20item%2Ctitle%2Clocation%20from%20weather.forecast%20where%20woeid%3D%22" + woeid.query.results.Result.woeid + "%22&format=json", function (data) {
+
+                    // Hide the weather if no data is returned
+                    if (data.query.results.channel.item.title == "City not found") {
+                        alert("update_weather - City not found");
+                        $("#weather").hide();
+                        return;
+                    }
+
+                    var now = data.query.results.channel.item.condition,
+                    title = data.query.results.channel.title,
+                    loc = /Yahoo! Weather - (.*)/.exec(title),
+                    region = data.query.results.channel.location.country;
+
+                    //            alert("Weather code:" + now.code);
+
+                    $weather.html("<div title='" + now.text + "' class='wicon cond" + now.code + "'></div><span>" + convert_temp(now.temp, region) + "</span><br><span class='location'>" + loc[1] + "</span>");
+                    $("#weather").show();
+                });
+            });
+        }
+
+        function showWeatherForecast() {
+            window.open("http://www.wunderground.com/cgi-bin/findweather/getForecast?query=" + locationZip);
+        }
+
+        var waterUsageChart = null;
+
+        requestWaterUsage = function () {
+
+            if (waterUsageChart == null) {
+
+                $.ajax("json/wCounters", {
+                    async: true, dataType: "json", error: function () { alert("requestWaterUsage - Communications Failure"); }, success: function (data) {
+
+                        var d = new Date();
+                        var dow = d.getDay();
+                        var weekday = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+                        waterUsageChartOptions.series[0].data = data.series[0].data; // copy data
+
+                        for (var i = 0; i < data.series[0].data.length; i++) {  // and now patch names
+
+                            if (i == 0)
+                                waterUsageChartOptions.series[0].data[i][0] = "Today";
+                            else if (i == 1)
+                                waterUsageChartOptions.series[0].data[i][0] = "Yesterday";
+                            else
+                                waterUsageChartOptions.series[0].data[i][0] = weekday[dow];
+
+                            if (dow > 0) dow--;
+                            else dow = 6;
+                        }
+
+                        waterUsageChartOptions.series[0].name = data.series[0].name;
+                        waterUsageChart = new Highcharts.Chart(waterUsageChartOptions);
+                    }
+                });
+            }
+        }
+
+        waterUsageChartOptions = {
+
+            chart: {
+                type: 'column',
+                renderTo: 'wCountersChart',
+                height: 240,
+            },
+            title: { text: null },
+            exporting: { enabled: false },
+            credits: { enabled: false },
+            legend: { enabled: false },
+            tooltip: { valueSuffix: ' Gallons' },
+
+            xAxis: {
+                type: 'category',
+                reversed: true,
+                labels: {
+                    rotation: -45,
+                    style: {
+                        fontSize: '10px',
+                        fontFamily: 'Verdana, sans-serif'
+                    }
+                }
+            },
+            yAxis: {
+                min: 0,
+                title: {
+                    text: 'Water usage, Gallons'
+                }
+            },
+            series: [{}],
+        };
+
+          // Sensors fill up code
+        requestSensorsData = function () {
+
+            if ($.mobile.activePage.attr("id") != "page1") return;
+            $.ajax("json/sensNow", {
+                async: true, dataType: "json", error: function () { alert("requestSensorsData - Communications Failure"); }, success: function (data) {
+
+                    var temps_html = "";
+                    var humids_html = "";
+                    var pressures_html = "";
+
+                    for (var i = 0; i < data.sensors.length; i++) {  
+                        if (data.sensors[i].sensorType == 'Temperature') {
+                            temps_html += "<b>" + data.sensors[i].lastReading + "F</b> " + data.sensors[i].sensorName + "<br />";
+                        }
+                        else if (data.sensors[i].sensorType == 'Humidity') {
+                            humids_html += "<b>" + data.sensors[i].lastReading + "%</b> " + data.sensors[i].sensorName + "<br />";
+                        }
+                        else if (data.sensors[i].sensorType == 'Pressure') {
+                            pressures_html += "<b>" + data.sensors[i].lastReading + "KPa</b> " + data.sensors[i].sensorName + "<br />";
+                        }
+                    }
+                    var sens_html = "";
+
+                    if (temps_html != "") {
+                        sens_html += '<tr>\n <td style="text-align:center; padding-top:1em">\n <img src="Therm.jpg" width="30"/>\n</td>';
+                        sens_html += '<td><span>'+temps_html+'</span>\n</td>\n</tr>'
+                    }
+                    if (humids_html != "") {
+                        sens_html += '<tr>\n <td style="text-align:center; padding-top:1em">\n <img src="WDrop.jpg" width="30"/>\n</td>';
+                        sens_html += '<td><span>' + humids_html + '</span>\n</td>\n</tr>'
+                    }
+                    if (pressures_html != "") {
+                        sens_html += '<tr>\n <td style="text-align:center; padding-top:1em">\n <img src="Gauge.jpg" width="30"/>\n</td>';
+                        sens_html += '<td><span>' + humids_html + '</span>\n</td>\n</tr>'
+                    }
+
+                    if (sens_html != "") {
+                        d = document.getElementById('sensors_div');
+                        d.innerHTML = '<table style="font-size:medium">\n' + sens_html+'</table>\n';
+                    }
+                }
+            });
+        }
+     
+
+
+      </script>
+
+      <div data-theme="a" data-role="header">
+        <h3>SmartGarden System</h3>
+      </div>
+
+      <div data-role="content">
+
+      <div>
+          <table style="width:100%">
+              <tr>
+                  <td style="width:35%">
+                      <div id="weather" onclick="showWeatherForecast()"></div>
+                  </td>
+                  <td style="width:15%">
+                       <span style="display:inline-block">Run Schedules</span>
+                       <select name="systemz" id="systemz" data-mini="true" data-role="slider">
+                          <option value="off">Off</option>
+                          <option value="on" selected>On</option>
+                       </select>
+                  </td>
+                  <td style="width:15%">
+                       <button id="suspend_time">Pause</button>
+                  </td>
+                  <td style="width:35%">
+                       <div id="timediv" style="width:100%; text-align: center; color:blue; font-weight: bold"></div>
+                  </td>
+              </tr>
+           </table>
+        </div>
+        <table style="width:100%">
+          <tr>
+            <td style="width:25%">
+
+                <ul data-role="listview" data-divider-theme="b" data-inset="true" data-split-theme="b">
+                  <li data-theme="c"><a href="Scheds.htm" data-transition="slide" id="n_schedules">Schedules <span class="ui-li-count">0</span></a></li>
+                  <li data-theme="c"><a href="QSched.htm" data-transition="slide">Quick Schedule</a></li>
+                  <li data-theme="c"><a href="sensdash.htm" data-transition="slide">Sensors</a></li>
+                  <li data-theme="c"><a href="Zones.htm" data-transition="slide" id="n_zones">Zones <span class="ui-li-count">0</span></a></li>
+                  <li data-theme="c"><a href="Stations.htm" data-transition="slide" id="n_stations">Stations <span class="ui-li-count">0</span></a></li>
+                  <li data-theme="c"><a href="Logs.htm" data-transition="slide">Logs</a></li>
+                  <li data-theme="c"><a href="Advanced.htm" data-transition="slide">Advanced</a></li>
+                  <li data-theme="c"><a href="Settings.htm" data-transition="slide">Settings</a></li>
+                  <li data-theme="c"><a href="Help.htm" data-transition="slide">Help</a></li>
+                </ul>
+            </td>
+            <td  style="width:40%; vertical-align:top" >
+                <table style="width:100%; height:100%">
+                    <tr>
+                        <td style="width:100%">
+                            <div id="status_div"></div>
+                        </td>
+                    </tr>
+                    <tr style="padding-top: 5em;">
+                        <td style="width:100%">
+                            <br />
+                            <p style="text-align: center; font-size: large; font-weight: bold;">Water Usage</p>
+
+                            <div id="wCountersChart"></div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td  style="width:35%; vertical-align:top" >
+                <table style="width:100%; height:100%">
+                    <tr><td>
+                        <div style="text-align: center; font-size: large; font-weight: bold;">Sensors</div>
+                       </td>
+                    </tr>
+                    <tr>
+                        <td style="padding-left:3em;padding-top:2em">
+                            <div id="sensors_div"></div>
+                        </td>
+                     </tr>
+                </table>
+            </td>
+          </tr>
+        </table>
+
+      </div> <!-- /content -->
+      <div data-role="footer" class="footer-docs" data-theme="c">
+        <p><span id="version"></span> </p>
+      </div>
+    </div><!-- /page -->
+
+  </body>
+
+</html>

@@ -37,5 +37,7 @@ Note: to compile the project you need following libraries:
 4. SdFat library - https://github.com/greiman/SdFat/tree/master/SdFat
 5. Time library - https://github.com/PaulStoffregen/Time
 6. DHT library (if you are using DHT sensor) - https://github.com/adafruit/DHT-sensor-library
+7. W5500 Ethernet library, if you are using W5500-based shield instead of the common W5100 shield
+	(W5500 is considerably faster than W5100)
 
 As well as standard Arduino libraries.

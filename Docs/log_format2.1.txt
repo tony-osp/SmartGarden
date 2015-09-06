@@ -15,9 +15,8 @@ File name: mm-yyyy.log
 
 1. Day of the month (one or two digits)
 2. Time in "hh:mm:ss" format. Note: seconds part may be absent
-3. Event source (e.g. "sys")
-4. Event type (1/2/3 for error/warning/info)
-5. The rest is event-specific, and could be treated as a string
+3. Event type (2/3/4/5/6 for critical/error/warning/notice/info)
+4. The rest is event-specific, and could be treated as a string
 
 One event per line, max line length - 255 characters. Encoding - ASCII.
 
@@ -29,7 +28,7 @@ First line of file defines columns:
 
 Month,Day,Time,Run time(min),ScheduleID,Adjustment,WUAdjustment
 
-This first line is helpful for applications capable of importing CSV files (e.g. Excel), it is also used to have easy to use
+This first line is helpful for applications capable of importing CSV files (e.g. Excel), it is also helps to provide
 format information since it defines columns meaning.
 
 The rest of the file consists of the records of the following format:
@@ -47,6 +46,7 @@ One event per line. ASCII encoding.
 ***Sensors data***
 
 Water flow meters data (files in /wflow.log directory)
+(water flow monitoring is modeled after network devices flow monitoring)
 
 File name: wflmm-yy.nnn, where mm - month, yy - year, nnn - sensor number. Sensor number is always 3 digits (padded with zeroes).
 
@@ -61,21 +61,24 @@ The rest of the file consists of the records of the following format:
 
 1. Day of the month (one or two digits)
 2. Time in "hh:mm" format
-3. Water flow reading (e.g. 2.5)
-4. Duration in seconds
+3. Water flow reading as a summary counter (32bit counter, presented as integer value in ASCII - i.e. up to 4294967295)
 
 One event per line. ASCII encoding.
 
 When multiple water flow sensors are installed additional sensors data can be represented by separate files.
-Water flow readings are assumed to be in gallons.
-Time duration indicates the period of time this water flow reading is for. E.g. if water flow reading is 2.5, and time is 300,
-it means that during the last 5 minutes (300 seconds) sensor detected the flow of 2.5 gallons of water.
-This information allows data consumers to calculate accurate flow rates while allowing variable logging rate speed -
-some of the sensors may be sending data every minute, other sensors may be sending data every 10 minutes etc.
-Also it allows data consumers to determine periods of activity and inactivity.
+Water flow readings are assumed to be in 1/10 of liter.
 
-Water flow records are expected to be for periods when there is detectable water flow - absence of a record indicates
-absence of the water flow. When water flow is detected updates/records are expected every few minutes.
+Water flow readings are provided as a summary counter. Delta (actual amount of water dispensed) can be calculated as a delta from previous reading(s).
+There are few caveats and specifics:
+
+- Summary counter can be reset at any time (e.g. station restarted), and this needs to be taken into account when calculating delta
+- Summary counter can overflow (32bit), this also needs to be taken into account
+- Events can be irregular - there is no specific periodic interval guarantees
+- The duration of the water flowing needs to be deduced from the events flow
+
+Typically events will be recorded regularly (every few minutes) while the water is flowing, and will not be recorded when water is not flowing, 
+however there may be some events recorded when water is not flowing - e.g. station may report an event on restart etc.
+
 
 
 

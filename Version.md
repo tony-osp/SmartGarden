@@ -1,0 +1,2 @@
+This branch is for v1.5 code. V1.5 code is restructured to have common Master and Remote code, also this code version requires Arduino Mega or 1284P MCU.
+This is dev branch right now, work in progress.
