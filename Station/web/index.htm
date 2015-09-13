@@ -92,6 +92,7 @@
             status_html += '<div style="text-align:center; width:100%">\n <img src="rainbird.gif" height="54" width="70">\n';
             status_html += '<div id="spantime">00:00</div>\n </div>\n </td>';
             status_html += '<td style="width:20%; font-size: medium; font-weight: bold;">\n <span>\n Schedule:<br />\n Zone:\n </span>\n </td>';
+            if (data.onSchedID == "100") data.onSchedName = "Quick Schedule";
             status_html += '<td style="width:40%; font-size: medium;">' + data.onSchedName + '<br />\n' + data.onZoneName + '<br />\n </td>\n </tr>\n </table>';
             d = document.getElementById('status_div');
             d.innerHTML = status_html;
@@ -142,6 +143,7 @@
               ("00" + (remaining % 60).toString()).substr(-2));
               window.setTimeout(function () {updateAnim();}, 1000);
           } else {
+              bCurrRunning = false;
             $.getJSON("json/state", checkAnim);
           }
         }
