@@ -60,6 +60,11 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SG_STATION_SLAVE		1	// allow acting as a slave (allow remote access via RF network)
 #define DEFAULT_MAX_DURATION	99	// default maximum runtime - 99 minutes
 
+// Weather Underground stuff
+
+// Weather Underground data validity time, mins
+#define	WU_VALID_TIME			480
+
 
 #define MAX_SCHEDULES	4
 #define MAX_STATIONS	16

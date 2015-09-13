@@ -6,9 +6,6 @@
 // Modifications for multi-station and SmartGarden system by Tony-osp
 //
 
-// enable logging support
-#define LOGGING 1
-
 #ifndef _CORE_h
 #define _CORE_h
 
@@ -18,15 +15,14 @@
 #include <inttypes.h>
 #include "port.h"
 #include "settings.h"
-#ifdef LOGGING
 #include "sdlog.h"
 extern Logging sdlog;
-#endif
 
 #ifndef VERSION
 #define VERSION "SG 1.5"
 #endif
 
+// Zone state cache.
 // We are using upper nibble for status, and lower nibble as a timer for transitional states
 
 #define ZONE_STATE_OFF			0
@@ -40,11 +36,10 @@ extern Logging sdlog;
 
 void mainLoop();
 void ClearEvents();
-void LoadSchedTimeEvents(int8_t sched_num, bool bQuickSchedule = false);
 void ReloadEvents(bool bAllEvents = false);
 uint8_t GetZoneState(uint8_t iNum);
-void TurnOnZone(uint8_t zone);
-void TurnOffZones();
+//void TurnOnZone(uint8_t zone);
+//void TurnOffZones();
 void io_setup();
 int ActiveZoneNum(void);
 
@@ -54,37 +49,27 @@ bool GetNextEvent(uint8_t *pSchedID, uint8_t *pZoneID, short *pTime);
 class runStateClass
 {
 public:
-	class DurationAdjustments {
-	public:
-		DurationAdjustments() : seasonal(-1), wunderground(-1) {}
-		DurationAdjustments(int16_t val) : seasonal(val), wunderground(val) {}
-		int16_t seasonal;
-		int16_t wunderground;
-	};
-public:
 	runStateClass();
-	void SetSchedule(bool val, int8_t iSchedNum = -1, const runStateClass::DurationAdjustments * adj = 0);
-	void ContinueSchedule(int8_t zone, short endTime);
-	void SetManual(bool val, int8_t zone = -1);
-	bool isSchedule()
-	{
-		return m_bSchedule;
-	}
-	bool isManual()
-	{
-		return m_bManual;
-	}
+	void		StartSchedule(bool fQuickSched, int8_t iSchedNum = 100);
+	void		StopSchedule(void);
+	void		ProcessScheduledEvents();
+
 	int8_t getZone()
 	{
-		return m_zone;
+		return m_iZone+1;
 	}
-	short getEndTime()
+	short getRemainingTime()
 	{
-		return m_endTime;
+		return max(m_zoneMins*60 - int((millis()-m_startZoneMillis)/1000ul), 0);
 	}
 	int8_t getSchedule()
 	{
 		return m_iSchedule;
+	}
+	bool isSchedule()
+	{
+		if( m_iSchedule != -1 ) return true;
+		else					return false;
 	}
 
 	void TurnOnZone(uint8_t nZone, uint8_t ttr);
@@ -102,14 +87,17 @@ public:
 	time_t	sLastContactTime[MAX_STATIONS];
 
 private:
-	void LogSchedule();
-	bool m_bSchedule;
-	bool m_bManual;
-	int8_t m_iSchedule;
-	int8_t m_zone;
-	short m_endTime;
-	time_t m_eventTime;
-	DurationAdjustments m_adj;
+	void		LogSchedule();
+	void		LogEvent();
+	uint8_t		sAdj(uint8_t val);
+
+	int8_t		m_iSchedule;
+	int8_t		m_iZone;
+	uint32_t	m_startZoneMillis;	// millis() reading when zone started
+	uint8_t		m_zoneMins;			// number of minutes to run
+	uint32_t	m_startSchedMillis;
+
+	int			m_wuScale;			// 100% by default
 
 };
 

@@ -547,6 +547,12 @@ bool SetSchedule(const KVPairs & key_value_pairs)
         }
         // and save it
         SaveSchedule(sched_num, &sched);
+
+	    if (GetRunSchedules() && (runState.getSchedule()==sched_num) ){
+			runState.StopSchedule();
+			runState.ProcessScheduledEvents();
+		}
+
         return true;
 }
 

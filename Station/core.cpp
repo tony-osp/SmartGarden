@@ -10,7 +10,6 @@
 #include "settings.h"
 #include "Weather.h"
 #include "web.h"
-#include "Event.h"
 #include "port.h"
 #include "LocalBoard.h"
 #include <stdlib.h>
@@ -26,15 +25,10 @@ static tftp tftpServer;
 #include <unistd.h>
 #endif
 
-// Local forward declarations
-void ProcessEvents();
-
 
 // Core modules
 
-#ifdef LOGGING
 Logging sdlog;
-#endif
 static web webServer;
 nntp nntpTimeServer;
 runStateClass runState;
@@ -94,6 +88,38 @@ void zoneHandlerLoop(void)
 		}
 	}
 }
+
+
+uint8_t GetZoneState(uint8_t iNum)
+{
+	iNum--;		// adjust zone number (1 based vs 0 based)
+
+	if( iNum >= GetNumZones() )
+	{
+		SYSEVT_ERROR(F("GetZoneState - wrong zone number %d"), (uint16_t)iNum);
+		return ZONE_STATE_OFF;
+	}
+
+	return (zoneStateCache[iNum] & 0x0F0);		// return state only, suppress timer (lower nibble)
+}
+
+//	Returns active zone number.
+//
+//	Note: This funciton performs conversion. lBoard numbers channels from 0, with 255 meaning - nothing is running.
+//		  However zones are numbered from 1, with -1 means - nothing is running.
+//
+int ActiveZoneNum(void)
+{
+		for( uint8_t i=0; i<GetNumZones(); i++ )
+		{
+			if( zoneStateCache[i] != ZONE_STATE_OFF )
+				return i+1;
+		}
+
+		return -1;
+}
+
+
 
 void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 {
@@ -304,13 +330,12 @@ bool runStateClass::StartZoneWorker(int iSchedule, uint8_t stationID, uint8_t ch
 		uint8_t	n_zones = GetNumZones();
         if( ch >= n_zones ) return	false;    // basic protection, ensure that required zone number is within acceptable range
 
-        // So, we first end any schedule that's currently running by turning things off then on again.
-        ReloadEvents();
+        // So, we first end any schedule that's currently running 
+		runState.StopSchedule();
 
         if( ActiveZoneNum() != -1 ){    // something is currently running, turn it off
 
                 runState.TurnOffZonesWorker();
-                runState.SetManual(false);
         }
 
         for( uint8_t n=0; n<n_zones; n++ ){
@@ -321,8 +346,8 @@ bool runStateClass::StartZoneWorker(int iSchedule, uint8_t stationID, uint8_t ch
 // set run time for required zone.
 //
         quickSchedule.zone_duration[ch] = time2run;
-        LoadSchedTimeEvents(0, true);
-		ProcessEvents();
+        StartSchedule(true);
+		ProcessScheduledEvents();
 
 		return true;
 }
@@ -330,7 +355,6 @@ bool runStateClass::StartZoneWorker(int iSchedule, uint8_t stationID, uint8_t ch
 void runStateClass::RemoteStopAllZones(void)
 {
 		TurnOffZonesWorker();
-        SetManual(false);
 }
 
 void runStateClass::TurnOffZones()
@@ -354,6 +378,8 @@ void runStateClass::TurnOffZonesWorker()
 			if( zoneStateCache[i] != ZONE_STATE_OFF )
 				TurnOffZone(i+1);
 		}
+		if( m_iSchedule != -1 )
+			m_iSchedule = -1;
 }
 
 void runStateClass::ReportZoneStatus(uint8_t stationID, uint8_t channel, uint8_t z_status)
@@ -396,108 +422,198 @@ void runStateClass::ReportStationZonesStatus(uint8_t stationID, uint8_t z_status
 	}
 }
 
-runStateClass::runStateClass() : m_bSchedule(false), m_bManual(false), m_iSchedule(-1), m_zone(-1), m_endTime(0), m_eventTime(0)
+runStateClass::runStateClass() : m_iSchedule(-1), m_iZone(-1), m_wuScale(100)
 {
 	for( int i=0; i<MAX_STATIONS; i++ ) sLastContactTime[i] = 0;
 }
 
+void runStateClass::LogEvent()
+{
+	if( m_iZone!=-1 )
+	{
+        sdlog.LogZoneEvent(now()-(uint32_t)m_zoneMins*60ul, m_iZone, int((millis()-m_startZoneMillis)/60000ul), m_iSchedule, GetSeasonalAdjust(), m_wuScale);
+	}
+}
+
 void runStateClass::LogSchedule()
 {
-#ifdef LOGGING
-        if ((m_eventTime > 0) && (m_zone >= 0))
-                sdlog.LogZoneEvent(m_eventTime, m_zone, now() - m_eventTime, m_bSchedule ? m_iSchedule+1:-1, m_adj.seasonal, m_adj.wunderground);
-#endif
-}
-
-void runStateClass::SetSchedule(bool val, int8_t iSched, const runStateClass::DurationAdjustments * adj)
-{
-        LogSchedule();
-        m_bSchedule = val;
-        m_bManual = false;
-        m_zone = -1;
-        m_endTime = 0;
-        m_iSchedule = val?iSched:-1;
-        m_eventTime = now();
-        m_adj = adj?*adj:DurationAdjustments();
-}
-
-void runStateClass::ContinueSchedule(int8_t zone, short endTime)
-{
-        LogSchedule();
-        m_bSchedule = true;
-        m_bManual = false;
-        m_zone = zone;
-        m_endTime = endTime;
-        m_eventTime = now();
-}
-
-void runStateClass::SetManual(bool val, int8_t zone)
-{
-        LogSchedule();
-        m_bSchedule = false;
-        m_bManual = val;
-        m_zone = zone;
-        m_endTime = 0;
-        m_iSchedule = -1;
-        m_eventTime = now();
-        m_adj=DurationAdjustments();
-}
-
-
-
-
-
-uint8_t GetZoneState(uint8_t iNum)
-{
-	iNum--;		// adjust zone number (1 based vs 0 based)
-
-	if( iNum >= GetNumZones() )
+	if( m_iSchedule != -1 )
 	{
-		SYSEVT_ERROR(F("GetZoneState - wrong zone number %d"), (uint16_t)iNum);
-		return ZONE_STATE_OFF;
+        sdlog.LogSchedEvent(now()-(millis()-m_startSchedMillis)/1000ul, int((millis()-m_startSchedMillis)/60000ul), m_iSchedule, GetSeasonalAdjust(), m_wuScale);
 	}
-
-	return (zoneStateCache[iNum] & 0x0F0);		// return state only, suppress timer (lower nibble)
 }
 
-//	Returns active zone number.
-//
-//	Note: This funciton performs conversion. lBoard numbers channels from 0, with 255 meaning - nothing is running.
-//		  However zones are numbered from 1, with -1 means - nothing is running.
-//
-int ActiveZoneNum(void)
+void runStateClass::StopSchedule(void)
 {
-		for( uint8_t i=0; i<GetNumZones(); i++ )
+        if( m_iSchedule != -1 )		// a schedule is already running, stop it
 		{
-			if( zoneStateCache[i] != ZONE_STATE_OFF )
-				return i+1;
+			if( m_iZone != -1 )
+				TurnOffZone(m_iZone+1);
+			
+			m_iZone = -1; // no zone is running
+			LogSchedule(); // log previous schedule since we are stopping it
+			m_iSchedule = -1;
 		}
-
-		return -1;
 }
 
 
-
-
-// Adjust the durations based on atmospheric conditions
-static runStateClass::DurationAdjustments AdjustDurations(Schedule * sched)
+uint8_t runStateClass::sAdj(uint8_t val)
 {
-        runStateClass::DurationAdjustments adj(100);
-        if (sched->IsWAdj())
+		static	uint32_t	lastWUUpdate = 0;		// timestamp (in millis) of the last WU update
+
+		if( (lastWUUpdate==0) || ((lastWUUpdate+WU_VALID_TIME*60000)<millis()) )			
         {
                 Weather w;
                 char key[17];
                 GetApiKey(key);
                 char pws[12] = {0};
                 GetPWS(pws);
-                adj.wunderground = w.GetScale(GetWUIP(), key, GetZip(), pws, GetUsePWS());   // factor to adjust times by.  100 = 100% (i.e. no adjustment)
+                m_wuScale = w.GetScale(GetWUIP(), key, GetZip(), pws, GetUsePWS());   // factor to adjust times by.  100 = 100% (i.e. no adjustment)
+				lastWUUpdate = millis();
         }
-        adj.seasonal = GetSeasonalAdjust();
-        long scale = ((long)adj.seasonal * (long)adj.wunderground) / 100;
-		uint8_t	n_zones = GetNumZones();
-        for (uint8_t k = 0; k < n_zones; k++)
-                sched->zone_duration[k] = min(((long)sched->zone_duration[k] * scale + 50) / 100, 254);
-        return adj;
+        uint8_t seasonal = GetSeasonalAdjust();
+        long scale = ((long)seasonal * (long)m_wuScale) / 100;
+        
+		return min(((long)val * scale + 50) / 100, 254);
+}
+
+
+void runStateClass::StartSchedule(bool fQuickSched, int8_t iSched)
+{
+		StopSchedule();	// stop currently running schedule if any
+
+		if( fQuickSched )
+		{
+			uint8_t	mZones = GetNumZones();
+
+			for( uint8_t i=0; i<mZones; i++ )
+			{
+				if( quickSchedule.zone_duration[i] != 0 )  // OK, we found first zone in this schedule to start
+				{
+					//TRACE_CRIT(F("StartSchedule - starting quick schedule wiht zone=%d, duration=%d\n"),int(i), int(quickSchedule.zone_duration[i]));
+
+					m_iSchedule = 100;	// quick schedule goes under standard number 100.
+					m_startSchedMillis = millis();
+					m_iZone = i;
+					m_startZoneMillis = millis();
+					m_zoneMins = quickSchedule.zone_duration[i];
+					
+					TurnOnZone(i+1, m_zoneMins);
+					return;	// done
+				}
+			}
+			return;		// we have not found any enabled zones in quickSchedule			
+		}
+		else
+		{
+			uint8_t	mZones = GetNumZones();
+			Schedule	sched;
+
+			LoadSchedule(iSched, &sched);
+			if( !sched.IsEnabled() )		// basic protection, if schedule is not enabled - exit.
+				return;
+
+			for( uint8_t i=0; i<mZones; i++ )
+			{
+				if( sched.zone_duration[i] != 0 )  // OK, we found first zone in this schedule to start
+				{
+					m_iSchedule = 100;	// quick schedule goes under standard number 100.
+					m_startSchedMillis = millis();
+					m_iZone = i;
+					m_startZoneMillis = millis();
+					if (sched.IsWAdj())
+						m_zoneMins = sAdj(sched.zone_duration[i]);
+					else
+						m_zoneMins = sched.zone_duration[i];
+					
+					TurnOnZone(i+1, m_zoneMins);
+					return;	// done
+				}
+			}
+		}
+}
+
+// process scheduled events
+
+void runStateClass::ProcessScheduledEvents(void)
+{
+	if( !GetRunSchedules() )	// schedules are currently disabled
+	{
+		if( m_iSchedule != -1 )		// if a schedule is running, stop it
+			StopSchedule();
+		return;
+	}
+
+	if( m_iSchedule != -1 )		// a schedule is currently running
+	{
+		if( m_iZone != -1 )		// a zone is currently running
+		{
+			register uint32_t  rt = (millis()-m_startZoneMillis)/60000ul;
+			if( rt < m_zoneMins )
+				return;			// currently running zone still has time to run
+
+			// OK, run time finished, stop this zone and start new one in the same schedule
+			LogEvent();
+			TurnOffZone(m_iZone+1);
+			
+			uint8_t		mZones = GetNumZones();
+			Schedule	sched;
+			if( m_iSchedule == 100 )	// quick schedule
+			{
+				memcpy(&sched, &quickSchedule, sizeof(quickSchedule));
+			}
+			else
+			{
+				LoadSchedule(m_iSchedule, &sched);
+				if( !sched.IsEnabled() )		// basic protection, if schedule is not enabled - exit.
+				{
+					TRACE_CRIT(F("ProcessScheduledEvents - current schedule %d is not enabled, exiting\n"));
+					m_iZone = -1;
+					StopSchedule();
+					return;
+				}
+			}
+
+			for( uint8_t i=m_iZone+1; i<mZones; i++ )
+			{
+				if( sched.zone_duration[i] != 0 )  // OK, we found first zone in this schedule to start
+				{
+					m_iZone = i;
+					m_startZoneMillis = millis();
+					if (sched.IsWAdj())
+						m_zoneMins = sAdj(sched.zone_duration[i]);
+					else
+						m_zoneMins = sched.zone_duration[i];
+
+					TurnOnZone(i+1, m_zoneMins);
+					return;	// done
+				}
+			}
+			// we have not found a new zone in the current schedule, close current schedule
+			m_iZone = -1;
+			StopSchedule();
+			return;
+		}	//a zone is currently running
+		else
+		{
+			TRACE_ERROR(F("ProcessEvents - state corruption, active schedule with no zones\n"));
+			StopSchedule();
+			return;
+		}
+	}	// a schedule is currently running
+	else
+	{
+		uint8_t	schedID, zoneID;
+		short	sTime;
+
+		if( GetNextEvent(&schedID, &zoneID, &sTime) )
+		{
+			time_t	 t = now();
+			register short  cTime = hour(t)*60 + minute(t);
+			if( sTime == cTime )
+				StartSchedule(false, schedID);
+		}
+	}
 }
 
 // return true if the schedule is enabled and runs today.
@@ -510,161 +626,7 @@ static inline bool IsRunToday(const Schedule & sched, time_t time_now)
         return false;
 }
 
-// Load the on/off events for a specific schedule/time or the quick schedule
-void LoadSchedTimeEvents(int8_t sched_num, bool bQuickSchedule)
-{
-        Schedule sched;
-        runStateClass::DurationAdjustments adj;
-        if (!bQuickSchedule)
-        {
-                const uint8_t iNumSchedules = GetNumSchedules();
-                if ((sched_num < 0) || (sched_num >= iNumSchedules))
-                        return;
-                LoadSchedule(sched_num, &sched);
-                adj=AdjustDurations(&sched);
-        }
-        else
-                sched = quickSchedule;
 
-        const time_t local_now = now();
-        short start_time = (local_now - previousMidnight(local_now)) / 60;
-
-		uint8_t	n_zones = GetNumZones();
-        for (uint8_t k = 0; k < n_zones; k++)
-        {
-                ShortZone zone;
-                LoadShortZone(k, &zone);
-                if (zone.bEnabled && (sched.zone_duration[k] > 0))
-                {
-                        if (iNumEvents >= (MAX_EVENTS - 1) )
-                        {  // make sure we have room for the on && the off events.. hence the -1
-                                SYSEVT_ERROR(F("ERROR: Too Many Events!"));
-                        }
-                        else
-                        {
-                                events[iNumEvents].time = start_time;
-                                events[iNumEvents].command = 0x01; // Turn on a zone
-                                events[iNumEvents].data[0] = k+1; // Zone to turn on
-                                events[iNumEvents].data[1] = (start_time + sched.zone_duration[k]) >> 8;
-                                events[iNumEvents].data[2] = (start_time + sched.zone_duration[k]) & 0x00FF;
-                                events[iNumEvents].data[3] = sched.zone_duration[k];
-                                iNumEvents++;
-                                start_time += sched.zone_duration[k];
-                        }
-                }
-        }
-        // Load up the last turn off event.
-        events[iNumEvents].time = start_time;
-        events[iNumEvents].command = 0x02; // Turn off all zones
-        events[iNumEvents].data[0] = 0;
-        events[iNumEvents].data[1] = 0;
-        events[iNumEvents].data[2] = 0;
-        iNumEvents++;
-        runState.SetSchedule(true, bQuickSchedule?99:sched_num, &adj);
-
-		ProcessEvents();
-}
-
-void ClearEvents()
-{
-        iNumEvents = 0;
-        runState.SetSchedule(false);
-}
-
-// TODO:  Schedules that go past midnight!
-//  Pretty simple.  When we one-shot at midnight, check to see if any outstanding events are at time >1400.  If so, move them
-//  to the top of the event stack and subtract 1440 (24*60) from their times.
-
-// Loads the events for the current day
-void ReloadEvents(bool bAllEvents)
-{
-        ClearEvents();
-        runState.TurnOffZones();
-
-        // Make sure we're running now
-        if (!GetRunSchedules())
-                return;
-
-        const time_t time_now = now();
-        const uint8_t iNumSchedules = GetNumSchedules();
-        for (uint8_t i = 0; i < iNumSchedules; i++)
-        {
-                Schedule sched;
-                LoadSchedule(i, &sched);
-                if (IsRunToday(sched, time_now))
-                {
-                        // now load up events for each of the start times.
-                        for (uint8_t j = 0; j <= 3; j++)
-                        {
-                                const short start_time = sched.time[j];
-                                if (start_time != -1)
-                                {
-                                        if (!bAllEvents && (start_time <= (long)(time_now - previousMidnight(time_now))/60 ))
-                                                continue;
-                                        if (iNumEvents >= MAX_EVENTS)
-                                        {
-                                                SYSEVT_ERROR(F("ERROR: Too Many Events!"));
-                                        }
-                                        else
-                                        {
-                                                events[iNumEvents].time = start_time;
-                                                events[iNumEvents].command = 0x03;  // load events for schedule i, time j
-                                                events[iNumEvents].data[0] = i;
-                                                events[iNumEvents].data[1] = j;
-                                                events[iNumEvents].data[2] = 0;
-                                                iNumEvents++;
-                                        }
-                                }
-                        }
-                }
-        }
-}
-
-// Check to see if there are any events that need to be processed.
-void ProcessEvents()
-{
-        const time_t local_now = now();
-        const short time_check = (local_now - previousMidnight(local_now)) / 60;
-        for (uint8_t i = 0; i < iNumEvents; i++)
-        {
-                if (events[i].time == -1)
-                        continue;
-                if (time_check >= events[i].time)
-                {
-                        switch (events[i].command)
-                        {
-                        case 0x01:  // turn on valves in data[0]
-                                runState.TurnOffZones();			// [Tony-osp] - SmartGarden conversion
-														//
-														// Note:	Right now the scheduling logic assumes that turning On a Zone will automatically
-														//			turn Off all other zones. However the new execution engine does not support
-														//			this assumption - it requires the caller to explicitly turn zones On and Off.
-														//			To emulate old behavior we will explicitly turn Off all zones before 
-														//			turning On a new one.
-
-                                runState.TurnOnZone(events[i].data[0],events[i].data[3]);
-                                runState.ContinueSchedule(events[i].data[0], events[i].data[1] << 8 | events[i].data[2]);
-                                events[i].time = -1;
-                                break;
-                        case 0x02:  // turn off all valves
-                                runState.TurnOffZones();
-                                runState.SetSchedule(false);
-                                events[i].time = -1;
-                                break;
-                        case 0x03:  // load events for schedule(data[0]) time(data[1])
-                                if (runState.isSchedule())  // If we're already running a schedule, push this off 1 minute
-                                        events[i].time++;
-                                else
-                                {
-                                        // Load all the individual events for the individual zones on/off
-                                        LoadSchedTimeEvents(events[i].data[0]);
-                                        events[i].time = -1;
-                                }
-                                break;
-                        };
-                }
-        }
-}
 
 // finds next watering event
 // by scanning schedules
@@ -686,6 +648,7 @@ bool GetNextEvent(uint8_t *pSchedID, uint8_t *pZoneID, short *pTime)
 
         const time_t time_now = now();
         const uint8_t iNumSchedules = GetNumSchedules();
+		short cTime = hour(time_now)*60 + minute(time_now);
 
 		for( uint8_t i = 0; i < iNumSchedules; i++ )
         {
@@ -699,7 +662,7 @@ bool GetNextEvent(uint8_t *pSchedID, uint8_t *pZoneID, short *pTime)
                                 const short start_time = sched.time[j];	//Note: schedule may have up to 4 start times specified, stored as minutes (since midnight?)
                                 if( start_time != -1 )
                                 {
-										if( start_time < *pTime )
+										if( (start_time<*pTime) && (start_time>=cTime) )
 										{
 											for( uint8_t iZone = 0; iZone < MAX_ZONES; iZone++ )
 											{
@@ -741,9 +704,6 @@ void mainLoop()
 
                 sensorsModule.begin();  // start sensors module
                 
-                runState.TurnOffZones();
-                ClearEvents();
-
 #ifdef HW_ENABLE_ETHERNET
                 //Init the web server
                 if (!webServer.Init())
@@ -757,12 +717,8 @@ void mainLoop()
                 nntpTimeServer.checkTime();
 #endif //HW_ENABLE_ETHERNET
 
-                ReloadEvents();
-                //ShowSockStatus();
-#ifdef LOGGING
                 sdlog.begin();
                 SYSEVT_CRIT(F("System started."));
-#endif
 			    localUI.set_mode(OSUI_MODE_HOME);  // set to HOME mode, page 0
 			    localUI.resume();
         }
@@ -774,7 +730,7 @@ void mainLoop()
 //  and different types of load are executed at different ticks.
 //
 // I have to go into this complexity because the number of scheduled tasks increased a lot (sensors, RF network etc), 
-//  while some of the loop() - style tasks are time-sensitive. Key tasks that is time-sensisive - local UI handling.
+//  while some of the loop() - style tasks are time-sensitive. Key task that is time-sensisive - local UI handling.
 
        static unsigned long  old_millis = 0;
 	   static uint8_t		 tick_counter = 0;	// We use 1/10th of a second ticks to help running various scheduled tasks
@@ -802,7 +758,6 @@ void mainLoop()
                      TRACE_INFO(F("Reloading Midnight\n"));
                      bDoneMidnightReset = true;
                      // TODO:  outstanding midnight events.  See other TODO for how.
-                     ReloadEvents(true);
 				}
 				else if (hour(timeNow) != 0)
                      bDoneMidnightReset = false;
@@ -828,7 +783,7 @@ void mainLoop()
 #endif //HW_ENABLE_ETHERNET
 
         // Process any pending events.
-        ProcessEvents();
+        runState.ProcessScheduledEvents();
 
 #ifdef ARDUINO
 #ifdef HW_ENABLE_ETHERNET

@@ -271,7 +271,6 @@ byte OSLocalUI::callHandler(byte needs_refresh)
            if( ActiveZoneNum() != -1 ){    // schedules are disabled, but something is currently running (manual mode), turn it off
 
                 runState.TurnOffZones();
-                runState.SetManual(false);
            }
            else  {
 
@@ -280,7 +279,7 @@ byte OSLocalUI::callHandler(byte needs_refresh)
       }
 
 // Apply changes to stop/start schedules as required.
-          ReloadEvents();
+		  runState.ProcessScheduledEvents();
 
           forceRefresh = 1;             // force UI refresh to provide immediate visual feedback
    }
@@ -942,7 +941,6 @@ void manual_station_on(byte sid, int ontimer)
         if( ActiveZoneNum() != -1 ){    // something is currently running, turn it off
 
                 runState.TurnOffZones();
-                runState.SetManual(false);
         }
 
         for( byte n=0; n<n_zones; n++ ){
@@ -954,7 +952,7 @@ void manual_station_on(byte sid, int ontimer)
 //
         quickSchedule.zone_duration[sid] = ontimer;
 
-        LoadSchedTimeEvents(0, true);
+        runState.StartSchedule(true);
 }
 
 byte GetNextStation(byte curr_station)

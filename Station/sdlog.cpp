@@ -272,9 +272,16 @@ void Logging::Close()
 }
 
 
+// Record schedule watering event
+//
+// Note: for watering events we open/close file on each event
 
+bool Logging::LogSchedEvent(time_t start, int duration, int schedule, int sadj, int wunderground)
+{
+	;
+}
 
-// Record watering event
+// Record zone watering event
 //
 // Note: for watering events we open/close file on each event
 

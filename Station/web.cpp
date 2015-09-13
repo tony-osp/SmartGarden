@@ -16,7 +16,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "Event.h"
 #include "sensors.h"
 
 
@@ -182,9 +181,6 @@ static void JSONWWCounters(const KVPairs & key_value_pairs, FILE * stream_file)
 }
 
 
-#ifdef LOGGING
-
-
 // Query sensor readings
 
 static void JSONSensor(const KVPairs & key_value_pairs, FILE * stream_file)
@@ -294,8 +290,6 @@ static void JSONtLogs(const KVPairs & key_value_pairs, FILE * stream_file)
 	fprintf_P(stream_file, PSTR("\t]\n}"));
 }
 
-#endif  //LOGGING
-
 static void JSONSettings(const KVPairs & key_value_pairs, FILE * stream_file)
 {
 	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
@@ -363,19 +357,16 @@ static void JSONState(const KVPairs & key_value_pairs, FILE * stream_file)
 	fprintf_P(stream_file,
 			PSTR("{\n\t\"version\" : \"%s\",\n\t\"run\" : \"%s\",\n\t\"zones\" : \"%d\",\n\t\"schedules\" : \"%d\",\n\t\"stations\" : \"%d\",\n\t\"timenow\" : \"%lu\",\n\t\"locationZip\" : \"%lu\""),
 			VERSION, GetRunSchedules() ? "on" : "off", GetNumEnabledZones(), int(GetNumSchedules()), int(GetNumStations()), now(), GetZip());
-	if (runState.isSchedule() || runState.isManual())
+	if( runState.isSchedule() )
 	{
 		FullZone zone;
 		LoadZone(runState.getZone() - 1, &zone);
         Schedule sched;
 		LoadSchedule(runState.getSchedule(), &sched);
 
-		long time_check = runState.getEndTime() * 60L - (now() - previousMidnight(now()));
-		if (runState.isManual())
-			time_check = 99999;
 		if( runState.getSchedule() == 99 )  // manual
 			strcpy_P(sched.name, PSTR("Manual"));
-		fprintf_P(stream_file, PSTR(",\n\t\"onZoneName\" : \"%s\",\n\t\"offTime\" : \"%ld\",\n\t\"onSchedID\" : \"%d\",\n\t\"onSchedName\" : \"%s\""), zone.name, time_check, int(runState.getSchedule()), sched.name);
+		fprintf_P(stream_file, PSTR(",\n\t\"onZoneName\" : \"%s\",\n\t\"offTime\" : \"%d\",\n\t\"onSchedID\" : \"%d\",\n\t\"onSchedName\" : \"%s\""), zone.name, runState.getRemainingTime(), int(runState.getSchedule()), sched.name);
 	}
 
 	uint8_t	 nextSchedID, nextZoneID;
@@ -461,7 +452,7 @@ static bool SetQSched(const KVPairs & key_value_pairs)
 {
 
 	// So, we first end any schedule that's currently running by turning things off then on again.
-	ReloadEvents();
+	runState.StopSchedule();
 
 	int sched = -1;
 
@@ -481,9 +472,10 @@ static bool SetQSched(const KVPairs & key_value_pairs)
 	}
 
 	if (sched == -1)
-		LoadSchedTimeEvents(0, true);
+		runState.StartSchedule(true);
 	else
-		LoadSchedTimeEvents(sched);
+		runState.StartSchedule(false, sched);
+
 	return true;
 }
 
@@ -513,45 +505,6 @@ static bool RunSchedules(const KVPairs & key_value_pairs)
 	return true;
 }
 
-static bool ManualZone(const KVPairs & key_value_pairs)
-{
-	freeMemory();
-
-	// Turn off the current schedules.
-	SetRunSchedules(false);
-
-	bool bOn = false;
-	int iZoneNum = -1;
-
-	// Iterate through the kv pairs and update the appropriate structure values.
-	for (int i = 0; i < key_value_pairs.num_pairs; i++)
-	{
-		const char * key = key_value_pairs.keys[i];
-		const char * value = key_value_pairs.values[i];
-		if ((strcmp_P(key, PSTR("zone")) == 0) && (value[0] == 'z') && (value[1] > 'a') && (value[1] <= ('a' + GetNumZones())))
-		{
-			iZoneNum = value[1] - 'a';
-		}
-		else if (strcmp_P(key, PSTR("state")) == 0)
-		{
-			if (strcmp_P(value, PSTR("on")) == 0)
-				bOn = true;
-			else
-				bOn = false;
-		}
-	}
-	if ((iZoneNum >= 0) && bOn)
-	{
-		runState.TurnOnZone(iZoneNum, DEFAULT_MANUAL_RUNTIME);
-		runState.SetManual(true, iZoneNum);
-	}
-	else
-	{
-		runState.TurnOffZones();
-		runState.SetManual(false);
-	}
-	return true;
-}
 
 void ServeFile(FILE * stream_file, const char * fname, SdFile & theFile, EthernetClient & client)
 {
@@ -867,8 +820,6 @@ void web::ProcessWebClients()
 			     {
 				     if (SetSchedule(key_value_pairs))
 				     {
-					     if (GetRunSchedules())
-						     ReloadEvents();
 					     ServeHeader(pFile, 200, PSTR("OK"), false);
 				     }
 				     else
@@ -878,7 +829,6 @@ void web::ProcessWebClients()
 			     {
 				     if (SetOneZones(key_value_pairs))
 				     {
-					     ReloadEvents();
 					     ServeHeader(pFile, 200, PSTR("OK"), false);
 				     }
 				     else
@@ -888,7 +838,6 @@ void web::ProcessWebClients()
 			     {
 				     if (SetZones(key_value_pairs))
 				     {
-					     ReloadEvents();
 					     ServeHeader(pFile, 200, PSTR("OK"), false);
 				     }
 				     else
@@ -898,8 +847,10 @@ void web::ProcessWebClients()
   			     {
 				     if (DeleteSchedule(key_value_pairs))
 				     {
-					     if (GetRunSchedules())
-						     ReloadEvents();
+					     if (GetRunSchedules()){
+							 runState.StopSchedule();
+							 runState.ProcessScheduledEvents();
+						 }
 					     ServeHeader(pFile, 200, PSTR("OK"), false);
 				     }
 				     else
@@ -918,16 +869,10 @@ void web::ProcessWebClients()
 			     {
 				     if (SetSettings(key_value_pairs))
 				     {
-					     ReloadEvents();
-					     ServeHeader(pFile, 200, PSTR("OK"), false);
-				     }
-				     else
-					     ServeError(pFile);
-			     }
-			     else if (strcmp_P(xP4, PSTR("manual")) == 0)
-			     {
-				     if (ManualZone(key_value_pairs))
-				     {
+					     if (GetRunSchedules()){
+							 runState.StopSchedule();
+							 runState.ProcessScheduledEvents();
+						 }
 					     ServeHeader(pFile, 200, PSTR("OK"), false);
 				     }
 				     else
@@ -937,7 +882,7 @@ void web::ProcessWebClients()
 			     {
 				     if (RunSchedules(key_value_pairs))
 				     {
-					     ReloadEvents();
+						 runState.ProcessScheduledEvents();
 					     ServeHeader(pFile, 200, PSTR("OK"), false);
 				     }
 				     else
@@ -945,8 +890,10 @@ void web::ProcessWebClients()
 			     }
 			     else if (strcmp_P(xP4, PSTR("factory")) == 0)
 			     {
+				     if (GetRunSchedules()){
+						 runState.StopSchedule();
+					 }
 				     ResetEEPROM();
-				     ReloadEvents();
 				     ServeHeader(pFile, 200, PSTR("OK"), false);
 			     }
 			     else if (strcmp_P(xP4, PSTR("reset")) == 0)
@@ -985,7 +932,6 @@ void web::ProcessWebClients()
 			     {
 				     JSONwCheck(key_value_pairs, pFile);
 			     }
-#ifdef LOGGING
 			     else if (strcmp_P(xP5, PSTR("logs")) == 0)
 			     {
 			 	      JSONLogs(key_value_pairs, pFile);
@@ -994,7 +940,6 @@ void web::ProcessWebClients()
 			     {
 				     JSONtLogs(key_value_pairs, pFile);
 			     }
-#endif //LOGGING
 
 // Sensors
 			     else if (strcmp_P(xP5, PSTR("sens")) == 0)
