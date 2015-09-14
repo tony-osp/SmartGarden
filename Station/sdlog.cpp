@@ -295,30 +295,15 @@ bool Logging::LogZoneEvent(time_t start, int zone, int duration, int schedule, i
 // Also when day change occurs, we are adding previously accumulated running water counter to the global lifetime water counter
 //
 	  {
-			register uint8_t  dow = weekday(t)-1;
-			register uint16_t  cc = GetWWCounter(dow);	
-			register uint32_t  last_t = GetTotalWCounterDate();
+			register uint8_t	dow = weekday(t)-1;
+			register uint16_t	cc = GetWWCounter(dow);	
 
 			ShortZone   szone;
 			LoadShortZone(zone, &szone);
 		
-			//TRACE_CRIT(F("Updating WWCounter, dow=%d, previous WWCounter=%d, duration=%d, zone.wfRate=%d\n"), int(dow), cc, duration, szone.waterFlowRate);
-
-			if( (day(t)!=day(last_t)) || (month(t)!=month(last_t)) || (year(t)!=year(last_t)) )
-			{
-				SetTotalWCounter(GetTotalWCounter() + uint32_t(cc/100));	// note: running water counters are in 1/100 GPM, while lifetime water counter is in GPM
-				SetTotalWCounterDate(t);
-				GetTotalWCounterDate();
-
-				register uint32_t tmp32 = duration * szone.waterFlowRate;	tmp32 = tmp32/60ul;
-				cc = uint16_t(tmp32);
-			}
-			else
-			{
-				register uint32_t tmp32 = duration * szone.waterFlowRate;	tmp32 = tmp32/60ul;
-				cc += uint16_t(tmp32);
-			}
-			SetWWCounter(dow, cc);
+			register uint32_t tmp32 = uint32_t(duration) * uint32_t(szone.waterFlowRate);
+			SetWWCounter(dow, GetWWCounter(dow)+uint16_t(tmp32));
+			//TRACE_CRIT(F("Updating WWCounter, dow=%d, duration=%d, zone.wfRate=%d, increment=%d\n"), int(dow), duration, szone.waterFlowRate, int(tmp32) );
 	  }
 
    if( !logger_ready ) return false;  //check if the logger is ready

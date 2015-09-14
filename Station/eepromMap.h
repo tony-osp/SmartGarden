@@ -71,7 +71,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #define ADDR_WWCOUNTERS			642			// last 7 days water counters (16bit, one per day of the week)
 #define	ADDR_TOTAL_WCOUNTER		657			// lifetime water counter, 32bit, updated daily
-#define ADDR_D_TOTAL_WCOUNTER	661			// date stamp of the last update of the lifetime water counter, 32bit
+#define ADDR_D_WWCOUNTERS		661			// date stamps of the WWCOUNTERS updates, 32bit per date stamp, 7 date stamps
 
 #if ZONE_OFFSET + (ZONE_INDEX * MAX_ZONES) > END_OF_ZONE_BLOCK
 #error Number of Zones is too large

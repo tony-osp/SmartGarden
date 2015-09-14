@@ -258,8 +258,8 @@ void SetWWCounter(uint8_t cID, uint16_t value);
 uint16_t GetWWCounter(uint8_t cID);
 void SetTotalWCounter(uint32_t val);
 uint32_t GetTotalWCounter(void);
-uint32_t GetTotalWCounterDate(void);
-void SetTotalWCounterDate(uint32_t val);
+uint32_t GetWCounterDate(uint8_t cID);
+void SetWCounterDate(uint8_t cID, uint32_t val);
 
 
 // XBee RF

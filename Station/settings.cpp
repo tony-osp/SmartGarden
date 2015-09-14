@@ -341,81 +341,104 @@ void SetMyStationID(uint8_t stationID)
 	EEPROM.write(ADDR_MY_STATION_ID, stationID);
 }
 
+inline void setEEPROM2bytes(int addr, uint16_t value)
+{
+	register uint8_t vh = (value & 0x0FF00) >> 8;
+	register uint8_t vl = value & 0x0FF;
+
+	EEPROM.write(addr, vl);
+	EEPROM.write(addr+1, vh);
+}
+
+inline uint16_t getEEPROM2bytes(int addr)
+{
+	register uint16_t val;
+
+	val =  EEPROM.read(addr+1) << 8;
+	val += EEPROM.read(addr);
+	return val;
+}
+
 void SetWWCounter(uint8_t cID, uint16_t value)
 {
 	//TRACE_CRIT(F("SetWWCounter, id=%d, value=%d\n"), int(cID), value);
 
 	if( cID > 6 ) return;	// basic protection - range checking
-		
-	register uint8_t vh = (value & 0x0FF00) >> 8;
-	register uint8_t vl = value & 0x0FF;
 
-	EEPROM.write(ADDR_WWCOUNTERS+cID*2, vl);
-	EEPROM.write(ADDR_WWCOUNTERS+1+cID*2, vh);
+	setEEPROM2bytes(ADDR_WWCOUNTERS+cID*2, value);
+}
+
+inline uint16_t internalGetWWCounter(uint8_t cID)
+{
+	return getEEPROM2bytes(ADDR_WWCOUNTERS+cID*2);
+}
+
+inline void checkWWCounter(uint8_t cID)
+{
+	time_t t = now();
+		  
+	register uint8_t  dow = weekday(t)-1;
+	register uint32_t  last_t = GetWCounterDate(dow);
+
+	if( (day(t)!=day(last_t)) || (month(t)!=month(last_t)) || (year(t)!=year(last_t)) )
+	{
+		SetTotalWCounter(GetTotalWCounter() + uint32_t(internalGetWWCounter(dow)/100));	// note: running water counters are in 1/100 GPM, while lifetime water counter is in GPM
+		SetWCounterDate(dow,t);
+		SetWWCounter(dow, 0);
+	}
 }
 
 uint16_t GetWWCounter(uint8_t cID)
 {
 	if( cID > 6 ) return 0;	// basic protection - range checking
-		
-	register uint16_t val;
 
-	val =  EEPROM.read(ADDR_WWCOUNTERS+1+cID*2) << 8;
-	val += EEPROM.read(ADDR_WWCOUNTERS+cID*2);
-
-	//TRACE_CRIT(F("GetWWCounter, id=%d, value=%d\n"), int(cID), val);
-	return val;
+	checkWWCounter(cID);	// check and consolidate WW counter if necessary
+	return internalGetWWCounter(cID);
 }
 
 
-void SetTotalWCounter(uint32_t val)
+inline void setEEPROM4bytes(int addr, uint32_t *pVal)
 {
+	register uint8_t *pB = (uint8_t *) pVal;
+
+	EEPROM.write(addr, pB[0]);
+	EEPROM.write(addr+1, pB[1]);
+	EEPROM.write(addr+2, pB[2]);
+	EEPROM.write(addr+3, pB[3]);
+}
+
+inline uint32_t getEEPROM4bytes(int addr)
+{
+	uint32_t val;
 	register uint8_t *pB;
 	pB = (uint8_t *) &val;
 
-	EEPROM.write(ADDR_TOTAL_WCOUNTER, pB[0]);
-	EEPROM.write(ADDR_TOTAL_WCOUNTER+1, pB[1]);
-	EEPROM.write(ADDR_TOTAL_WCOUNTER+2, pB[2]);
-	EEPROM.write(ADDR_TOTAL_WCOUNTER+3, pB[3]);
+	pB[0] = EEPROM.read(addr);
+	pB[1] = EEPROM.read(addr+1);
+	pB[2] = EEPROM.read(addr+2);
+	pB[3] = EEPROM.read(addr+3);
+
+	return val;
+}
+
+void SetTotalWCounter(uint32_t val)
+{
+	setEEPROM4bytes(ADDR_TOTAL_WCOUNTER, &val);
 }
 
 uint32_t GetTotalWCounter(void)
 {
-	uint32_t val;
-	register uint8_t *pB;
-	pB = (uint8_t *) &val;
-
-	pB[0] = EEPROM.read(ADDR_TOTAL_WCOUNTER);
-	pB[1] = EEPROM.read(ADDR_TOTAL_WCOUNTER+1);
-	pB[2] = EEPROM.read(ADDR_TOTAL_WCOUNTER+2);
-	pB[3] = EEPROM.read(ADDR_TOTAL_WCOUNTER+3);
-
-	return val;
+	return getEEPROM4bytes(ADDR_TOTAL_WCOUNTER);
 }
 
-uint32_t GetTotalWCounterDate(void)
+uint32_t GetWCounterDate(uint8_t cID)
 {
-	uint32_t val;
-	register uint8_t *pB;
-	pB = (uint8_t *) &val;
-
-	pB[0] = EEPROM.read(ADDR_D_TOTAL_WCOUNTER);
-	pB[1] = EEPROM.read(ADDR_D_TOTAL_WCOUNTER+1);
-	pB[2] = EEPROM.read(ADDR_D_TOTAL_WCOUNTER+2);
-	pB[3] = EEPROM.read(ADDR_D_TOTAL_WCOUNTER+3);
-
-	return val;
+	return getEEPROM4bytes(ADDR_D_WWCOUNTERS+cID*4);
 }
 
-void SetTotalWCounterDate(uint32_t val)
+void SetWCounterDate(uint8_t cID, uint32_t val)
 {
-	register uint8_t *pB;
-	pB = (uint8_t *) &val;
-
-	EEPROM.write(ADDR_D_TOTAL_WCOUNTER, pB[0]);
-	EEPROM.write(ADDR_D_TOTAL_WCOUNTER+1, pB[1]);
-	EEPROM.write(ADDR_D_TOTAL_WCOUNTER+2, pB[2]);
-	EEPROM.write(ADDR_D_TOTAL_WCOUNTER+3, pB[3]);
+	setEEPROM4bytes(ADDR_D_WWCOUNTERS+cID*4, &val);
 }
 
 
@@ -1276,9 +1299,11 @@ skip_Sensor:;
 // Reset running water counters
 
 		for( uint8_t ii=0; ii<7; ii++ )
+		{
 			SetWWCounter(ii,0);
+			SetWCounterDate(ii,0);
+		}
 		SetTotalWCounter(0);
-		SetTotalWCounterDate(0);
 
 		localUI.lcd_print_line_clear_pgm(PSTR("EEPROM reloaded"), 0);
 		localUI.lcd_print_line_clear_pgm(PSTR("Rebooting..."), 1);
@@ -1503,6 +1528,15 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 		SetXBeePortSpeed(NETWORK_XBEE_DEFAULT_SPEED);
 		SetXBeePANID(NETWORK_XBEE_DEFAULT_PANID);
 		SetXBeeChan(NETWORK_XBEE_DEFAULT_CHAN);
+
+// Reset running water counters
+
+		for( uint8_t ii=0; ii<7; ii++ )
+		{
+			SetWWCounter(ii,0);
+			SetWCounterDate(ii,0);
+		}
+		SetTotalWCounter(0);
 
 // show message and reboot
 		localUI.lcd_print_line_clear_pgm(PSTR("EEPROM reloaded"), 0);
