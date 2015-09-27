@@ -50,7 +50,7 @@ table.tablepane tr:last-child td {
     display: inline-block;
     width: 150px; height: 150px;
     margin: -35px -10px -25px -30px;
-    background: url(http://rayshobby.net/scripts/java/svc2.0.9/weather.png);
+    background: url(weather.gif);
 }
 
 #forecast .wicon {
