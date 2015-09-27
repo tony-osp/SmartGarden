@@ -290,6 +290,30 @@ static void JSONtLogs(const KVPairs & key_value_pairs, FILE * stream_file)
 	fprintf_P(stream_file, PSTR("\t]\n}"));
 }
 
+static void JSONScheduleLogs(const KVPairs & key_value_pairs, FILE * stream_file)
+{
+	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
+	fprintf_P(stream_file, PSTR("{\n\t\"logs\": [\n"));
+	time_t sdate = 0;
+	time_t edate = 0;
+	// Iterate through the kv pairs and search for the start and end dates.
+	for (int i = 0; i < key_value_pairs.num_pairs; i++)
+	{
+		const char * key = key_value_pairs.keys[i];
+		const char * value = key_value_pairs.values[i];
+		if (strcmp_P(key, PSTR("sdate")) == 0)
+		{
+			sdate = strtol(value, 0, 10);
+		}
+		else if (strcmp_P(key, PSTR("edate")) == 0)
+		{
+			edate = strtol(value, 0, 10);
+		}
+	}
+	sdlog.TableSchedule(stream_file, sdate, edate);
+	fprintf_P(stream_file, PSTR("\n\t]\n}"));
+}
+
 static void JSONSettings(const KVPairs & key_value_pairs, FILE * stream_file)
 {
 	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
@@ -940,8 +964,12 @@ void web::ProcessWebClients()
 			     {
 				     JSONtLogs(key_value_pairs, pFile);
 			     }
+			     else if (strcmp_P(xP5, PSTR("schlogs")) == 0)
+			     {
+				     JSONScheduleLogs(key_value_pairs, pFile);
+			     }
 
-// Sensors
+// Sensors 
 			     else if (strcmp_P(xP5, PSTR("sens")) == 0)
 			     {
 			 	      JSONSensor(key_value_pairs, pFile);

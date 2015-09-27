@@ -278,7 +278,32 @@ void Logging::Close()
 
 bool Logging::LogSchedEvent(time_t start, int duration, int schedule, int sadj, int wunderground)
 {
-	;
+	  TRACE_VERBOSE(F("LogSchedEvent called, start=%lu, duration=%d, schedule=%d, sadj=%d, wunderground=%d\n"), start, duration, schedule, sadj, wunderground);
+
+      if( !logger_ready ) return false;  //check if the logger is ready
+	
+// temp buffer for log strings processing
+      char tmp_buf[MAX_LOG_RECORD_SIZE];
+
+      sprintf_P(tmp_buf, PSTR(WATERING_SCH_LOG_FNAME_FORMAT), year(now()));
+
+      if( !lfile.open(tmp_buf, O_WRITE | O_APPEND) ){    // we are trying to open existing log file for write/append
+
+// operation failed, usually because log file for this year does not exist yet. Let's create it and add column headers.
+         if( !lfile.open(tmp_buf, O_WRITE | O_APPEND | O_CREAT) ){
+
+               TRACE_ERROR(F("Cannot open watering log file (%s)\n"), tmp_buf);    // file create failed, return an error.
+               return false;    // failed to open/create file
+         }
+         lfile.println(F("Month,Day,Time,Schedule run time(min),ScheduleID,Adjustment,WUAdjustment"));
+      }
+
+      sprintf_P(tmp_buf, PSTR("%u,%u,%u:%u,%u,%u,%i,%i"), month(start), day(start), hour(start), minute(start), duration, schedule, sadj, wunderground);
+
+      lfile.println(tmp_buf);
+      lfile.close();
+
+      return true;
 }
 
 // Record zone watering event
@@ -699,6 +724,88 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 
         return true;
 }
+
+
+bool Logging::TableSchedule(FILE* stream_file, time_t start, time_t end)
+{
+        char tmp_buf[MAX_LOG_RECORD_SIZE];
+
+        if (start == 0)
+                start = now();
+
+        unsigned int    nyear=year(start);
+
+        end = max(start,end) + 24*3600;  // add 1 day to end time.
+
+        int  nmend = month(end);
+        int  ndayend = day(end);
+
+//		TRACE_ERROR(F("TableSchedule - entering, start year=%u, month=%u, day=%u\n"), year(start), month(start), day(start));
+
+        if( year(end) != year(start) ){     // currently we cannot handle queries that span multiple years. Truncate the query to the year end.
+             nmend = 12;    ndayend = 31;
+        }
+
+        char bFirstRow = true;
+                    
+                sprintf_P(tmp_buf, PSTR(WATERING_SCH_LOG_FNAME_FORMAT), nyear );
+
+                if( lfile.open(tmp_buf, O_READ) ){  // logs for each zone are stored in a separate file, with the file name based on the year and zone number. Try to open it.
+
+                     lfile.fgets(tmp_buf, MAX_LOG_RECORD_SIZE-1);  // skip first line in the file - column headers
+
+// OK, we opened required schedule watering log file. Iterate over records, filtering out necessary dates range
+                  
+                     while( lfile.available() ){
+
+                            int  nmonth = 0, nday = 0, nhour = 0, nminute = 0, nschedule = 0;
+                            int  nduration = 0,  nsadj = 0, nwunderground = 0;
+
+                            int bytes = lfile.fgets(tmp_buf, MAX_LOG_RECORD_SIZE-1);
+                            if (bytes <= 0)
+                                       break;
+
+// Parse the string into fields. First field (up to two digits) is the day of the month
+
+                            sscanf_P( tmp_buf, PSTR("%u,%u,%u:%u,%i,%i,%i,%i"),
+                                                            &nmonth, &nday, &nhour, &nminute, &nduration, &nschedule, &nsadj, &nwunderground);
+
+                            if( (nmonth > nmend) || ((nmonth == nmend) && (nday > ndayend)) )    // check for the end date
+                                         break;
+
+                            if( (nmonth > month(start)) || ((nmonth == month(start)) && (nday >= day(start)) )  ){        // the record is within required range. nmonth is the month, nday is the day of the month, xzone is the zone we are currently emitting
+
+// we have something to output.
+                                    tmElements_t tm;   tm.Day = nday;  tm.Month = nmonth; tm.Year = nyear - 1970;  tm.Hour = nhour;  tm.Minute = nminute;  tm.Second = 0;
+									Schedule	sched;
+
+									if( nschedule == 100 )
+									{
+										strcpy_P(sched.name, PSTR("Quick Schedule"));
+									}
+									else 
+									{
+										memset(&(sched.name), 0, sizeof(sched.name));
+										LoadSchedule(uint8_t(nschedule), &sched);
+									}
+                            
+                                    fprintf_P(stream_file, PSTR("%s \n\t\t\t\t\t { \"date\":%lu, \"duration\":%i, \"scheduleID\":%i, \"scheduleName\":\"%s\", \"seasonal\":%i, \"wunderground\":%i}"),
+                                                                       bFirstRow ? "":",",
+                                                                       makeTime(tm), nduration, nschedule, sched.name, nsadj, nwunderground );
+
+                                     bFirstRow = false;
+                            }
+                     }   // while
+                     lfile.close();
+                }
+				else
+				{
+//					TRACE_ERROR(F("TableSchedule - cannot open log file %s\n"), tmp_buf);
+				}
+
+        return true;
+}
+
 
 // Local worker routine
 // Emit directory listing

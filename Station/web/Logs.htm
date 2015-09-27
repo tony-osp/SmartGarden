@@ -41,15 +41,15 @@
             now.setDate(now.getDate() - 7);
             $('#sdate').val(now.toISOString().slice(0,10));
             onLogTypeChange();
-            doRefresh();
           });
         });
 
         function onLogTypeChange() {
-          if ($("input:radio[name='log_type']:checked").val() == 'table') {
+            if (($("input:radio[name='log_type']:checked").val() == 'table') || ($("input:radio[name='log_type']:checked").val() == 'schedule')) {
             $('#graphpane').css('display', 'none');
             $('#tablepane').css('display', 'block');
-          } else {
+            //$('#tablepane').css('display', 'inherit');
+        } else {
             $('#graphpane').css('display', 'block');
             $('#tablepane').css('display', 'none');
           }
@@ -133,6 +133,30 @@
           else
             return "<td bgcolor='#D0FFF0'>" + val + "</td>";
         }
+        
+        function tableSchedChange(data) {
+            var list = $('#tablepane');
+            list.empty();
+            if (data.logs.length == 0)
+                list.html("<p align='center'>No entries in the selected date range</p>");
+            else {
+                var tbl_html = "<div><br /><table cellpadding='3' style='margin: 0 auto'><thead><tr><th data-priority='1'>Date/Time</th><th data-priority='2'>Runtime, min</th><th data-priority='3'>Schedule</th>" +
+                                "<th data-priority='4'>SAdj</th><th data-priority='5'>WUnd</th></tr></thead><tbody>";
+                for (var i = 0; i < data.logs.length; i++) {
+                        var entry = data.logs[i];
+                        var dt = new Date(entry.date * 1000);
+                        var datetimestr = pad(dt.getUTCFullYear(), 4) + '/' + pad(dt.getUTCMonth() + 1, 2) + '/' + pad(dt.getUTCDate(), 2) + ', ' + pad(dt.getUTCHours(), 2) + ':' + pad(dt.getUTCMinutes(), 2);
+
+                        tbl_html += "<tr><td>" + datetimestr + "</td>";
+                        tbl_html += "<td>" + Math.floor(entry.duration / 60) + ":" + pad(entry.duration % 60, 2) + "</td>";
+                        tbl_html += "<td>" + entry.scheduleName + "</td>";
+                        tbl_html += format_adjustments(entry.seasonal);
+                        tbl_html += format_adjustments(entry.wunderground) + "</tr>";
+                }
+                tbl_html += "</tbody></table></div>";
+                list.html(tbl_html).trigger("create");
+            }
+        }
 
         function tableChange(data) {
           var list = $('#tablepane');
@@ -145,12 +169,12 @@
               tbl_html += "<div data-role='collapsible' data-theme='b' data-content-theme='d' data-inset='true' data-collapsed='true'>" +
                   "<h2><div class='ui-btn-up-c ui-btn-corner-all custom-count-pos'>" + data.logs[i].entries.length +
                   ((data.logs[i].entries.length > 1)?" entries":" entry") + "</div>" + zonestorage[data.logs[i].zone-1].name +
-                  "</h2><table><thead><tr><th data-priority='1'>Time</th><th data-priority='2'>Runtime</th><th data-priority='3'>Sched</th>" +
+                  "</h2><table><thead><tr><th data-priority='1'>Date/Time</th><th data-priority='2'>Runtime, min</th><th data-priority='3'>Sched</th>" +
                   "<th data-priority='4'>SAdj</th><th data-priority='5'>WUnd</th></tr></thead><tbody>";
               for (var j=0; j<data.logs[i].entries.length; j++) {
                 var entry = data.logs[i].entries[j];
                 var dt = new Date(entry.date*1000);
-                var datetimestr = pad(dt.getUTCHours(),2) + ':' + pad(dt.getUTCMinutes(),2) + ':' + pad(dt.getUTCSeconds(),2) + ' ' + pad(dt.getUTCFullYear(),4) + '/' + pad(dt.getUTCMonth()+1,2) + '/' + pad(dt.getUTCDate(),2);
+                var datetimestr = pad(dt.getUTCFullYear(),4) + '/' + pad(dt.getUTCMonth()+1,2) + '/' + pad(dt.getUTCDate(),2) + ' ' + pad(dt.getUTCHours(),2) + ':' + pad(dt.getUTCMinutes(),2);
 
                 tbl_html += "<tr><td>" + datetimestr + "</td>";
                 tbl_html += "<td>" + Math.floor(entry.duration/60) + ":" + pad(entry.duration%60,2) + "</td>";
@@ -180,6 +204,14 @@
               seriesChange();
             });
           }
+          else if ($("input:radio[name='log_type']:checked").val() == 'schedule') {
+              var pageName = "json/schlogs?sdate=" + (new Date($('#sdate').val()).getTime() / 1000) +
+                  "&edate=" + (new Date($('#edate').val()).getTime() / 1000);
+              //alert("Getting schedules log, query string='" + pageName + "'");
+              $.getJSON(pageName, function (data) {
+                  tableSchedChange(data);
+              });
+          }
           else {
             var pageName = "json/tlogs?sdate=" + (new Date($('#sdate').val()).getTime()/1000) +
                 "&edate=" + (new Date($('#edate').val()).getTime()/1000);
@@ -196,8 +228,10 @@
       </div>
       <div data-role="content">
         <fieldset data-role="controlgroup" data-type="horizontal" data-mini="true" align="center">
-            <input data-mini="true" type="radio" name="log_type" id="log_table" value="table" checked="checked" />
-            <label for="log_table">Table</label>
+            <input data-mini="true" type="radio" name="log_type" id="log_sched" value="schedule" checked="checked" />
+            <label for="log_sched">Schedules</label>
+            <input data-mini="true" type="radio" name="log_type" id="log_table" value="table" />
+            <label for="log_table">Zones</label>
             <input data-mini="true" type="radio" name="log_type" id="log_graph" value="graph" />
             <label for="log_graph">Graph</label>
         </fieldset>
@@ -221,7 +255,7 @@
             </div>
           </form>
         </div>
-        <div id="tablepane"></div>
+        <div id="tablepane" style="text-align:center"></div>
         <div data-role="fieldcontain">
             <label for="sdate">Start</label>
             <input id="sdate" name="sdate" value="" type="date" data-mini="true" onchange="javascript:dateChange(this)"/>

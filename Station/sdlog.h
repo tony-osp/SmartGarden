@@ -34,6 +34,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #define WATERING_LOG_DIR			"/watering.log"
 #define WATERING_LOG_DIR_LEN		13
 #define WATERING_LOG_FNAME_FORMAT "/watering.log/wat-%4.4u.%3.3u"
+#define WATERING_SCH_LOG_FNAME_FORMAT "/watering.log/wat-%4.4u.sch"
 
 // Water flow data directory and file name format (wflMM-YY.nnn)
 #define WFLOW_LOG_DIR			"/wflow.log"
@@ -163,11 +164,14 @@ public:
 		// Log whole schedule event
 		bool LogSchedEvent(time_t start, int duration, int schedule, int sadj, int wunderground);
 
-        // Retrieve data sutible for graphing
+        // Retrieve data suitable for graphing
         bool GraphZone(FILE * stream_file, time_t start, time_t end, GROUPING group);
 
-        // Retrieve data suitble for putting into a table
+        // Emit zone watering data suitable for putting into a table
         bool TableZone(FILE* stream_file, time_t start, time_t end);
+
+        // Emit schedue watering data suitable for putting into a table
+        bool TableSchedule(FILE* stream_file, time_t start, time_t end);
 
         // Sensors logging. It covers all types of basic sensors (e.g. temperature, pressure etc) that provide momentarily (immediate) readings
         bool LogSensorReading(uint8_t sensor_type, int sensor_id, int32_t sensor_reading);

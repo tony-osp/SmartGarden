@@ -20,7 +20,7 @@ File name: mm-yyyy.log
 
 One event per line, max line length - 255 characters. Encoding - ASCII.
 
-Watering events log (files in /watering.log directory)
+***Watering events log (files in /watering.log directory)***
 
 File name: wat-yyyy.nnn, where yyyy - year, nnn - zone number. Zone number is always 3 digits (padded with zeroes).
 
@@ -42,6 +42,30 @@ The rest of the file consists of the records of the following format:
 7. Weather underground adjustment
 
 One event per line. ASCII encoding.
+
+***Watering Schedule runs log (files in /watering.log directory)
+
+File name: wat-yyyy.sch, where yyyy - year.
+
+First line of file defines columns:
+
+Month,Day,Time,Schedule run time(min),ScheduleID,Adjustment,WUAdjustment
+
+This first line is helpful for applications capable of importing CSV files (e.g. Excel), it is also helps to provide
+format information since it defines columns meaning.
+
+The rest of the file consists of the records of the following format:
+
+1. Month (one or two digits)
+2. Day of the month (one or two digits)
+3. Time in "hh:mm" format
+4. Schedule run time in minutes
+5. Schedule ID (100 means "quick schedule")
+6. Adjustment
+7. Weather underground adjustment
+
+One event per line. ASCII encoding.
+
 
 ***Sensors data***
 
