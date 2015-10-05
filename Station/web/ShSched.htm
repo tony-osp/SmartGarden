@@ -115,7 +115,7 @@
               new_ctl.appendTo('#zones_divb');
       }
 
-        function mySubmitForm() {
+        function doSaveSched() {
           $.ajax({
             data: $('#sForm').serialize(),
             type: 'get',
@@ -130,7 +130,7 @@
           });
         }
 
-        function doDelete() {
+        function doDeleteSched() {
           $.ajax({
             data: $('#id').serialize(),
             type: 'get',
@@ -145,11 +145,13 @@
           });
         }
       </script>
-      <div data-theme="a" data-role="header">	<a id="delButton" data-role="button" href="javascript:doDelete();" data-icon="delete" data-iconpos="left" class="ui-btn-right">Delete</a>
-	<a data-role="button" data-rel="back" href="#schedules" data-icon="back" data-iconpos="left" class="ui-btn-left">Cancel</a>
-
+      <div data-theme="a" data-role="header" data-position="fixed">
+	        <a data-rel="back" href="#schedules" data-icon="back" data-role="button">Cancel</a>
         	<h1>Edit Schedule</h1>
-
+            <div data-type="horizontal" data-role="controlgroup" class="ui-btn-right">
+          	    <a id="saveButton" href="javascript:doSaveSched();" data-icon="check" data-role="button">Save</a>
+          	    <a id="delButton" href="javascript:doDeleteSched();" data-icon="delete" data-role="button">Delete</a>
+            </div>
       </div>
       <!-- /header -->
       <div data-role="content">
@@ -292,9 +294,6 @@
                 </div>
             </div>
 
-            <div class="ui-block-a" style="width:100%; text-align:center">
-                <a data-role="button" href='#' style="width:10em;margin:auto" onClick="javascript:mySubmitForm();">Save</a>
-            </div>
         </form>
       </div>
       <!-- /content -->
