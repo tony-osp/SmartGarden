@@ -71,6 +71,21 @@ public:
 		if( m_iSchedule != -1 ) return true;
 		else					return false;
 	}
+	short getRemainingPauseTime()
+	{
+		if( m_endPauseMillis == 0 ) return 0;
+
+		int  rt = max(int((m_endPauseMillis-millis())/60000ul), 0);	
+		if( rt == 0 )							// inline recalculation and correction of the paused state
+			m_endPauseMillis = 0;
+
+		return rt;
+	}
+	bool isPaused()
+	{
+		if( getRemainingPauseTime() != 0 )	return true;
+		else								return false;
+	}
 
 	void TurnOnZone(uint8_t nZone, uint8_t ttr);
 	void TurnOffZone(uint8_t nZone);
@@ -80,6 +95,8 @@ public:
 	bool StartZone(int iSchedule, uint8_t stationID, uint8_t channel, uint8_t time2run );
 	void TurnOffZonesWorker();
 	bool StartZoneWorker(int iSchedule, uint8_t stationID, uint8_t channel, uint8_t time2run );
+
+	void SetPause(int time2pause);
 
 	void ReportZoneStatus(uint8_t stationID, uint8_t channel, uint8_t z_status);
 	void ReportStationZonesStatus(uint8_t stationID, uint8_t z_status);
@@ -97,7 +114,9 @@ private:
 	uint8_t		m_zoneMins;			// number of minutes to run
 	uint32_t	m_startSchedMillis;
 
-	int			m_wuScale;			// 100% by default
+	int			m_wuScale;			// weather forecast correction factor, 100% by default
+
+	uint32_t	m_endPauseMillis;	// if non-zero, indicates we are in pause mode, and this field has millis value for the end of the pause period
 
 };
 

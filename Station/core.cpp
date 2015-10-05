@@ -422,7 +422,7 @@ void runStateClass::ReportStationZonesStatus(uint8_t stationID, uint8_t z_status
 	}
 }
 
-runStateClass::runStateClass() : m_iSchedule(-1), m_iZone(-1), m_wuScale(100)
+runStateClass::runStateClass() : m_iSchedule(-1), m_iZone(-1), m_wuScale(100), m_endPauseMillis(0)
 {
 	for( int i=0; i<MAX_STATIONS; i++ ) sLastContactTime[i] = 0;
 }
@@ -456,6 +456,27 @@ void runStateClass::StopSchedule(void)
 		}
 }
 
+void runStateClass::SetPause(int time2pause)
+{
+	if( time2pause == 0 )
+	{
+		if( m_endPauseMillis != 0 ) 
+		{
+			m_endPauseMillis = 0;	// resume operation
+			ProcessScheduledEvents();
+		}
+	}
+	else
+	{
+		if (GetRunSchedules())	// if there are any currently running schedules - stop it.
+		{ 
+			StopSchedule();
+		}
+		m_endPauseMillis = millis() + uint32_t(time2pause)*60000ul;
+		if( m_endPauseMillis == 0 ) m_endPauseMillis = 1;	// account for rare condition when due to overflow new end millis time equals 0 (but we use 0 as a flag here)
+		ProcessScheduledEvents();
+	}
+}
 
 uint8_t runStateClass::sAdj(uint8_t val)
 {
@@ -648,7 +669,7 @@ bool GetNextEvent(uint8_t *pSchedID, uint8_t *pZoneID, short *pTime)
 
         const time_t time_now = now();
         const uint8_t iNumSchedules = GetNumSchedules();
-		short cTime = hour(time_now)*60 + minute(time_now);
+		short cTime = hour(time_now)*60 + minute(time_now) + runState.getRemainingPauseTime();
 
 		for( uint8_t i = 0; i < iNumSchedules; i++ )
         {

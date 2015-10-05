@@ -122,6 +122,18 @@
 
         function checkAnim(data) {
             $('#systemz').val(data.run).slider('refresh');
+            if( (data.paused == null) || (data.paused == "off") ) {
+                if ($('#suspendTime').text() != 'Pause') {
+                    $('#suspendTime').text('Pause');
+                    document.getElementById('suspendTime').title = "Click this button to temporary suspend schedules.";
+                }
+            }
+            else {
+                $('#suspendTime').text('Paused');
+                if( data.remainingPauseTime != null )
+                    document.getElementById('suspendTime').title='paused, ' + parseInt(data.remainingPauseTime) + 'min remaining';
+            }
+
             if ((data.offTime != undefined) && (data.offTime != null)) {
                 timeout = (new Date().getTime()) / 1000 + parseInt(data.offTime);
                 showCRunning(data);
@@ -144,7 +156,7 @@
               window.setTimeout(function () {updateAnim();}, 1000);
           } else {
               bCurrRunning = false;
-            $.getJSON("json/state", checkAnim);
+              $.getJSON("json/state", checkAnim);
           }
         }
 
@@ -302,7 +314,21 @@
             });
         }
      
+          // select pause time and close selection popup
+        function choosePauseTime(pause_time) {
+            //if(pause_time != 0) alert(pause_time + " pause selected.");
 
+            $.get("bin/run", {
+                pause : pause_time, success: function () {
+                    window.setTimeout(function () {
+                        bNextScheduled = false; // reset flag to ensure nextSched refresh
+                        $.getJSON("json/state", checkAnim);
+                    }, 250);
+                }
+            });
+
+            $('#popupPause').popup('close');
+        }
 
       </script>
 
@@ -326,7 +352,19 @@
                        </select>
                   </td>
                   <td style="width:15%">
-                       <button id="suspend_time">Pause</button>
+                      <a id="suspendTime" href="#popupPause" data-rel="popup" data-role="button">Pause</a>
+                      <div data-role="popup" id="popupPause">
+                          <a href="#" data-rel="back" data-role="button" data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a>
+                          <ul data-role="listview">
+                              <li onclick="choosePauseTime(30);">30  min delay</li>
+                              <li onclick="choosePauseTime(60);">1   hour delay</li>
+                              <li onclick="choosePauseTime(120);">2   hour delay</li>
+                              <li onclick="choosePauseTime(180);">3   hour delay</li>
+                              <li onclick="choosePauseTime(360);">6   hour delay</li>
+                              <br />
+                              <li onclick="choosePauseTime(0);">Resume</li>
+                          </ul>
+                      </div>
                   </td>
                   <td style="width:35%">
                        <div id="timediv" style="width:100%; text-align: center; color:blue; font-weight: bold"></div>

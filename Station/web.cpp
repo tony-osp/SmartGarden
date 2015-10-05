@@ -379,8 +379,18 @@ static void JSONState(const KVPairs & key_value_pairs, FILE * stream_file)
 	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
 
 	fprintf_P(stream_file,
-			PSTR("{\n\t\"version\" : \"%s\",\n\t\"run\" : \"%s\",\n\t\"zones\" : \"%d\",\n\t\"schedules\" : \"%d\",\n\t\"stations\" : \"%d\",\n\t\"timenow\" : \"%lu\",\n\t\"locationZip\" : \"%lu\""),
+			PSTR("{\n\t\"version\" : \"%s\",\n\t\"run\" : \"%s\",\n\t\"zones\" : \"%d\",\n\t\"schedules\" : \"%d\",\n\t\"stations\" : \"%d\",\n\t\"timenow\" : \"%lu\",\n\t\"locationZip\" : \"%lu\","),
 			VERSION, GetRunSchedules() ? "on" : "off", GetNumEnabledZones(), int(GetNumSchedules()), int(GetNumStations()), now(), GetZip());
+	
+	if( runState.isPaused() )
+	{
+		fprintf_P(stream_file, PSTR("\n\t\"paused\" : \"on\",\n\t\"remainingPauseTime\" : \"%d\""), runState.getRemainingPauseTime());
+	}
+	else
+	{
+		fprintf_P(stream_file, PSTR("\n\t\"paused\" : \"off\""));
+	}
+	
 	if( runState.isSchedule() )
 	{
 		FullZone zone;
@@ -524,6 +534,12 @@ static bool RunSchedules(const KVPairs & key_value_pairs)
 		if (strcmp_P(key, PSTR("system")) == 0)
 		{
 			SetRunSchedules(strcmp_P(value, PSTR("on")) == 0);
+		}
+		else if (strcmp_P(key, PSTR("pause")) == 0)
+		{
+			 int  time2pause = 0;
+			 time2pause = atoi(value);
+			 runState.SetPause(time2pause);
 		}
 	}
 	return true;
