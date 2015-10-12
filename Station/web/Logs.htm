@@ -139,8 +139,8 @@
             if (data.logs.length == 0)
                 list.html("<p align='center'>No entries in the selected date range</p>");
             else {
-                var tbl_html = "<div><br /><table cellpadding='3' style='margin: 0 auto'><thead><tr><th data-priority='1'>Date/Time</th><th data-priority='2'>Runtime, min</th><th data-priority='3'>Schedule</th>" +
-                                "<th data-priority='4'>SAdj</th><th data-priority='5'>WUnd</th></tr></thead><tbody>";
+                var tbl_html = "<div><br /><table  class='tablepane' cellpadding='3' style='margin: 0 auto'><thead><tr><th data-priority='1'>Date/Time</th><th data-priority='2'>&nbsp Runtime, min &nbsp</th><th data-priority='3'>&nbsp Schedule &nbsp</th>" +
+                                "<th data-priority='4'>&nbsp SAdj &nbsp</th><th data-priority='5'>&nbsp WUnd &nbsp</th></tr></thead><tbody>";
                 for (var i = 0; i < data.logs.length; i++) {
                         var entry = data.logs[i];
                         var dt = new Date(entry.date * 1000);
@@ -158,35 +158,45 @@
         }
 
         function tableChange(data) {
+
           var list = $('#tablepane');
           list.empty();
           if (data.logs.length == 0)
             list.html("<p align='center'>No entries in the selected date range</p>");
           else {
             var tbl_html = "<div data-role='collapsible-set' data-inset='true' data-theme='b' data-collapsed-icon='arrow-d' data-expanded-icon='arrow-u'>";
-            for (var i=0; i<data.logs.length; i++) {
-              tbl_html += "<div data-role='collapsible' data-theme='b' data-content-theme='d' data-inset='true' data-collapsed='true'>" +
-                  "<h2><div class='ui-btn-up-c ui-btn-corner-all custom-count-pos'>" + data.logs[i].entries.length +
-                  ((data.logs[i].entries.length > 1)?" entries":" entry") + "</div>" + zonestorage[data.logs[i].zone-1].name +
-                  "</h2><table><thead><tr><th data-priority='1'>Date/Time</th><th data-priority='2'>Runtime, min</th><th data-priority='3'>Sched</th>" +
-                  "<th data-priority='4'>SAdj</th><th data-priority='5'>WUnd</th></tr></thead><tbody>";
-              for (var j=0; j<data.logs[i].entries.length; j++) {
-                var entry = data.logs[i].entries[j];
-                var dt = new Date(entry.date*1000);
-                var datetimestr = pad(dt.getUTCFullYear(),4) + '/' + pad(dt.getUTCMonth()+1,2) + '/' + pad(dt.getUTCDate(),2) + ' ' + pad(dt.getUTCHours(),2) + ':' + pad(dt.getUTCMinutes(),2);
+            for (var i = 0; i < data.logs.length; i++) {
+                //iterate over schedules
 
-                tbl_html += "<tr><td>" + datetimestr + "</td>";
-                tbl_html += "<td>" + Math.floor(entry.duration/60) + ":" + pad(entry.duration%60,2) + "</td>";
-                if (entry.schedule == -1)
-                  tbl_html += "<td>M</td>";
-                else if (entry.schedule == 100)
-                  tbl_html += "<td>Q</td>";
-                else
-                  tbl_html += "<td>" + entry.schedule + "</td>";
-                tbl_html += format_adjustments(entry.seasonal);
-                tbl_html += format_adjustments(entry.wunderground) + "</tr>";
-              }
-              tbl_html += "</tbody></table></div>";
+                var sched_mins = 0;
+                var sched_date = "";
+                var sched_num_zones = data.logs[i].entries.length;
+                var zones_html = "";
+
+                for (var j = 0; j < sched_num_zones; j++) {  // iterate over zones 
+                    var entry = data.logs[i].entries[j];
+                    var dt = new Date(entry.date * 1000);                    
+                    sched_mins += entry.duration;
+                    if (j == 0)
+                        sched_date = pad(dt.getUTCFullYear(), 4) + '/' + pad(dt.getUTCMonth() + 1, 2) + '/' + pad(dt.getUTCDate(), 2) + ' ' + pad(dt.getUTCHours(), 2) + ':' + pad(dt.getUTCMinutes(), 2);
+                    var timestr = pad(dt.getUTCHours(), 2) + ':' + pad(dt.getUTCMinutes(), 2);
+
+                    zones_html += "<tr><td>" + timestr + "</td>";
+                    //entry.zone++; // base-1 correction
+                    zones_html += "<td>" + zonestorage[entry.zone].name + "</td>";
+                    zones_html += "<td>" + Math.floor(entry.duration / 60) + ":" + pad(entry.duration % 60, 2) + "</td>";
+                    zones_html += format_adjustments(entry.seasonal);
+                    zones_html += format_adjustments(entry.wunderground) + "</tr>";
+                }
+
+                tbl_html += "<div data-role='collapsible' data-theme='b' data-content-theme='d' data-inset='true' data-collapsed='true'>" +
+                  "<h2><div class='ui-btn-up-c ui-btn-corner-all'>" + sched_date + " Schedule:" + data.logs[i].scheduleName + ", " + sched_mins + "min, " + sched_num_zones +
+                  ((sched_num_zones > 1) ? " zones" : " zone") + "</div>" +
+                  "</h2><table class='tablepane'><thead><tr><th data-priority='1'>&nbsp Time &nbsp</th><th data-priority='3'>Zone</th><th data-priority='2'>&nbsp Runtime, min &nbsp</th>" +
+                  "<th data-priority='4'>&nbsp SAdj &nbsp</th><th data-priority='5'>&nbsp WUnd &nbsp</th></tr></thead><tbody>";
+
+                tbl_html += zones_html;
+                tbl_html += "</tbody></table></div>";
             }
             tbl_html += "</div>";
             list.html(tbl_html).trigger("create");
@@ -230,7 +240,7 @@
             <input data-mini="true" type="radio" name="log_type" id="log_sched" value="schedule" checked="checked" />
             <label for="log_sched">Schedules</label>
             <input data-mini="true" type="radio" name="log_type" id="log_table" value="table" />
-            <label for="log_table">Zones</label>
+            <label for="log_table">Details</label>
             <input data-mini="true" type="radio" name="log_type" id="log_graph" value="graph" />
             <label for="log_graph">Graph</label>
         </fieldset>

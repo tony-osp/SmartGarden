@@ -274,7 +274,7 @@ void Logging::Close()
 
 // Record schedule watering event
 //
-// Note: for watering events we open/close file on each event
+// Note: we open/close file on each event
 
 bool Logging::LogSchedEvent(time_t start, int duration, int schedule, int sadj, int wunderground)
 {
@@ -336,20 +336,20 @@ bool Logging::LogZoneEvent(time_t start, int zone, int duration, int schedule, i
 // temp buffer for log strings processing
       char tmp_buf[MAX_LOG_RECORD_SIZE];
 
-      sprintf_P(tmp_buf, PSTR(WATERING_LOG_FNAME_FORMAT), year(t), zone );
+      sprintf_P(tmp_buf, PSTR(WATERING_LOG_FNAME_FORMAT), (int)month(t), (int)(year(t)%100) );
 
       if( !lfile.open(tmp_buf, O_WRITE | O_APPEND) ){    // we are trying to open existing log file for write/append
 
-// operation failed, usually because log file for this year does not exist yet. Let's create it and add column headers.
+// operation failed, usually because log file for this month does not exist yet. Let's create it and add column headers.
          if( !lfile.open(tmp_buf, O_WRITE | O_APPEND | O_CREAT) ){
 
                TRACE_ERROR(F("Cannot open watering log file (%s)\n"), tmp_buf);    // file create failed, return an error.
                return false;    // failed to open/create file
          }
-         lfile.println(F("Month,Day,Time,Run time(min),ScheduleID,Adjustment,WUAdjustment"));
+         lfile.println(F("Day,Time,Run time(min),ScheduleID,Adjustment,WUAdjustment"));
       }
 
-      sprintf_P(tmp_buf, PSTR("%u,%u,%u:%u,%u,%u,%i,%i"), month(start), day(start), hour(start), minute(start), duration, schedule, sadj, wunderground);
+      sprintf_P(tmp_buf, PSTR("%u,%u,%u:%u,%u,%u,%i,%i"), zone, day(start), hour(start), minute(start), duration, schedule, sadj, wunderground);
 
       lfile.println(tmp_buf);
       lfile.close();
@@ -440,6 +440,9 @@ bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int32_t senso
 
 bool Logging::GraphZone(FILE* stream_file, time_t start, time_t end, GROUPING grouping)
 {
+
+	return false;	// block this functionality for now, need to rewrite the code to use new file format and new graphing
+
         grouping = max(NONE, min(grouping, MONTHLY));
         char		bins = 0;
         uint32_t	bin_offset = 0;
@@ -632,7 +635,9 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 {
         char tmp_buf[MAX_LOG_RECORD_SIZE];
 
-        if (start == 0)
+		fprintf_P(stream_file, PSTR("{\n\t\"logs\": [\n"));
+        
+		if (start == 0)
                 start = now();
 
         unsigned int    nyear=year(start);
@@ -641,6 +646,8 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 
         int  nmend = month(end);
         int  ndayend = day(end);
+		int  nmstart = month(start);
+		int  xsched = -1;
 
 //		TRACE_ERROR(F("TableZone - entering, start year=%u, month=%u, day=%u\n"), year(start), month(start), day(start));
 
@@ -648,65 +655,68 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
              nmend = 12;    ndayend = 31;
         }
 
-        int curr_zone = 255;
 		uint8_t	n_zones = GetNumZones();
-        for( int xzone = 1; xzone <= n_zones; xzone++ ){  // iterate over zones
+		time_t  evt_time = 0;
+		time_t  prev_evtEnd = 0;
 
-                sprintf_P(tmp_buf, PSTR(WATERING_LOG_FNAME_FORMAT), nyear, xzone );
+        for( int nmonth = nmstart; nmonth <= nmend; nmonth++ ){  // iterate over months (watering logs are stored one file per month)
+
+                sprintf_P(tmp_buf, PSTR(WATERING_LOG_FNAME_FORMAT), nmonth, (int)(nyear%100) );
 
                 if( lfile.open(tmp_buf, O_READ) ){  // logs for each zone are stored in a separate file, with the file name based on the year and zone number. Try to open it.
 
-                    char bFirstRow = true;
+                     char bFirstRow = true;
                     
-//                    if(xzone==1){
-//                         TRACE_ERROR(F("***Reading zone=1, year=%u, month end=%u, day end=%u***\n"), nyear, nmend, ndayend);
-//                    }
-
                      lfile.fgets(tmp_buf, MAX_LOG_RECORD_SIZE-1);  // skip first line in the file - column headers
 
 // OK, we opened required watering log file. Iterate over records, filtering out necessary dates range
                   
                      while( lfile.available() ){
 
-                            int  nmonth = 0, nday = 0, nhour = 0, nminute = 0, nschedule = 0;
+                            int  nday = 0, nhour = 0, nminute = 0, nschedule = 0;
                             int  nduration = 0,  nsadj = 0, nwunderground = 0;
+							int nzone = 0;
 
                             int bytes = lfile.fgets(tmp_buf, MAX_LOG_RECORD_SIZE-1);
                             if (bytes <= 0)
                                        break;
 
-// Parse the string into fields. First field (up to two digits) is the day of the month
+// Parse the string into fields. 
 
                             sscanf_P( tmp_buf, PSTR("%u,%u,%u:%u,%i,%i,%i,%i"),
-                                                            &nmonth, &nday, &nhour, &nminute, &nduration, &nschedule, &nsadj, &nwunderground);
+                                                            &nzone, &nday, &nhour, &nminute, &nduration, &nschedule, &nsadj, &nwunderground);
 
-                            if( (nmonth > nmend) || ((nmonth == nmend) && (nday > ndayend)) )    // check for the end date
+                            if( (nmonth == nmend) && (nday > ndayend) )    // check for the end date
                                          break;
 
-                            if( (nmonth > month(start)) || ((nmonth == month(start)) && (nday >= day(start)) )  ){        // the record is within required range. nmonth is the month, nday is the day of the month, xzone is the zone we are currently emitting
-
-//                    if(xzone==1){
-//                      
-//                        TRACE_ERROR(F("Found suitable string: %s\n"), tmp_buf);
-//                    }
-
+                            if( nday >= day(start) ){        // the record is within required range.
 // we have something to output.
+									{
+										tmElements_t tm;   tm.Day = nday;  tm.Month = nmonth; tm.Year = nyear - 1970;  tm.Hour = nhour;  tm.Minute = nminute;  tm.Second = 0;
+										evt_time = makeTime(tm);
+									}
 
-                                    if( curr_zone != xzone ){
+                                    if( (nschedule != xsched) || (evt_time > prev_evtEnd) ){
                                       
-                                         if( curr_zone != 255 ) 
-                                                   fprintf_P(stream_file, PSTR("\n\t\t\t\t\t]\n\t\t\t\t},\n"));   // if this is not the first zone, close previous one
+                                         if( xsched != -1 ) 
+                                                   fprintf_P(stream_file, PSTR("\n\t\t\t\t\t]\n\t\t\t\t},\n"));   // if this is not the first schedule, close previous one
                                          
-                                         fprintf_P(stream_file, PSTR("\n\t\t\t\t { \n\t\t\t\t \"zone\": %i,\n\t\t\t\t \"entries\": ["), xzone);   // JSON zone header
-                                         curr_zone = xzone;
+										 Schedule sched;
+										 memset(&sched.name, 0, sizeof(sched.name));
+										 if( nschedule == 100 )
+											 strcpy_P(sched.name, PSTR("Manual"));
+										 else
+											LoadSchedule(nschedule, &sched);
+                                         fprintf_P(stream_file, PSTR("\n\t\t\t\t { \n\t\t\t\t \"scheduleID\": %i,\n\t\t\t\t \"scheduleName\": \"%s\",\n\t\t\t\t \"entries\": ["), nschedule, sched.name);   // JSON schedule header
+                                         xsched = nschedule;
                                          bFirstRow = true;
                                     }
+									
+									prev_evtEnd = evt_time + uint32_t(nduration)*60ul + 10;
 
-                                    tmElements_t tm;   tm.Day = nday;  tm.Month = nmonth; tm.Year = nyear - 1970;  tm.Hour = nhour;  tm.Minute = nminute;  tm.Second = 0;
-                            
-                                    fprintf_P(stream_file, PSTR("%s \n\t\t\t\t\t { \"date\":%lu, \"duration\":%i, \"schedule\":%i, \"seasonal\":%i, \"wunderground\":%i}"),
+                                    fprintf_P(stream_file, PSTR("%s \n\t\t\t\t\t { \"date\":%lu, \"zone\":%i, \"duration\":%i, \"seasonal\":%i, \"wunderground\":%i}"),
                                                                        bFirstRow ? "":",",
-                                                                       makeTime(tm), nduration, nschedule, nsadj, nwunderground );
+                                                                       evt_time, nzone, nduration, nsadj, nwunderground );
 
                                      bFirstRow = false;
                             }
@@ -717,11 +727,12 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 				{
 //					TRACE_ERROR(F("TableZone - cannot open log file %s\n"), tmp_buf);
 				}
-        }   // for( int xzone = 1; xzone <= xmaxzone; xzone++ )
+        }   // for( int nmonth = nmstart; nmonth <= nmend; nmonth++ )
 
-        if( curr_zone != 255)
+        if( xsched != -1)
                      fprintf_P(stream_file, PSTR("\n\t\t\t\t\t ] \n\t\t\t\t } \n"));    // close the last zone if we emitted
 
+		fprintf_P(stream_file, PSTR("\t]\n}"));
         return true;
 }
 

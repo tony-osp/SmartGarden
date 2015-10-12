@@ -33,7 +33,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 // Watering activity log directory and file name format (wat-yyyy.nnn)
 #define WATERING_LOG_DIR			"/watering.log"
 #define WATERING_LOG_DIR_LEN		13
-#define WATERING_LOG_FNAME_FORMAT "/watering.log/wat-%4.4u.%3.3u"
+#define WATERING_LOG_FNAME_FORMAT "/watering.log/wat%2.2u-%2.2u.det"
 #define WATERING_SCH_LOG_FNAME_FORMAT "/watering.log/wat-%4.4u.sch"
 
 // Water flow data directory and file name format (wflMM-YY.nnn)

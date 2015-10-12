@@ -1,0 +1,180 @@
+*****************************************************************************************************************
+***                                                                                                           ***
+***                                                   NOTE                                                    ***
+***                                                                                                           ***
+*** This the updated (v2.2) log file format definition.                                                       ***
+***                                                                                                           ***
+*****************************************************************************************************************
+
+
+Log file formats:
+
+System log (files in /logs directory):
+
+File name: mm-yyyy.log 
+
+1. Day of the month (one or two digits)
+2. Time in "hh:mm:ss" format. Note: seconds part may be absent
+3. Event type (2/3/4/5/6 for critical/error/warning/notice/info)
+4. The rest is event-specific, and could be treated as a string
+
+One event per line, max line length - 255 characters. Encoding - ASCII.
+
+***Watering events log (files in /watering.log directory)***
+
+File name: watmm-yy.det, where mm - month, yy - last two digits of the year.
+
+First line of file defines columns:
+
+Day,Time,Run time(min),ScheduleID,Adjustment,WUAdjustment
+
+This first line is helpful for applications capable of importing CSV files (e.g. Excel), it is also helps to provide
+format information since it defines columns meaning.
+
+The rest of the file consists of the records of the following format:
+
+1. Zone (one or two digits)
+2. Day of the month (one or two digits)
+3. Time in "hh:mm" format
+4. Run time in minutes
+5. Schedule ID
+6. Adjustment
+7. Weather underground adjustment
+
+One event per line. ASCII encoding.
+
+***Watering Schedule runs log (files in /watering.log directory)
+
+File name: wat-yyyy.sch, where yyyy - year.
+
+First line of file defines columns:
+
+Month,Day,Time,Schedule run time(min),ScheduleID,Adjustment,WUAdjustment
+
+This first line is helpful for applications capable of importing CSV files (e.g. Excel), it is also helps to provide
+format information since it defines columns meaning.
+
+The rest of the file consists of the records of the following format:
+
+1. Month (one or two digits)
+2. Day of the month (one or two digits)
+3. Time in "hh:mm" format
+4. Schedule run time in minutes
+5. Schedule ID (100 means "quick schedule")
+6. Adjustment
+7. Weather underground adjustment
+
+One event per line. ASCII encoding.
+
+
+***Sensors data***
+
+Water flow meters data (files in /wflow.log directory)
+(water flow monitoring is modeled after network devices flow monitoring)
+
+File name: wflmm-yy.nnn, where mm - month, yy - year, nnn - sensor number. Sensor number is always 3 digits (padded with zeroes).
+
+First line of file defines columns:
+
+Day,Time,WaterFlow,Duration(sec)
+
+This first line is helpful for applications capable of importing CSV files (e.g. Excel), it is also used to have easy to use
+format information since it defines columns meaning.
+
+The rest of the file consists of the records of the following format:
+
+1. Day of the month (one or two digits)
+2. Time in "hh:mm" format
+3. Water flow reading as a summary counter (32bit counter, presented as integer value in ASCII - i.e. up to 4294967295)
+
+One event per line. ASCII encoding.
+
+When multiple water flow sensors are installed additional sensors data can be represented by separate files.
+Water flow readings are assumed to be in 1/10 of liter.
+
+Water flow readings are provided as a summary counter. Delta (actual amount of water dispensed) can be calculated as a delta from previous reading(s).
+There are few caveats and specifics:
+
+- Summary counter can be reset at any time (e.g. station restarted), and this needs to be taken into account when calculating delta
+- Summary counter can overflow (32bit), this also needs to be taken into account
+- Events can be irregular - there is no specific periodic interval guarantees
+- The duration of the water flowing needs to be deduced from the events flow
+
+Typically events will be recorded regularly (every few minutes) while the water is flowing, and will not be recorded when water is not flowing, 
+however there may be some events recorded when water is not flowing - e.g. station may report an event on restart etc.
+
+
+
+
+Temperature sensors data (files in /tempr.log directory)
+
+File name: temMM-YY.nnn, where MM - month, YY - year, nnn - sensor number. Sensor number is always 3 digits (padded with zeroes).
+
+First line of file defines columns:
+
+Day,Time,Temperature(F)
+
+This first line is helpful for applications capable of importing CSV files (e.g. Excel), it is also used to have easy to use
+format information since it defines columns meaning.
+
+The rest of the file consists of the records of the following format:
+
+1. Day of the month (one or two digits)
+2. Time in "hh:mm" format
+3. Temperature (e.g. 70.5)
+
+One event per line. ASCII encoding.
+
+Sensor readings represent reading values at the time of the timestamp.
+E.g. if the reading is 70.5, it means that at the moment of time defined by the timestamp actual temperature was 70.5F.
+Temperature is assumed to be in Fahrenheit.
+
+
+Humidity sensors data (files in /humid.log directory)
+
+File name: humMM-YY.nnn, where MM - month, YY - year, nnn - sensor number. Sensor number is always 3 digits (padded with zeroes).
+
+First line of file defines columns:
+
+Day,Time,Humidity
+
+This first line is helpful for applications capable of importing CSV files (e.g. Excel), it is also used to have easy to use
+format information since it defines columns meaning.
+
+The rest of the file consists of the records of the following format:
+
+1. Day of the month (one or two digits)
+2. Time in "hh:mm" format
+3. Humidity reading (e.g. 60)
+
+One event per line. ASCII encoding.
+
+Sensor readings represent reading values at the time of the timestamp.
+E.g. if the reading is 60, it means that at the moment of time defined by the timestamp actual humidity was 60%.
+Humidity is assumed to be in %.
+
+
+Pressure sensors data (files in /pressure.log directory)
+
+File name: preMM-YY.nnn, where MM - month, YY - year, nnn - sensor number. Sensor number is always 3 digits (padded with zeroes).
+
+First line of file defines columns:
+
+Day,Time,Pressure
+
+This first line is helpful for applications capable of importing CSV files (e.g. Excel), it is also used to have easy to use
+format information since it defines columns meaning.
+
+The rest of the file consists of the records of the following format:
+
+1. Day of the month (one or two digits)
+2. Time in "hh:mm" format
+3. Pressure reading (e.g. 1020)
+
+One event per line. ASCII encoding.
+
+Sensor readings represent reading values at the time of the timestamp.
+E.g. if the reading is 1020, it means that at the moment of time defined by the timestamp actual atmospheric pressure was 1020.
+Pressure is assumed to be in mbars.
+
+

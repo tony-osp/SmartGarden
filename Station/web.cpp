@@ -269,7 +269,6 @@ static void JSONLogs(const KVPairs & key_value_pairs, FILE * stream_file)
 static void JSONtLogs(const KVPairs & key_value_pairs, FILE * stream_file)
 {
 	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
-	fprintf_P(stream_file, PSTR("{\n\t\"logs\": [\n"));
 	time_t sdate = 0;
 	time_t edate = 0;
 	// Iterate through the kv pairs and search for the start and end dates.
@@ -287,7 +286,6 @@ static void JSONtLogs(const KVPairs & key_value_pairs, FILE * stream_file)
 		}
 	}
 	sdlog.TableZone(stream_file, sdate, edate);
-	fprintf_P(stream_file, PSTR("\t]\n}"));
 }
 
 static void JSONScheduleLogs(const KVPairs & key_value_pairs, FILE * stream_file)
