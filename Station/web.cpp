@@ -230,41 +230,6 @@ static void JSONSensor(const KVPairs & key_value_pairs, FILE * stream_file)
 	fprintf_P(stream_file, PSTR("}"));
 }
 
-static void JSONLogs(const KVPairs & key_value_pairs, FILE * stream_file)
-{
-	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
-	fprintf_P(stream_file, PSTR("{\n"));
-
-	time_t sdate = 0;
-	time_t edate = 0;
-	Logging::GROUPING grouping = Logging::NONE;
-	// Iterate through the kv pairs and search for the start and end dates.
-	for (int i = 0; i < key_value_pairs.num_pairs; i++)
-	{
-		const char * key = key_value_pairs.keys[i];
-		const char * value = key_value_pairs.values[i];
-		if (strcmp_P(key, PSTR("sdate")) == 0)
-		{
-			sdate = strtol(value, 0, 10);
-		}
-		else if (strcmp_P(key, PSTR("edate")) == 0)
-		{
-			edate = strtol(value, 0, 10);
-		}
-		else if (strcmp_P(key, PSTR("g")) == 0)
-		{
-			if (value[0] == 'h')
-				grouping = Logging::HOURLY;
-			else if (value[0] == 'd')
-				grouping = Logging::DAILY;
-			else if (value[0] == 'm')
-				grouping = Logging::MONTHLY;
-		}
-	}
-
-	sdlog.GraphZone(stream_file, sdate, edate, grouping);
-	fprintf_P(stream_file, PSTR("}"));
-}
 
 static void JSONtLogs(const KVPairs & key_value_pairs, FILE * stream_file)
 {
@@ -969,10 +934,6 @@ void web::ProcessWebClients()
 			     else if (strcmp_P(xP5, PSTR("wcheck")) == 0)
 			     {
 				     JSONwCheck(key_value_pairs, pFile);
-			     }
-			     else if (strcmp_P(xP5, PSTR("logs")) == 0)
-			     {
-			 	      JSONLogs(key_value_pairs, pFile);
 			     }
 			     else if (strcmp_P(xP5, PSTR("tlogs")) == 0)
 			     {

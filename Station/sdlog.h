@@ -164,10 +164,7 @@ public:
 		// Log whole schedule event
 		bool LogSchedEvent(time_t start, int duration, int water_used, int schedule, int sadj, int wunderground);
 
-        // Retrieve data suitable for graphing
-        bool GraphZone(FILE * stream_file, time_t start, time_t end, GROUPING group);
-
-        // Emit zone watering data suitable for putting into a table
+        // Emit zone log watering data 
         bool TableZone(FILE* stream_file, time_t start, time_t end);
 
         // Emit schedue watering data suitable for putting into a table
@@ -187,8 +184,6 @@ public:
 
 private:
 
-
-        int getZoneBins( int zone, time_t start, time_t end, long int *bin_data, int bins, GROUPING grouping);
 
 };
 
