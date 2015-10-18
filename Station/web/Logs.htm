@@ -139,7 +139,7 @@
             if (data.logs.length == 0)
                 list.html("<p align='center'>No entries in the selected date range</p>");
             else {
-                var tbl_html = "<div><br /><table  class='tablepane' cellpadding='3' style='margin: 0 auto'><thead><tr><th data-priority='1'>Date/Time</th><th data-priority='2'>&nbsp Runtime, min &nbsp</th><th data-priority='3'>&nbsp Schedule &nbsp</th>" +
+                var tbl_html = "<div><br /><table  class='tablepane' cellpadding='3' style='margin: 0 auto'><thead><tr><th data-priority='1'>Date/Time</th><th data-priority='2'>&nbsp Runtime, min &nbsp</th><th data-priority='3'>&nbsp Water, gal &nbsp</th><th data-priority='3'>&nbsp Schedule &nbsp</th>" +
                                 "<th data-priority='4'>&nbsp SAdj &nbsp</th><th data-priority='5'>&nbsp WUnd &nbsp</th></tr></thead><tbody>";
                 for (var i = 0; i < data.logs.length; i++) {
                         var entry = data.logs[i];
@@ -148,6 +148,7 @@
 
                         tbl_html += "<tr><td>" + datetimestr + "</td>";
                         tbl_html += "<td>" + Math.floor(entry.duration / 60) + ":" + pad(entry.duration % 60, 2) + "</td>";
+                        tbl_html += "<td>" + entry.water_used + "</td>";
                         tbl_html += "<td>" + entry.scheduleName + "</td>";
                         tbl_html += format_adjustments(entry.seasonal);
                         tbl_html += format_adjustments(entry.wunderground) + "</tr>";
@@ -172,6 +173,7 @@
                 var sched_date = "";
                 var sched_num_zones = data.logs[i].entries.length;
                 var zones_html = "";
+                var sch_water_used = 0;
 
                 for (var j = 0; j < sched_num_zones; j++) {  // iterate over zones 
                     var entry = data.logs[i].entries[j];
@@ -180,19 +182,20 @@
                     if (j == 0)
                         sched_date = pad(dt.getUTCFullYear(), 4) + '/' + pad(dt.getUTCMonth() + 1, 2) + '/' + pad(dt.getUTCDate(), 2) + ' ' + pad(dt.getUTCHours(), 2) + ':' + pad(dt.getUTCMinutes(), 2);
                     var timestr = pad(dt.getUTCHours(), 2) + ':' + pad(dt.getUTCMinutes(), 2);
+                    sch_water_used += entry.water_used;
 
                     zones_html += "<tr><td>" + timestr + "</td>";
-                    //entry.zone++; // base-1 correction
                     zones_html += "<td>" + zonestorage[entry.zone].name + "</td>";
                     zones_html += "<td>" + Math.floor(entry.duration / 60) + ":" + pad(entry.duration % 60, 2) + "</td>";
+                    zones_html += "<td>" + entry.water_used + "</td>";
                     zones_html += format_adjustments(entry.seasonal);
                     zones_html += format_adjustments(entry.wunderground) + "</tr>";
                 }
 
                 tbl_html += "<div data-role='collapsible' data-theme='b' data-content-theme='d' data-inset='true' data-collapsed='true'>" +
-                  "<h2><div class='ui-btn-up-c ui-btn-corner-all'>" + sched_date + " Schedule:" + data.logs[i].scheduleName + ", " + sched_mins + "min, " + sched_num_zones +
+                  "<h2><div class='ui-btn-up-c ui-btn-corner-all'>" + sched_date + " Schedule:" + data.logs[i].scheduleName + ", " + sched_mins + "min, " + sch_water_used + "gal, " + sched_num_zones +
                   ((sched_num_zones > 1) ? " zones" : " zone") + "</div>" +
-                  "</h2><table class='tablepane'><thead><tr><th data-priority='1'>&nbsp Time &nbsp</th><th data-priority='3'>Zone</th><th data-priority='2'>&nbsp Runtime, min &nbsp</th>" +
+                  "</h2><table class='tablepane'><thead><tr><th data-priority='1'>&nbsp Time &nbsp</th><th data-priority='2'>Zone</th><th data-priority='3'>&nbsp Runtime, min &nbsp</th><th data-priority='3'>&nbsp Water, gal &nbsp</th>" +
                   "<th data-priority='4'>&nbsp SAdj &nbsp</th><th data-priority='5'>&nbsp WUnd &nbsp</th></tr></thead><tbody>";
 
                 tbl_html += zones_html;

@@ -276,7 +276,7 @@ void Logging::Close()
 //
 // Note: we open/close file on each event
 
-bool Logging::LogSchedEvent(time_t start, int duration, int schedule, int sadj, int wunderground)
+bool Logging::LogSchedEvent(time_t start, int duration, int water_used, int schedule, int sadj, int wunderground)
 {
 	  TRACE_VERBOSE(F("LogSchedEvent called, start=%lu, duration=%d, schedule=%d, sadj=%d, wunderground=%d\n"), start, duration, schedule, sadj, wunderground);
 
@@ -295,10 +295,10 @@ bool Logging::LogSchedEvent(time_t start, int duration, int schedule, int sadj, 
                TRACE_ERROR(F("Cannot open watering log file (%s)\n"), tmp_buf);    // file create failed, return an error.
                return false;    // failed to open/create file
          }
-         lfile.println(F("Month,Day,Time,Schedule run time(min),ScheduleID,Adjustment,WUAdjustment"));
+         lfile.println(F("Month,Day,Time,Schedule run time(min),Water used(gal),ScheduleID,Adjustment,WUAdjustment"));
       }
 
-      sprintf_P(tmp_buf, PSTR("%u,%u,%u:%u,%u,%u,%i,%i"), month(start), day(start), hour(start), minute(start), duration, schedule, sadj, wunderground);
+      sprintf_P(tmp_buf, PSTR("%u,%u,%u:%u,%u,%u,%u,%i,%i"), month(start), day(start), hour(start), minute(start), duration, water_used, schedule, sadj, wunderground);
 
       lfile.println(tmp_buf);
       lfile.close();
@@ -310,7 +310,7 @@ bool Logging::LogSchedEvent(time_t start, int duration, int schedule, int sadj, 
 //
 // Note: for watering events we open/close file on each event
 
-bool Logging::LogZoneEvent(time_t start, int zone, int duration, int schedule, int sadj, int wunderground)
+bool Logging::LogZoneEvent(time_t start, int zone, int duration, int water_used, int schedule, int sadj, int wunderground)
 {
 	  time_t t = now();
 	  
@@ -321,13 +321,8 @@ bool Logging::LogZoneEvent(time_t start, int zone, int duration, int schedule, i
 //
 	  {
 			register uint8_t	dow = weekday(t)-1;
-			register uint16_t	cc = GetWWCounter(dow);	
 
-			ShortZone   szone;
-			LoadShortZone(zone, &szone);
-		
-			register uint32_t tmp32 = uint32_t(duration) * uint32_t(szone.waterFlowRate);
-			SetWWCounter(dow, GetWWCounter(dow)+uint16_t(tmp32));
+			SetWWCounter(dow, GetWWCounter(dow)+water_used);
 			//TRACE_CRIT(F("Updating WWCounter, dow=%d, duration=%d, zone.wfRate=%d, increment=%d\n"), int(dow), duration, szone.waterFlowRate, int(tmp32) );
 	  }
 
@@ -346,10 +341,10 @@ bool Logging::LogZoneEvent(time_t start, int zone, int duration, int schedule, i
                TRACE_ERROR(F("Cannot open watering log file (%s)\n"), tmp_buf);    // file create failed, return an error.
                return false;    // failed to open/create file
          }
-         lfile.println(F("Day,Time,Run time(min),ScheduleID,Adjustment,WUAdjustment"));
+         lfile.println(F("Day,Time,Run time(min),Water used(gal),ScheduleID,Adjustment,WUAdjustment"));
       }
 
-      sprintf_P(tmp_buf, PSTR("%u,%u,%u:%u,%u,%u,%i,%i"), zone, day(start), hour(start), minute(start), duration, schedule, sadj, wunderground);
+      sprintf_P(tmp_buf, PSTR("%u,%u,%u:%u,%u,%u,%u,%i,%i"), zone, day(start), hour(start), minute(start), duration, water_used, schedule, sadj, wunderground);
 
       lfile.println(tmp_buf);
       lfile.close();
@@ -674,8 +669,8 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
                      while( lfile.available() ){
 
                             int  nday = 0, nhour = 0, nminute = 0, nschedule = 0;
-                            int  nduration = 0,  nsadj = 0, nwunderground = 0;
-							int nzone = 0;
+                            int  nsadj = 0, nwunderground = 0, nzone = 0;
+							uint16_t  nduration = 0, nwater_used = 0;
 
                             int bytes = lfile.fgets(tmp_buf, MAX_LOG_RECORD_SIZE-1);
                             if (bytes <= 0)
@@ -683,8 +678,8 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 
 // Parse the string into fields. 
 
-                            sscanf_P( tmp_buf, PSTR("%u,%u,%u:%u,%i,%i,%i,%i"),
-                                                            &nzone, &nday, &nhour, &nminute, &nduration, &nschedule, &nsadj, &nwunderground);
+							sscanf_P( tmp_buf, PSTR("%u,%u,%u:%u,%u,%u,%i,%i,%i"),
+                                                            &nzone, &nday, &nhour, &nminute, &nduration, &nwater_used, &nschedule, &nsadj, &nwunderground);
 
                             if( (nmonth == nmend) && (nday > ndayend) )    // check for the end date
                                          break;
@@ -714,9 +709,9 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 									
 									prev_evtEnd = evt_time + uint32_t(nduration)*60ul + 10;
 
-                                    fprintf_P(stream_file, PSTR("%s \n\t\t\t\t\t { \"date\":%lu, \"zone\":%i, \"duration\":%i, \"seasonal\":%i, \"wunderground\":%i}"),
+                                    fprintf_P(stream_file, PSTR("%s \n\t\t\t\t\t { \"date\":%lu, \"zone\":%i, \"duration\":%u, \"water_used\":%u, \"seasonal\":%i, \"wunderground\":%i}"),
                                                                        bFirstRow ? "":",",
-                                                                       evt_time, nzone, nduration, nsadj, nwunderground );
+                                                                       evt_time, nzone, nduration, nwater_used, nsadj, nwunderground );
 
                                      bFirstRow = false;
                             }
@@ -770,7 +765,8 @@ bool Logging::TableSchedule(FILE* stream_file, time_t start, time_t end)
                      while( lfile.available() ){
 
                             int  nmonth = 0, nday = 0, nhour = 0, nminute = 0, nschedule = 0;
-                            int  nduration = 0,  nsadj = 0, nwunderground = 0;
+                            int  nsadj = 0, nwunderground = 0;
+							uint16_t  nwater_used = 0, nduration = 0;
 
                             int bytes = lfile.fgets(tmp_buf, MAX_LOG_RECORD_SIZE-1);
                             if (bytes <= 0)
@@ -778,8 +774,8 @@ bool Logging::TableSchedule(FILE* stream_file, time_t start, time_t end)
 
 // Parse the string into fields. First field (up to two digits) is the day of the month
 
-                            sscanf_P( tmp_buf, PSTR("%u,%u,%u:%u,%i,%i,%i,%i"),
-                                                            &nmonth, &nday, &nhour, &nminute, &nduration, &nschedule, &nsadj, &nwunderground);
+                            sscanf_P( tmp_buf, PSTR("%u,%u,%u:%u,%u,%u,%i,%i,%i"),
+                                                            &nmonth, &nday, &nhour, &nminute, &nduration, &nwater_used, &nschedule, &nsadj, &nwunderground);
 
                             if( (nmonth > nmend) || ((nmonth == nmend) && (nday > ndayend)) )    // check for the end date
                                          break;
@@ -800,9 +796,9 @@ bool Logging::TableSchedule(FILE* stream_file, time_t start, time_t end)
 										LoadSchedule(uint8_t(nschedule), &sched);
 									}
                             
-                                    fprintf_P(stream_file, PSTR("%s \n\t\t\t\t\t { \"date\":%lu, \"duration\":%i, \"scheduleID\":%i, \"scheduleName\":\"%s\", \"seasonal\":%i, \"wunderground\":%i}"),
+                                    fprintf_P(stream_file, PSTR("%s \n\t\t\t\t\t { \"date\":%lu, \"duration\":%u, \"water_used\":%u, \"scheduleID\":%i, \"scheduleName\":\"%s\", \"seasonal\":%i, \"wunderground\":%i}"),
                                                                        bFirstRow ? "":",",
-                                                                       makeTime(tm), nduration, nschedule, sched.name, nsadj, nwunderground );
+                                                                       makeTime(tm), nduration, nwater_used, nschedule, sched.name, nsadj, nwunderground );
 
                                      bFirstRow = false;
                             }

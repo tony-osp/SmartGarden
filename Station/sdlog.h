@@ -160,9 +160,9 @@ public:
         bool begin(void);
         void Close();
         // Watering activity logging. Note: signature is deliberately compatible with sprinklers_pi control program
-        bool LogZoneEvent(time_t start, int zone, int duration, int schedule, int sadj, int wunderground);
+        bool LogZoneEvent(time_t start, int zone, int duration, int water_used, int schedule, int sadj, int wunderground);
 		// Log whole schedule event
-		bool LogSchedEvent(time_t start, int duration, int schedule, int sadj, int wunderground);
+		bool LogSchedEvent(time_t start, int duration, int water_used, int schedule, int sadj, int wunderground);
 
         // Retrieve data suitable for graphing
         bool GraphZone(FILE * stream_file, time_t start, time_t end, GROUPING group);

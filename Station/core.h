@@ -118,6 +118,7 @@ private:
 
 	uint32_t	m_endPauseMillis;	// if non-zero, indicates we are in pause mode, and this field has millis value for the end of the pause period
 
+	int			m_iWaterUsed;
 };
 
 extern runStateClass runState;

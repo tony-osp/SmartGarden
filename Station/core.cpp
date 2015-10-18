@@ -431,7 +431,16 @@ void runStateClass::LogEvent()
 {
 	if( m_iZone!=-1 )
 	{
-        sdlog.LogZoneEvent(now()-(uint32_t)m_zoneMins*60ul, m_iZone, int((millis()-m_startZoneMillis)/60000ul), m_iSchedule, GetSeasonalAdjust(), m_wuScale);
+		int duration = int((millis()-m_startZoneMillis)/60000ul);
+		int water_used;
+		{
+			ShortZone   szone;
+			LoadShortZone(m_iZone, &szone);
+		
+			water_used = int( uint32_t(duration) * uint32_t(szone.waterFlowRate) / 100ul );	// calculate this zone water usage
+			m_iWaterUsed += water_used;												// increment all-up water usage for this schedule
+		}
+        sdlog.LogZoneEvent(now()-(uint32_t)m_zoneMins*60ul, m_iZone, duration, water_used, m_iSchedule, GetSeasonalAdjust(), m_wuScale);
 	}
 }
 
@@ -439,7 +448,7 @@ void runStateClass::LogSchedule()
 {
 	if( m_iSchedule != -1 )
 	{
-        sdlog.LogSchedEvent(now()-(millis()-m_startSchedMillis)/1000ul, int((millis()-m_startSchedMillis)/60000ul), m_iSchedule, GetSeasonalAdjust(), m_wuScale);
+        sdlog.LogSchedEvent(now()-(millis()-m_startSchedMillis)/1000ul, int((millis()-m_startSchedMillis)/60000ul), m_iWaterUsed, m_iSchedule, GetSeasonalAdjust(), m_wuScale);
 	}
 }
 
@@ -453,6 +462,7 @@ void runStateClass::StopSchedule(void)
 			m_iZone = -1; // no zone is running
 			LogSchedule(); // log previous schedule since we are stopping it
 			m_iSchedule = -1;
+			m_iWaterUsed = 0;
 		}
 }
 
@@ -502,6 +512,7 @@ uint8_t runStateClass::sAdj(uint8_t val)
 void runStateClass::StartSchedule(bool fQuickSched, int8_t iSched)
 {
 		StopSchedule();	// stop currently running schedule if any
+		m_iWaterUsed = 0;	// zero out water usage counter
 
 		if( fQuickSched )
 		{

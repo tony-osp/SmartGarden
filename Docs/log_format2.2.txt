@@ -37,9 +37,10 @@ The rest of the file consists of the records of the following format:
 2. Day of the month (one or two digits)
 3. Time in "hh:mm" format
 4. Run time in minutes
-5. Schedule ID
-6. Adjustment
-7. Weather underground adjustment
+5. Consumed water, gallons
+6. Schedule ID
+7. Adjustment
+8. Weather underground adjustment
 
 One event per line. ASCII encoding.
 
@@ -60,9 +61,10 @@ The rest of the file consists of the records of the following format:
 2. Day of the month (one or two digits)
 3. Time in "hh:mm" format
 4. Schedule run time in minutes
-5. Schedule ID (100 means "quick schedule")
-6. Adjustment
-7. Weather underground adjustment
+5. Consumed water, gallons
+6. Schedule ID (100 means "quick schedule")
+7. Adjustment
+8. Weather underground adjustment
 
 One event per line. ASCII encoding.
 
