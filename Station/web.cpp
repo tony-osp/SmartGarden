@@ -4,7 +4,7 @@
 // Copyright (c) 2013 Richard Zimmerman
 //
 //
-// Modifications for multi-station and SmartGarden system by Tony-osp
+// Modifications for multi-station SmartGarden system, sensors support and optimizations by Tony-osp
 //
 #include "web.h"
 #include "settings.h"

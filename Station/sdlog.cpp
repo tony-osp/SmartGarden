@@ -276,7 +276,7 @@ void Logging::Close()
 //
 // Note: we open/close file on each event
 
-bool Logging::LogSchedEvent(time_t start, int duration, int water_used, int schedule, int sadj, int wunderground)
+bool Logging::LogSchedEvent(time_t start, int duration, uint16_t water_used, int schedule, int sadj, int wunderground)
 {
 	  TRACE_VERBOSE(F("LogSchedEvent called, start=%lu, duration=%d, schedule=%d, sadj=%d, wunderground=%d\n"), start, duration, schedule, sadj, wunderground);
 
@@ -310,7 +310,7 @@ bool Logging::LogSchedEvent(time_t start, int duration, int water_used, int sche
 //
 // Note: for watering events we open/close file on each event
 
-bool Logging::LogZoneEvent(time_t start, int zone, int duration, int water_used, int schedule, int sadj, int wunderground)
+bool Logging::LogZoneEvent(time_t start, int zone, int duration, uint16_t water_used, int schedule, int sadj, int wunderground)
 {
 	  time_t t = now();
 	  
@@ -326,7 +326,9 @@ bool Logging::LogZoneEvent(time_t start, int zone, int duration, int water_used,
 			//TRACE_CRIT(F("Updating WWCounter, dow=%d, duration=%d, zone.wfRate=%d, increment=%d\n"), int(dow), duration, szone.waterFlowRate, int(tmp32) );
 	  }
 
-   if( !logger_ready ) return false;  //check if the logger is ready
+	  water_used = water_used/100; // water used is reported in 1/100 of a gallon. We use full precision value for WWCounters calculations, but round it to nearest gallon for logging.
+
+	  if( !logger_ready ) return false;  //check if the logger is ready
 	
 // temp buffer for log strings processing
       char tmp_buf[MAX_LOG_RECORD_SIZE];

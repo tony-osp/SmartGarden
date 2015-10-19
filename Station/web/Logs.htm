@@ -99,15 +99,12 @@
                 for (l_sch = 0; l_sch < plotdata.length; l_sch++) { // iterate over scheduled runs
 
                     for (l_z = 0; l_z < plotdata[l_sch].entries.length; l_z++) { // iterate over zones in the schedule run
-                        pData[l_z][1] += plotdata[l_sch].entries[l_z].water_used;
+                        pData[plotdata[l_sch].entries[l_z].zone][1] += plotdata[l_sch].entries[l_z].water_used;
                         total_wused += plotdata[l_sch].entries[l_z].water_used;
                     }
                 }
 
-                for (i = 0; i < pData.length; i++) {
-                    pData[i][1] = pData[i][1] * 100;
-                    pData[i][1] = pData[i][1] / total_wused;
-                }
+                logsChartZUOptions.series[0].name = "Water usage";
 
                 if (logsChart != null)
                     logsChart.destroy();
@@ -166,7 +163,7 @@
             exporting: { enabled: false },
             credits: { enabled: false },
             legend: { enabled: false },
-            tooltip: { valueSuffix: ' %' },
+            tooltip: { valueSuffix: ' Gal.' },
 
             xAxis: {
                 type: 'category',
@@ -184,7 +181,7 @@
             yAxis: {
                 min: 0,
                 title: {
-                    text: '% of water usage'
+                    text: 'Water usage by Zone, gal.'
                 }
             },
             series: [{}],
@@ -347,9 +344,9 @@
                 <input type="radio" name="graph_type" id="radio-choice-a" value="t" checked="checked" />
                 <label for="radio-choice-a">Watering time</label>
                 <input type="radio" name="graph_type" id="radio-choice-b" value="wu" />
-                <label for="radio-choice-b">Water usage</label>
+                <label for="radio-choice-b">Historical Water Usage</label>
                 <input type="radio" name="graph_type" id="radio-choice-c" value="zu" />
-                <label for="radio-choice-c">Zones usage split</label>
+                <label for="radio-choice-c">Water Usage by Zones</label>
               </fieldset>
             </div>
           </form>
