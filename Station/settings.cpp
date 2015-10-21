@@ -5,7 +5,7 @@ and settings/hardware config import from an INI file.
 
 Most of the code is written by Tony-osp (http://tony-osp.dreamwidth.org/)
 
-Portions came from sprinklers_pi 2013 Richard Zimmerman (schedule handling is lifted from sprinklers_avr code)
+Portions came from sprinklers_pi 2013 Richard Zimmerman (schedule settings handling is lifted from sprinklers_pi code)
 
 
 */
@@ -697,7 +697,7 @@ bool SetOneZones(const KVPairs & key_value_pairs)
 
 bool SetSettings(const KVPairs & key_value_pairs)
 {
-        for (int i = 0; i < key_value_pairs.num_pairs; i++)
+		for (int i = 0; i < key_value_pairs.num_pairs; i++)
         {
                 const char * key = key_value_pairs.keys[i];
                 const char * value = key_value_pairs.values[i];
@@ -757,6 +757,7 @@ bool SetSettings(const KVPairs & key_value_pairs)
                 }
 
         }
+
         return true;
 }
 
@@ -1578,6 +1579,13 @@ void SetNTPIP(const IPAddress & value)
 {
         for (int i = 0; i < 4; i++)
                 EEPROM.write(ADDR_NTP_IP + i, value[i]);
+}
+
+bool GetIsDHCP()
+{
+	register uint32_t ip = GetIP();
+	if( ip == 0 )	return true;
+	else			return false;
 }
 
 IPAddress GetIP()

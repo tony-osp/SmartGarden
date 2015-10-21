@@ -511,7 +511,7 @@ byte OSLocalUI::modeHandler_Status(byte forceRefresh)
 			 lcd_print_line_clear_pgm(PSTR(VERSION),1);
           }
           else if( osUI_Page == 1 ){
-             uint32_t ip = GetIP();
+             uint32_t ip = Ethernet.localIP();
 
              lcd_print_line_clear_pgm(PSTR("Status: IP"), 0);
 #if HW_ENABLE_ETHERNET
@@ -536,7 +536,7 @@ byte OSLocalUI::modeHandler_Status(byte forceRefresh)
              lcd_print_line_clear_pgm(PSTR("Status: GW"), 0);
 #if HW_ENABLE_ETHERNET
 			 LCD_SETCURSOR(lcd, 0, 1);
-             uint32_t ip = GetGateway();
+             uint32_t ip = Ethernet.gatewayIP();
              lcd_print_ip((byte *)&ip);
 #else // HW_ENABLE_ETHERNET
              lcd_print_line_clear_pgm(PSTR("No Ethernet"), 1);

@@ -29,6 +29,15 @@
 	      NV(data, 'ot');
 	      NV(data, 'webport');
 	      NV(data, 'sadj');
+
+	      if (data.ip == "0.0.0.0") {
+	          $('#iptypedhcp').prop("checked", true).checkboxradio("refresh");
+	      }
+	      else {
+	          $('#iptypeexplicit').prop("checked", true).checkboxradio("refresh");
+          }
+          DHCPToggleState();
+          
             }});
         });
         
@@ -59,6 +68,16 @@
             }
           });
         }
+
+        function DHCPToggleState() {
+            if (document.getElementById('iptypedhcp').checked) {
+                document.getElementById('explicitipdiv').style.display = "none";
+                document.getElementById('ip').value = "0.0.0.0";
+            }
+            else {
+                document.getElementById('explicitipdiv').style.display = "block";
+            }
+        }
       </script>
       <div data-theme="a" data-role="header" data-position="fixed">
           	<a data-role="button" href="javascript:settingsSubmitForm();" data-icon="check" data-iconpos="left" class="ui-btn-right">OK</a>
@@ -71,21 +90,34 @@
             <div class="ui-block-a"> 
                 <div  style="margin-right:2em; margin-left:2em">
 
-                  <div id="ipdiv" data-role="fieldcontain" class="ll-input">
-                    <label for="ip">IP:</label>
-                    <input type="text" name="ip" id="ip" value="" maxlength=15/>
-                  </div>
+                    <div>
+                      <label for="dhcpuse">IP Type:</label>
+                      <fieldset data-role="controlgroup" data-type="horizontal" class="ll-input" id="dhcpuse">
+                        <input type="radio" name="iptype" id="iptypedhcp" value="on" onclick="DHCPToggleState()"/>
+                        <label for="iptypedhcp">DHCP</label>
+                        <input type="radio" name="iptype" id="iptypeexplicit" value="off" onclick="DHCPToggleState()"/>
+                        <label for="iptypeexplicit">Explicit</label>
+                      </fieldset>
+                    </div>
+
+                      <div id="explicitipdiv" data-role="fieldcontain" class="ll-input">
+                          <div id="ipdiv" data-role="fieldcontain" class="ll-input">
+                            <label for="ip">IP:</label>
+                            <input type="text" name="ip" id="ip" value="" maxlength=15/>
+                          </div>
+                          <div id="netmaskdiv" data-role="fieldcontain" class="ll-input">
+                            <label for="netmask">Netmask:</label>
+                            <input type="text" name="netmask" id="netmask" value="" maxlength=15 />
+                          </div>
+                          <div id="gatewaydiv" data-role="fieldcontain" class="ll-input">
+                            <label for="gateway">Gateway:</label>
+                            <input type="text" name="gateway" id="gateway" value="" maxlength=15 />
+                          </div>
+                      </div>
+
                   <div id="webportdiv" data-role="fieldcontain" class="ll-input">
                     <label for="webport">Web Port:</label>
                     <input type="number" name="webport" id="webport" value="" min="0" max="32767" />
-                  </div>
-                  <div id="netmaskdiv" data-role="fieldcontain" class="ll-input">
-                    <label for="netmask">Netmask:</label>
-                    <input type="text" name="netmask" id="netmask" value="" maxlength=15 />
-                  </div>
-                  <div id="gatewaydiv" data-role="fieldcontain" class="ll-input">
-                    <label for="gateway">Gateway:</label>
-                    <input type="text" name="gateway" id="gateway" value="" maxlength=15 />
                   </div>
                   <div id="wuipdiv" data-role="fieldcontain" class="ll-input">
                     <label for="wuip">WUndgerground IP:</label>
@@ -95,6 +127,7 @@
                     <label for="NTPip">NTP IP:</label>
                     <input type="text" name="NTPip" id="NTPip" value="" maxlength=15 />
                   </div>
+
                 </div>
             </div>
             <div class="ui-block-b"> 

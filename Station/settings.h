@@ -8,7 +8,7 @@ and settings/hardware config import from an INI file.
 
 Most of the code is written by Tony-osp (http://tony-osp.dreamwidth.org/)
 
-Portions came from sprinklers_pi code by Richard Zimmerman (schedule handling is lifted from sprinklers_avr code)
+Portions came from sprinklers_pi code by Richard Zimmerman
 
 
 */
@@ -175,6 +175,7 @@ void SetNTPOffset(const int8_t value);
 int8_t GetNTPOffset();
 IPAddress GetNTPIP();
 void SetNTPIP(const IPAddress & value);
+bool GetIsDHCP();
 IPAddress GetIP();
 void SetIP(const IPAddress & value);
 IPAddress GetNetmask();

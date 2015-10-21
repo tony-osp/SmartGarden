@@ -1,13 +1,11 @@
 /*
 
-Core SmartGarden Master controller file.
+SmartGarden system.
 
 This project was inspired by Ray's OpenSprinkler project, and by Sprinklers_pi program from Richard Zimmerman
 
-Some of the modules used in this project came from Sprinklers_pi code and are covered by Richard's (c),
-other parts of the code are written by Tony-osp (http://tony-osp.dreamwidth.org/)
-
-This particular file (MasterStation.ino) is written by Tony-osp.
+Most of the code is written by Tony-osp (http://tony-osp.dreamwidth.org/),
+Some of the modules (nntp, tftp and few other pieces) came from Sprinklers_pi code and are covered by Richard's (c),
 
 */
 #include "Defines.h"
@@ -115,7 +113,10 @@ void setup() {
 
 	localUI.lcd_print_line_clear_pgm(PSTR("Ethernet init..."), 1);
 	// start the Ethernet connection and the server:
-    Ethernet.begin(mac, GetIP(), INADDR_NONE, GetGateway(), GetNetmask());
+	if( GetIsDHCP() )
+		Ethernet.begin(mac);
+	else
+		Ethernet.begin(mac, GetIP(), INADDR_NONE, GetGateway(), GetNetmask());
 	TRACE_CRIT(F("Assigned IP:")); Serial.println(Ethernet.localIP());
 #endif //HW_ENABLE_ETHERNET
 

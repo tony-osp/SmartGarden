@@ -6,7 +6,7 @@ Primary case for it is Remote station that typically does not have an SD card, a
 configuration (e.g. input buttons) are defined here, at compile time as opposed to device.ini.
 
 Creative Commons Attribution-ShareAlike 3.0 license
-Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
+Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 */
 
 #ifndef _HARDWIREDCONFIG_H

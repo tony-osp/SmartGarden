@@ -1,10 +1,12 @@
-// core.h
-// This file constitutes the core functions that run the scheduling for the SmartGarden system.
-// Initial code by: Richard Zimmerman
-// Copyright (c) 2013 Richard Zimmerman
-//
-// Modifications for multi-station and SmartGarden system by Tony-osp
-//
+/*
+  core.h 
+
+  This module is intended to be used with my multi-station environment monitoring and sprinklers control system (SmartGarden).
+
+Creative Commons Attribution-ShareAlike 3.0 license
+Copyright 2015 tony-osp (http://tony-osp.dreamwidth.org/)
+
+*/
 
 #ifndef _CORE_h
 #define _CORE_h

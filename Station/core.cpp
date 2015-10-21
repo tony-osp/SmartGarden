@@ -1,11 +1,13 @@
-// core.cpp
-// This file constitutes the core functions that run the scheduling for the Sprinkler system.
-// Author: Richard Zimmerman
-// Copyright (c) 2013 Richard Zimmerman
-//
-//
-// Modifications for multi-station and SmartGarden system by Tony-osp
-//
+/*
+  core scheduling and run state class.
+
+
+  Some of the design patterns came from Sprinklers_pi core by Richard Zimmerman.
+
+Creative Commons Attribution-ShareAlike 3.0 license
+Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
+
+*/
 #include "core.h"
 #include "settings.h"
 #include "Weather.h"
