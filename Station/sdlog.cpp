@@ -517,7 +517,7 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
                                          bFirstRow = true;
                                     }
 									
-									prev_evtEnd = evt_time + uint32_t(nduration)*60ul + 10;
+									prev_evtEnd = evt_time + uint32_t(nduration+1)*60ul;
 
                                     fprintf_P(stream_file, PSTR("%s \n\t\t\t\t\t { \"date\":%lu, \"zone\":%i, \"duration\":%u, \"water_used\":%u, \"seasonal\":%i, \"wunderground\":%i}"),
                                                                        bFirstRow ? "":",",
