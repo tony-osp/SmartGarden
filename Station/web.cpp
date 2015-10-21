@@ -361,7 +361,7 @@ static void JSONState(const KVPairs & key_value_pairs, FILE * stream_file)
         Schedule sched;
 		LoadSchedule(runState.getSchedule(), &sched);
 
-		if( runState.getSchedule() == 99 )  // manual
+		if( runState.getSchedule() == 100 )  // manual
 			strcpy_P(sched.name, PSTR("Manual"));
 		fprintf_P(stream_file, PSTR(",\n\t\"onZoneName\" : \"%s\",\n\t\"offTime\" : \"%d\",\n\t\"onSchedID\" : \"%d\",\n\t\"onSchedName\" : \"%s\""), zone.name, runState.getRemainingTime(), int(runState.getSchedule()), sched.name);
 	}

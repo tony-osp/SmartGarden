@@ -551,7 +551,7 @@ void runStateClass::StartSchedule(bool fQuickSched, int8_t iSched)
 			{
 				if( sched.zone_duration[i] != 0 )  // OK, we found first zone in this schedule to start
 				{
-					m_iSchedule = 100;	// quick schedule goes under standard number 100.
+					m_iSchedule = iSched;	// quick schedule goes under standard number 100.
 					m_startSchedMillis = millis();
 					m_iZone = i;
 					m_startZoneMillis = millis();
