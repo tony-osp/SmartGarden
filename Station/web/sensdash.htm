@@ -449,16 +449,16 @@
 
     </script>
 
-      <div data-theme="a" data-role="header">	
+      <div data-theme="a" data-role="header" data-position="fixed">	
 	    <a data-role="button" data-rel="back" href="#page1" data-icon="back" data-iconpos="left" class="ui-btn-left">Back</a>
-        	<h1>SmartGarden Sensors Dashboard</h1>
+        <h1>SmartGarden Sensors Dashboard</h1>
+      	<a id="refreshButton" href="javascript:sd_refreshSensorsData();"  data-iconpos="right"  data-icon="refresh" data-role="button" class="ui-btn-right">Refresh</a>
       </div>
       <div data-role="content">
-        <div style="text-align:center" id="Div1"><button onclick="sd_refreshSensorsData()" class="auto-style1"><strong>Refresh</strong></button></div>
 
             <div style="text-align:center" id="sens-list"></div>
-
-        <div style="text-align:center" id="Div2"><button onclick="sd_refreshSensorsData()" class="auto-style1"><strong>Refresh</strong></button></div>
+          <br />
+        <div style="text-align:center" id="Div2"><a href="/sens-h.htm" target="_blank"><strong>Click for historical sensors data</strong></a></div>
 
       </div> <!-- /content -->
   
