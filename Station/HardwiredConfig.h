@@ -16,17 +16,23 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 //  This config will be used when device.ini config is not available
 
 //#define LOCAL_NUM_DIRECT_CHANNELS	16		// use this definition for Master station on Mega 2560, with 16 parallel OUT channels
-#define LOCAL_NUM_DIRECT_CHANNELS	8		// use this definition for Master or Remote station with 8 parallel OUT channels
+//#define LOCAL_NUM_DIRECT_CHANNELS	8		// use this definition for Master or Remote station with 8 parallel OUT channels
 //#define LOCAL_NUM_DIRECT_CHANNELS	4		// use this definition for Master or Remote station with 4 parallel OUT channels
 
 // use this definition for Mega 2560 Master with 16 parallel Output channels
-//#define PARALLEL_PIN_OUT_MAP	{41, 40, 42, 43, 44, 45, 46, 47, 38, 37, 36, 35, 34, 33, 32, 31}
+#if SG_HARDWARE == HW_V10_MASTER
+#define PARALLEL_PIN_OUT_MAP	{41, 40, 42, 43, 44, 45, 46, 47, 38, 37, 36, 35, 34, 33, 32, 31}
+#endif
 
 // use this definition for RBoard-based 4-channel Remote station
-//#define PARALLEL_PIN_OUT_MAP	{4, 5, 6, 7 }
+#if SG_HARDWARE == HW_V10_REMOTE
+#define PARALLEL_PIN_OUT_MAP	{4, 5, 6, 7 }
+#endif
 
 // use this definition for Moteino Mega - based Remote station with 8 parallel channels
+#if SG_HARDWARE == HW_V15_REMOTE
 #define PARALLEL_PIN_OUT_MAP {12, 13, 14, 18, 19, 20, 21, 22 }
+#endif
 
 // LCD
 
@@ -99,6 +105,10 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 // DHT sensor sub-type
 #define DHTTYPE DHT21   // DHT 21 (AM2301)
 
+// by default we don't have local sensors
+#define SENSOR_NUM_LOCAL_SENSORS	0
+
+
 // locally connected BMP180 (air pressure & temp) sensor
 //#define SENSOR_ENABLE_BMP180	1
 //#define	SENSOR_CHANNEL_BMP180_TEMPERATURE	3
@@ -119,7 +129,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SENSOR_CHANNEL_ANALOG_1_SCALE ((SENSOR_CHANNEL_ANALOG_1_MAXV-SENSOR_CHANNEL_ANALOG_1_MINV)/(SENSOR_CHANNEL_ANALOG_1_MAXVAL-SENSOR_CHANNEL_ANALOG_1_MINVAL))
 
 // locally connected "counter" - type sensor, typically this would be Waterflow meter
-#define SENSOR_ENABLE_COUNTERMETER			1	// enable Counter/Meter sensor port
+//#define SENSOR_ENABLE_COUNTERMETER			1	// enable Counter/Meter sensor port
 #define SENSOR_COUNTERMETER_CHANNELS		1	// one Counter/Meter channel
 #define SENSOR_COUNTERMETER_RING_DELAY		3	// 3 cycles (i.e. 30ms) delay before counter-meter change is registered
 
@@ -133,13 +143,22 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SENSOR_CHANNEL_COUNTERMETER_1_MULT		1	// multiplier for computing CounterMeter1 normalized reading
 #define SENSOR_CHANNEL_COUNTERMETER_1_DIV		1	// divider for computing CounterMeter1 normalized reading
 
+// locally connected Temperature-Thermistor sensor via Analog port
+#define SENSOR_ENABLE_THERMISTOR				1	// enable Thermistor sensor port
+
+#define SENSOR_CHANNEL_THERMISTOR_1_PIN			A6	// Thermistor sensor connected to A6
+#define SENSOR_CHANNEL_THERMISTOR_1_TYPE		SENSOR_TYPE_TEMPERATURE	// standard sensor type - Temperature
+#define SENSOR_CHANNEL_THERMISTOR_1_CHANNEL		1	// logical channel this sensor is mapped to
+
+
+
 
 #if defined(SENSOR_ENABLE_DHT) && defined(SENSOR_ENABLE_BMP180)
+#undef SENSOR_NUM_LOCAL_SENSORS
 #define SENSOR_NUM_LOCAL_SENSORS	2
 #elif defined(SENSOR_ENABLE_DHT) || defined(SENSOR_ENABLE_BMP180)
+#undef SENSOR_NUM_LOCAL_SENSORS
 #define SENSOR_NUM_LOCAL_SENSORS	1
-#else
-#define SENSOR_NUM_LOCAL_SENSORS	0
 #endif 
 
 // XBee RF network

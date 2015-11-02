@@ -56,6 +56,7 @@ uint8_t GetDirectIOPin(uint8_t n)
 	return EEPROM.read(ADDR_OT_DIRECT_IO + n);
 }
 
+#ifdef LOCAL_NUM_DIRECT_CHANNELS
 void LoadZoneIOMap(uint8_t *ptr)
 {
         for( int i = 0; i < LOCAL_NUM_DIRECT_CHANNELS; i++)
@@ -67,6 +68,7 @@ void SaveZoneIOMap(uint8_t *ptr)
         for( int i = 0; i < LOCAL_NUM_DIRECT_CHANNELS; i++)
                 EEPROM.write(ADDR_OT_DIRECT_IO + i, *(ptr+i));
 }
+#endif //LOCAL_NUM_DIRECT_CHANNELS
 
 void LoadSrIOMap(SrIOMapStruct *ptr)
 {
@@ -909,13 +911,22 @@ void ResetEEPROM()
 		TRACE_INFO(F("LoadIniEEPROM - %d parallel channels\n"), parChannels );
 		SetNumIOChannels(parChannels);
 
+#ifdef LOCAL_NUM_DIRECT_CHANNELS
 		if( parChannels > LOCAL_NUM_DIRECT_CHANNELS ) 
 		{
 			SYSEVT_ERROR(F("LoadIniEEPROM - specified number of Parallel channels %d too high, truncating it to %d"), parChannels, LOCAL_NUM_DIRECT_CHANNELS );
 			parChannels = LOCAL_NUM_DIRECT_CHANNELS;	// basic protection to constrain the maximum number of parallel channels
 		}
+#else
+		if( parChannels > 0 )
+		{
+			SYSEVT_ERROR(F("LoadIniEEPROM - specified number of Parallel channels %d too high, truncating it to 0"), parChannels );
+			parChannels = 0;	// basic protection to constrain the maximum number of parallel channels
+		}
+#endif
 
 		if( parChannels != 0 ){
+#ifdef LOCAL_NUM_DIRECT_CHANNELS
 
 			uint16_t	ioPin;
 			uint8_t		zoneToIOMap[LOCAL_NUM_DIRECT_CHANNELS] = PARALLEL_PIN_OUT_MAP;
@@ -940,6 +951,10 @@ void ResetEEPROM()
 			{
 				SetOT(OT_DIRECT_POS);		
 			}
+#else //LOCAL_NUM_DIRECT_CHANNELS
+			SYSEVT_ERROR(F("LoadIniEEPROM - LOCAL_NUM_DIRECT_CHANNELS is not defined but device.ini specifies non-zero number of Parallel channels."));
+			parChannels = 0;	// basic protection to constrain the maximum number of parallel channels
+#endif //LOCAL_NUM_DIRECT_CHANNELS
 		}
 		
 		uint16_t	serChannels = 0;

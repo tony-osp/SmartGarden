@@ -30,6 +30,10 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "TimerOne.h"
 #endif //SENSOR_ENABLE_COUNTERMETER
 
+#ifdef SENSOR_ENABLE_THERMISTOR
+#include "thermistor.h"
+#endif
+
 // external reference
 extern Logging sdlog;
 
@@ -42,8 +46,6 @@ DHT dht_sensor(DHTPIN, DHTTYPE);
 // For BMP180 sensor we need SFE_BMP180 object, here called "bmp180":
 SFE_BMP180 bmp180;
 #endif
-
-
 
 // maximum ulong value
 #define MAX_ULONG       4294967295
@@ -157,15 +159,26 @@ byte Sensors::begin(void)
 	 Timer1.initialize(10000);			// timer will fire every 10ms (10,000 microseconds)
 	 Timer1.attachInterrupt(pollSensorIsr);	
 
-#endif //SENSOR_ENABLE_COUNTERMETER
-
 #ifdef SENSOR_CHANNEL_COUNTERMETER_1_PIN
 	 pinMode(SENSOR_CHANNEL_COUNTERMETER_1_PIN, INPUT);
 	 digitalWrite(SENSOR_CHANNEL_COUNTERMETER_1_PIN, HIGH);
 #endif //SENSOR_CHANNEL_COUNTERMETER_1_PIN
 
+#endif //SENSOR_ENABLE_COUNTERMETER
+
+#ifdef SENSOR_ENABLE_THERMISTOR
+// Thermistor-based temp sensor
+
+#ifdef SENSOR_CHANNEL_THERMISTOR_1_PIN
+	 pinMode(SENSOR_CHANNEL_THERMISTOR_1_PIN, INPUT);
+#endif
+
+#endif //SENSOR_ENABLE_THERMISTOR
+
      return true;
 }
+
+#ifdef SENSOR_ENABLE_COUNTERMETER
 
 // CounterMeter handling logic
 //
@@ -189,8 +202,6 @@ volatile uint16_t cCounterMeter1 = 0;	// raw/input ticks counter
 uint16_t	normalizedCM1 = 0;		// this is the output/normalized counter
 
 #endif //SENSOR_CHANNEL_COUNTERMETER_1_PIN
-
-#ifdef SENSOR_ENABLE_COUNTERMETER
 
 // poll sensor ISR
 void pollSensorIsr(void)
@@ -233,13 +244,14 @@ void pollSensorIsr(void)
 
 // -- Operation --
 
-static unsigned long  old_millis = millis() - 60000;             // setup initial condition to make it trigger on the first loop
+static unsigned long  old_millis = millis() - 60000ul;             // setup initial condition to make it trigger on the first loop
 // Main loop. Intended to be called regularly  to handle sensors readings. Usually this will be called from Arduino loop()
 void Sensors::loop(void)
 {
        unsigned long  new_millis = millis();    // Note: we are using built-in Arduino millis() function instead of now() or time-zone adjusted LocalNow(), because it is a lot faster
                                                 // and for detecting minutes changes it does not make any difference.
-       if( (new_millis - old_millis) >= 60000 ){   // one minute detection
+	   
+       if( (new_millis - old_millis) >= 60000ul ){   // one minute detection
 //       if( (new_millis - old_millis) >= 1000 ){   // debug - 1 sec instead of 1 minute
 
              old_millis = new_millis;             
@@ -255,7 +267,7 @@ void Sensors::loop(void)
 //
 void Sensors::poll_MinTimer(void)
 {
-    pollMinutesCounter--;
+	pollMinutesCounter--;
 	if( pollMinutesCounter <= 0 )  // required repeat interval check
 	{
 			pollMinutesCounter = SENSORS_POLL_DEFAULT_REPEAT;	// reload counter
@@ -349,6 +361,23 @@ void Sensors::poll_MinTimer(void)
 
 			}
 #endif //SENSOR_ENABLE_ANALOG
+
+#ifdef SENSOR_ENABLE_THERMISTOR
+			{
+				int		val;
+#ifdef SENSOR_CHANNEL_THERMISTOR_1_PIN				
+				val = analogRead(SENSOR_CHANNEL_THERMISTOR_1_PIN);
+				TRACE_VERBOSE(F("Thermistor sensor#1 reading: %d\n"), val);
+
+				val = convertTempInt(val);	// this function will convert raw input value into actual temperature in F.
+				TRACE_VERBOSE(F("Thermistor sensor#1 converted: %d\n"), val);
+
+				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_THERMISTOR_1_CHANNEL, val );	
+#endif //SENSOR_CHANNEL_THERMISTOR_1_PIN
+
+			}
+#endif //SENSOR_ENABLE_THERMISTOR
+
 
 #ifdef SENSOR_ENABLE_COUNTERMETER
 			{
