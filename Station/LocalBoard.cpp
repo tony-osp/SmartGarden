@@ -148,6 +148,8 @@ bool LocalBoardSerial::begin(void)
 
 bool LocalBoardSerial::ChannelOn( uint8_t chan )
 {
+	//TRACE_CRIT(F("LocalBoardSerial::ChannelOn - entering, channel=%i\n"), int(chan));
+
 		if( lBoard_ready != true )		// to ensure local board is ready
 			return false;				
 
@@ -162,19 +164,26 @@ bool LocalBoardSerial::ChannelOn( uint8_t chan )
 		SrIOMapStruct	SrIoMap; 
 		LoadSrIOMap(&SrIoMap);			// load serial (OpenSprinkler-style) IO map from EEPROM
 
+	//TRACE_CRIT(F("LocalBoardSerial::ChannelOn - serial output\n"));
+
 		// turn off the latch pin
         digitalWrite(SrIoMap.SrLatPin, 0);
         digitalWrite(SrIoMap.SrClkPin, 0);
 
-        for( uint8_t iboard = 0; iboard < (LOCAL_NUM_CHANNELS/8); iboard++ )
+		uint8_t numOSChannels = GetNumOSChannels();
+
+        for( uint8_t iboard = 0; iboard < (numOSChannels/8); iboard++ )
 		{
 			for( uint8_t i = 0; i < 8; i++ )
 			{
+	//TRACE_CRIT(F("Output iteration, val=%i\n"), int(outState[iboard]&(0x01<<(7-i))) );
+
 				digitalWrite(SrIoMap.SrClkPin, 0);
 				digitalWrite(SrIoMap.SrDatPin, outState[iboard]&(0x01<<(7-i)));
 				digitalWrite(SrIoMap.SrClkPin, 1);
 			}
         }
+	//TRACE_CRIT(F("LocalBoardSerial::ChannelOn - latching state and enabling output\n"));
         // latch the outputs
         digitalWrite(SrIoMap.SrLatPin, 1);
 
@@ -203,7 +212,9 @@ bool LocalBoardSerial::ChannelOff( uint8_t chan )
         digitalWrite(SrIoMap.SrLatPin, 0);
         digitalWrite(SrIoMap.SrClkPin, 0);
 
-        for( uint8_t iboard = 0; iboard < (LOCAL_NUM_CHANNELS/8); iboard++ )
+		uint8_t numOSChannels = GetNumOSChannels();
+
+        for( uint8_t iboard = 0; iboard < (numOSChannels/8); iboard++ )
 		{
 			for( uint8_t i = 0; i < 8; i++ )
 			{

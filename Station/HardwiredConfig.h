@@ -16,7 +16,6 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 //  This config will be used when device.ini config is not available
 
 //#define LOCAL_NUM_DIRECT_CHANNELS	16		// use this definition for Master station on Mega 2560, with 16 parallel OUT channels
-//#define LOCAL_NUM_DIRECT_CHANNELS	8		// use this definition for Master or Remote station with 8 parallel OUT channels
 //#define LOCAL_NUM_DIRECT_CHANNELS	4		// use this definition for Master or Remote station with 4 parallel OUT channels
 
 // use this definition for Mega 2560 Master with 16 parallel Output channels
@@ -31,6 +30,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // use this definition for Moteino Mega - based Remote station with 8 parallel channels
 #if SG_HARDWARE == HW_V15_REMOTE
+#define LOCAL_NUM_DIRECT_CHANNELS	8		// use this definition for Master or Remote station with 8 parallel OUT channels
 #define PARALLEL_PIN_OUT_MAP {12, 13, 14, 18, 19, 20, 21, 22 }
 #endif
 
