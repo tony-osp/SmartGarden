@@ -174,8 +174,8 @@ i<!DOCTYPE html>
 
             var $weather = $("#weather");
             //$weather.html("<p class='ui-icon ui-icon-loading mini-load'>Loading...</p>");
-            $.getJSON("http://query.yahooapis.com/v1/public/yql?q=select%20woeid%20from%20geo.placefinder%20where%20text=%22" + escape(locationZip) + "%22&format=json", function (woeid) {
-                $.getJSON("http://query.yahooapis.com/v1/public/yql?q=select%20item%2Ctitle%2Clocation%20from%20weather.forecast%20where%20woeid%3D%22" + woeid.query.results.Result.woeid + "%22&format=json", function (data) {
+            $.getJSON("http://query.yahooapis.com/v1/public/yql?q=select%20woeid%20from%20geo.places(1)%20where%20text=%22" + escape(locationZip) + "%22&format=json", function (woeid) {
+                $.getJSON("http://query.yahooapis.com/v1/public/yql?q=select%20item%2Ctitle%2Clocation%20from%20weather.forecast%20where%20woeid%3D%22" + woeid.query.results.place.woeid + "%22&format=json", function (data) {
 
                     // Hide the weather if no data is returned
                     if (data.query.results.channel.item.title == "City not found") {
