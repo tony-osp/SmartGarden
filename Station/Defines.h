@@ -24,17 +24,39 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define HW_V15_MASTER			2	// Master station, hardware version 1.5 (Moteino Mega-based)
 #define HW_V15_REMOTE			3	// Remote station, hardware version 1.5 (Moteino Mega-based)
 
+#define HW_V16_MASTER			4	// Master station, hardware version 1.6 (Moteino Mega-based, native Moteino RF module)
+
 // Uncomment the line that corresponds to the actual hardware
 
 //#define SG_HARDWARE				HW_V15_REMOTE
 #define SG_HARDWARE				HW_V15_MASTER
+//#define SG_HARDWARE				HW_V16_MASTER
 //#define SG_HARDWARE				HW_V10_MASTER
+
+#if SG_HARDWARE == HW_V16_MASTER
+
+#define HW_ENABLE_ETHERNET		1
+#define HW_ENABLE_SD			1
+#define SG_STATION_MASTER		1
+#define HW_ENABLE_MOTEINORF		1
+
+
+#define W5500_USE_CUSOM_SS		1	// special keyword for W5500 ethernet library, to force use of custom SS
+#define W5500_SS				1	// define W5500 SS as D1
+
+#define SD_USE_CUSOM_SS			1	// special keyword for SD card library, to force use of custom SS
+#define SD_SS					3	// define SD card SS as D3
+
+#define DEFAULT_STATION_ID		0	// for Master default station ID is 0
+
+#endif //HW_V16_MASTER
 
 #if SG_HARDWARE == HW_V15_MASTER
 
 #define HW_ENABLE_ETHERNET		1
 #define HW_ENABLE_SD			1
 #define SG_STATION_MASTER		1
+#define HW_ENABLE_XBEE			1
 
 #define W5500_USE_CUSOM_SS		1	// special keyword for W5500 ethernet library, to force use of custom SS
 #define W5500_SS				1	// define W5500 SS as D1
@@ -48,14 +70,14 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #if SG_HARDWARE == HW_V15_REMOTE
 
+#define HW_ENABLE_XBEE			1
+
 #define USE_I2C_LCD				1	// Use I2C LCD (instead of the parallel-connected LCD)
 #define SG_RF_TIME_CLIENT		1	// accept time broadcast messages on XBee network
 
 #define DEFAULT_STATION_ID		2	// 
 
 #endif //HW_V15_REMOTE
-
-#define HW_ENABLE_XBEE			1
 
 #define SG_STATION_SLAVE		1	// allow acting as a slave (allow remote access via RF network)
 #define DEFAULT_MAX_DURATION	99	// default maximum runtime - 99 minutes
@@ -118,7 +140,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // Sensors
 // Default sensors logging interval, minutes
-#if SG_HARDWARE == HW_V15_MASTER
+#if (SG_HARDWARE == HW_V15_MASTER) || (SG_HARDWARE == HW_V16_MASTER)
 #define SENSORS_POLL_DEFAULT_REPEAT  60		// on Master station polling interval is 60minutes - quite high, but Master will poll all stations
 #else 
 #define SENSORS_POLL_DEFAULT_REPEAT  5		// on Remote station polling interval is 5minutes, to ensure local LCD display updates relatively quickly, and Remote station is not polling anybody else

@@ -241,6 +241,8 @@ uint8_t GetNumOSChannels(void)
 	return EEPROM.read(ADDR_NUM_OT_OPEN_SPRINKLER);
 }
 
+// XBee RF
+
 uint8_t GetXBeeFlags(void)
 {
 	return EEPROM.read(ADDR_NETWORK_XBEE_FLAGS);
@@ -332,6 +334,44 @@ void SetXBeeAddr(uint16_t addr)
 	EEPROM.write(ADDR_NETWORK_XBEE_ADDR16, addrl);
 	EEPROM.write(ADDR_NETWORK_XBEE_ADDR16+1, addrh);
 }
+
+// Moteino RF (RFM69)
+
+bool IsMoteinoRFEnabled(void)
+{
+	return (EEPROM.read(ADDR_NETWORK_MOTEINORF_FLAGS) & NETWORK_FLAGS_ENABLED) ? true:false;
+}
+
+uint8_t GetMoteinoRFFlags(void)
+{
+	return EEPROM.read(ADDR_NETWORK_MOTEINORF_FLAGS);
+}
+
+uint8_t GetMoteinoRFPANID(void)
+{
+	return EEPROM.read(ADDR_NETWORK_MOTEINORF_PANID);
+}
+
+uint8_t GetMoteinoRFAddr(void)
+{
+	return EEPROM.read(ADDR_NETWORK_MOTEINORF_NODEID);
+}
+
+void SetMoteinoRFPANID(uint8_t panID)
+{
+	EEPROM.write(ADDR_NETWORK_MOTEINORF_PANID, panID);
+}
+
+void SetMoteinoRFAddr(uint16_t addr)
+{
+	//uint8_t addrh = (addr & 0x0FF00) >> 8;
+	uint8_t addrl = addr & 0x0FF;
+
+	EEPROM.write(ADDR_NETWORK_MOTEINORF_NODEID, addrl);  // only low 8 bits of address are used
+}
+
+
+// other settings
 
 uint8_t GetMyStationID(void)
 {

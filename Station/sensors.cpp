@@ -415,7 +415,7 @@ void Sensors::poll_MinTimer(void)
 		{
 			// poll remote stations
 
-			XBeeRF.PollStationSensors(stationsToPollList[nPoll]);
+			rprotocol.PollStationSensors(stationsToPollList[nPoll]);
 		}
 
 		nPoll++;

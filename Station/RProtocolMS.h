@@ -37,8 +37,18 @@ class RProtocolMaster {
 public:
                 RProtocolMaster();
 				bool    begin(void);
-				void	RegisterTransport(void *ptr);
+				void	loop(void);
+
 				void	RegisterARP(void *ptr);
+
+			// Remote stations commands
+
+				bool	ChannelOn( uint8_t stationID, uint8_t chan, uint8_t ttr);
+				bool	ChannelOff( uint8_t stationID, uint8_t chan);
+				bool	AllChannelsOff(uint8_t stationID);
+				bool	PollStationSensors(uint8_t stationID);
+				bool	SubscribeEvents( uint8_t stationID );
+
 
 				bool	SendReadZonesStatus( uint8_t stationID, uint16_t transactionID );
 				bool	SendReadSystemRegisters( uint8_t stationID, uint8_t startRegister, uint8_t numRegisters, uint16_t transactionID );
@@ -64,8 +74,6 @@ public:
 				bool NotifySysEvent(uint8_t eventType, uint32_t timeStamp, uint16_t seqID, uint8_t flags, uint8_t eventDataLength, uint8_t *eventData);
 
 private:
-// transport callback, will be populated by the caller beforehand.
-				PTransportCallback	_SendMessage;
 // ARP address update
 				PARPCallback		_ARPAddressUpdate;
 };

@@ -7,7 +7,7 @@ generic and can operate over multiple transports.
 
 
 Creative Commons Attribution-ShareAlike 3.0 license
-Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
+Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 
 */
 
@@ -16,6 +16,11 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "core.h"
 #include "settings.h"
 #include "sensors.h"
+#include "XBeeRF.h"
+
+//#define TRACE_LEVEL			6		// trace everything for this module
+#include "port.h"
+
 
 uint8_t		LastReceivedStationID;
 uint32_t	LastReceivedTime;
@@ -24,10 +29,42 @@ uint32_t	LastReceivedTime;
 // Local forward declarations
 inline uint16_t		getSingleSensor(uint8_t regAddr);
 
+// 
+// Generic network "send packet" routine, used by all protocol messages.
+//
+// If new types of transport are added, appropriate handler needs to be added to this routine.
+//
+inline bool SendNetworkPacket(uint8_t stationID, void *pMessage, uint8_t mSize )
+{
+	if( stationID == 255 )	// broadcast message
+	{
+#ifdef HW_ENABLE_XBEE
+		XBeeSendPacket(stationID, pMessage, mSize);
+#endif //HW_ENABLE_XBEE
+
+#ifdef HW_ENABLE_MOTEINORF
+		XBeeSendPacket(stationID, pMessage, mSize);
+#endif //HW_ENABLE_MOTEINORF
+
+		return true;
+	}
+
+	uint8_t  networkID = GetStationNetworkID(stationID);
+
+#ifdef HW_ENABLE_XBEE
+		if( networkID == NETWORK_ID_XBEE ) return XBeeSendPacket(stationID, pMessage, mSize);
+#endif //HW_ENABLE_XBEE
+
+#ifdef HW_ENABLE_MOTEINORF
+		if( networkID == NETWORK_ID_MOTEINORF ) return XBeeSendPacket(stationID, pMessage, mSize);
+#endif //HW_ENABLE_MOTEINORF
+
+		return false;	//default fallback
+}
+
 
 RProtocolMaster::RProtocolMaster()
 {
-	_SendMessage = 0;
 	_ARPAddressUpdate = 0;
 }
 
@@ -37,13 +74,9 @@ bool RProtocolMaster::begin(void)
 }
 
 
-void RProtocolMaster::RegisterTransport(void *ptr)
-{
-	_SendMessage = (PTransportCallback)ptr;
-}
-
 void RProtocolMaster::RegisterARP(void *ptr)
 {
+	TRACE_INFO(F("RProtocol - registering ARP callback\n"));
 	_ARPAddressUpdate = (PARPCallback)ptr;
 }
 
@@ -281,35 +314,45 @@ bool RProtocolMaster::SendZonesReport(uint8_t transactionID, uint8_t fromUnitID,
 		ReportMessage.Header.Length = 4;	// we assume that we have no more than 8 zones, hence status data is 1 byte
 // Note: since currently we have no more than 8 zones in the Remote station, we hardcode response size
 
-		uint8_t	zonesStatus = 0;
-		ShortStation	sStation;
+		uint8_t			zonesStatus = 0;
+		uint8_t			stationFlags = 0;
+		
+		{ // limit scope of ShortStation to reduce memory footprint when calling transport handlers
+			ShortStation	sStation;
 
-		LoadShortStation(fromUnitID, &sStation);	// load station information
-		if( sStation.stationFlags & STATION_FLAGS_ENABLED )
-		{
-			if( (firstZone+numZones) > sStation.numZoneChannels )
+			LoadShortStation(fromUnitID, &sStation);	// load station information
+
+			stationFlags = sStation.stationFlags;
+			if( stationFlags & STATION_FLAGS_ENABLED )
 			{
-				SYSEVT_ERROR(F("SendZonesReport - wrong zones input parameters. firstZone=%d, numZones=%d, stationID=%d, numZoneChannels=%d"), uint16_t(firstZone), uint16_t(numZones),uint16_t(fromUnitID),uint16_t(sStation.numZoneChannels) );
-				return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
-			}
-
-			for( uint8_t pos=firstZone; pos<(firstZone+numZones); pos++ )
-			{
-				register uint8_t  zst = GetZoneState(1+pos+sStation.startZone);	// note zone number correction - zones are numbered from 1.
-
-				if( (zst == ZONE_STATE_RUNNING) || (zst == ZONE_STATE_STARTING) )
+				if( (firstZone+numZones) > sStation.numZoneChannels )
 				{
-					zonesStatus |= 1 << pos;
+					SYSEVT_ERROR(F("SendZonesReport - wrong zones input parameters. firstZone=%d, numZones=%d, stationID=%d, numZoneChannels=%d"), uint16_t(firstZone), uint16_t(numZones),uint16_t(fromUnitID),uint16_t(sStation.numZoneChannels) );
+					return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
+				}
+
+				for( uint8_t pos=firstZone; pos<(firstZone+numZones); pos++ )
+				{
+					register uint8_t  zst = GetZoneState(1+pos+sStation.startZone);	// note zone number correction - zones are numbered from 1.
+
+					if( (zst == ZONE_STATE_RUNNING) || (zst == ZONE_STATE_STARTING) )
+					{
+						zonesStatus |= 1 << pos;
+					}
 				}
 			}
 		}
 
-		ReportMessage.StationFlags = ZONES_REPFLAG_STATION_ENABLED;
+		if( stationFlags & STATION_FLAGS_ENABLED )
+			ReportMessage.StationFlags = ZONES_REPFLAG_STATION_ENABLED;
+		else
+			ReportMessage.StationFlags = 0;
+
 		ReportMessage.FirstZone = firstZone;
 		ReportMessage.NumZones = numZones;
 		ReportMessage.ZonesData[0] = zonesStatus;
 
-		return _SendMessage(toUnitID, &ReportMessage, sizeof(ReportMessage));	// send response with requested zones status bits
+		return SendNetworkPacket(toUnitID, (void *)(&ReportMessage), sizeof(ReportMessage) );	// send response with requested zones status bits
 }
 
 
@@ -343,7 +386,8 @@ bool RProtocolMaster::SendSensorsReport(uint8_t transactionID, uint8_t fromUnitI
 	pReportMessage->FirstSensor = firstSensor;
 	pReportMessage->NumSensors = numSensors;
 
-	return _SendMessage(toUnitID, outbuf, sizeof(RMESSAGE_SENSORS_REPORT)+(numSensors-1)*2);	
+	return SendNetworkPacket(toUnitID, (void *)(outbuf), sizeof(RMESSAGE_SENSORS_REPORT)+(numSensors-1)*2 );
+
 }
 
 
@@ -375,7 +419,7 @@ bool RProtocolMaster::SendSystemRegisters(uint8_t transactionID, uint8_t fromUni
 	pReportMessage->FirstRegister = firstRegister;
 	pReportMessage->NumRegisters = numRegisters;
 
-	return _SendMessage(toUnitID, outbuf, sizeof(RMESSAGE_SYSREGISTERS_REPORT)+numRegisters*2);
+	return SendNetworkPacket(toUnitID, (void *)(outbuf), sizeof(RMESSAGE_SYSREGISTERS_REPORT)+numRegisters*2 );
 }
 
 // Helper routine - notify Master of the system event
@@ -407,7 +451,7 @@ bool RProtocolMaster::NotifySysEvent(uint8_t eventType, uint32_t timeStamp, uint
 	pReportMessage->SeqID = seqID;
 	pReportMessage->Flags = flags;
 
-	return _SendMessage(pReportMessage->Header.ToUnitID, outbuf, sizeof(RMESSAGE_SYSEVT_REPORT)+eventDataLength);
+	return SendNetworkPacket(pReportMessage->Header.ToUnitID, (void *)(outbuf), sizeof(RMESSAGE_SYSEVT_REPORT)+eventDataLength );
 }
 
 
@@ -433,7 +477,7 @@ bool RProtocolMaster::SendEvtMasterReport(uint8_t transactionID, uint8_t fromUni
 #endif
 	Message.MasterStationAddress = 0;
 
-	return _SendMessage(toUnitID, &Message, sizeof(Message));
+	return SendNetworkPacket(toUnitID, (void *)(&Message), sizeof(Message) );
 }
 
 
@@ -452,7 +496,7 @@ bool RProtocolMaster::SendPingReply(uint8_t transactionID, uint8_t fromUnitID, u
 
 	Message.cookie = cookie;	
 
-	return _SendMessage(toUnitID, &Message, sizeof(Message));
+	return SendNetworkPacket(toUnitID, (void *)(&Message), sizeof(Message) );
 }
 	
 
@@ -470,7 +514,7 @@ bool RProtocolMaster::SendOKResponse(uint8_t transactionID, uint8_t fromUnitID, 
 	ResponseMessage.Header.Length = 1;
 
 	ResponseMessage.SuccessFCode = FCode;
-	return _SendMessage(toUnitID, &ResponseMessage, sizeof(ResponseMessage));	
+	return SendNetworkPacket(toUnitID, (void *)(&ResponseMessage), sizeof(ResponseMessage) );
 }
 
 //
@@ -489,7 +533,7 @@ bool RProtocolMaster::SendErrorResponse(uint8_t transactionID, uint8_t fromUnitI
 
 	Message.FailedFCode = fCode;
 	Message.ExceptionCode = errorCode;
-	return _SendMessage(toUnitID, &Message, sizeof(Message));	
+	return SendNetworkPacket(toUnitID, (void *)(&Message), sizeof(Message) );
 }
 
 
@@ -665,12 +709,6 @@ bool RProtocolMaster::SendReadZonesStatus( uint8_t stationID, uint16_t transacti
 {
         RMESSAGE_ZONES_READ  Message;
 
-		if( _SendMessage == 0 )
-			return false;					// protection - transport callback is not registered
-
-		ShortStation	sStation;
-		LoadShortStation(stationID, &sStation);
-
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_ZONES_READ;
         Message.Header.ToUnitID = stationID;
@@ -681,7 +719,7 @@ bool RProtocolMaster::SendReadZonesStatus( uint8_t stationID, uint16_t transacti
         Message.FirstZone = 0;
 		Message.NumZones = 0x0FF;	// read all station zone channels
 
-		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
+		return SendNetworkPacket(stationID, (void *)(&Message), sizeof(Message) );
 }
 
 
@@ -709,12 +747,6 @@ bool RProtocolMaster::SendReadSystemRegisters( uint8_t stationID, uint8_t startR
 {
         RMESSAGE_SYSREGISTERS_READ  Message;
 
-		if( _SendMessage == 0 )
-			return false;					// protection - transport callback is not registered
-
-		ShortStation	sStation;
-		LoadShortStation(stationID, &sStation);
-
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_SYSREGISTERS_READ;
         Message.Header.ToUnitID = stationID;
@@ -725,7 +757,7 @@ bool RProtocolMaster::SendReadSystemRegisters( uint8_t stationID, uint8_t startR
         Message.FirstRegister = startRegister;
 		Message.NumRegisters = numRegisters;	
 
-		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
+		return SendNetworkPacket(stationID, (void *)(&Message), sizeof(Message) );
 }
 
 
@@ -752,12 +784,6 @@ bool RProtocolMaster::SendReadSensors( uint8_t stationID, uint16_t transactionID
 {
         RMESSAGE_SENSORS_READ  Message;
 
-		if( _SendMessage == 0 )
-			return false;					// protection - transport callback is not registered
-
-		ShortStation	sStation;
-		LoadShortStation(stationID, &sStation);
-
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_SENSORS_READ;
         Message.Header.ToUnitID = stationID;
@@ -768,7 +794,7 @@ bool RProtocolMaster::SendReadSensors( uint8_t stationID, uint16_t transactionID
         Message.FirstSensor = 0;
 		Message.NumSensors = 0x0FF;	
 
-		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
+		return SendNetworkPacket(stationID, (void *)(&Message), sizeof(Message) );
 }
 
 
@@ -789,13 +815,7 @@ bool RProtocolMaster::SendForceSingleZone( uint8_t stationID, uint8_t channel, u
 {
         RMESSAGE_ZONES_SET  Message;
 
-		if( _SendMessage == 0 )
-			return false;					// protection - transport callback is not registered
-
-		ShortStation	sStation;
-		LoadShortStation(stationID, &sStation);
-
-		SYSEVT_ERROR(F("SendForceSingleZone - sending request"));
+		SYSEVT_VERBOSE(F("SendForceSingleZone - sending request"));
 
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_ZONES_SET;
@@ -811,7 +831,7 @@ bool RProtocolMaster::SendForceSingleZone( uint8_t stationID, uint8_t channel, u
 		Message.ZonesData[0] = 1 << channel;
 		Message.Flags = RMESSAGE_FLAGS_ACK_STD;
 
-		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
+		return SendNetworkPacket(stationID, (void *)(&Message), sizeof(Message) );
 }
 
 
@@ -831,12 +851,6 @@ bool RProtocolMaster::SendTurnOffAllZones( uint8_t stationID, uint16_t transacti
 {
         RMESSAGE_ZONES_SET  Message;
 
-		if( _SendMessage == 0 )
-			return false;					// protection - transport callback is not registered
-
-		ShortStation	sStation;
-		LoadShortStation(stationID, &sStation);
-
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_ZONES_SET;
         Message.Header.ToUnitID = stationID;
@@ -851,7 +865,7 @@ bool RProtocolMaster::SendTurnOffAllZones( uint8_t stationID, uint16_t transacti
 		Message.ZonesData[0] = 0;
 		Message.Flags = RMESSAGE_FLAGS_ACK_STD;
 
-		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
+		return SendNetworkPacket(stationID, (void *)(&Message), sizeof(Message) );
 }
 
 
@@ -881,9 +895,6 @@ bool RProtocolMaster::SendSetName( uint8_t stationID, const char *str, uint16_t 
 		uint8_t			  buffer[sizeof(RMESSAGE_SETNAME)+MAX_STATTION_NAME_LENGTH];
 		uint8_t			  nameLen;
 
-		if( _SendMessage == 0 )
-			return false;					// protection - transport callback is not registered
-
 		nameLen = strlen(str);
 		if( nameLen > MAX_STATTION_NAME_LENGTH )	// proposed name is too long 
 			return false;
@@ -903,7 +914,7 @@ bool RProtocolMaster::SendSetName( uint8_t stationID, const char *str, uint16_t 
 		pMessage->NumDataBytes = nameLen;
 		memcpy(&(pMessage->Name), str, nameLen);
 
-		return _SendMessage(stationID, (void *)pMessage, sizeof(RMESSAGE_SETNAME) + nameLen - 1);
+		return SendNetworkPacket(stationID, (void *)(&Message), sizeof(Message) );
 #endif //notdef
 
 		return false;
@@ -933,12 +944,6 @@ bool RProtocolMaster::SendRegisterEvtMaster( uint8_t stationID, uint8_t eventsMa
 {
         RMESSAGE_EVTMASTER_SET	Message;
 
-		if( _SendMessage == 0 )
-			return false;					// protection - transport callback is not registered
-
-		ShortStation	sStation;
-		LoadShortStation(stationID, &sStation);
-
 //		SYSEVT_ERROR(F("SendRegisterEventsMaster - sending request\n"));
 
         Message.Header.ProtocolID = RPROTOCOL_ID;
@@ -952,7 +957,7 @@ bool RProtocolMaster::SendRegisterEvtMaster( uint8_t stationID, uint8_t eventsMa
 		Message.MasterStationAddress = Message.MasterStationID = 0;
 		Message.Flags = RMESSAGE_FLAGS_ACK_STD;
 
-		return _SendMessage(stationID, (void *)(&Message), sizeof(Message));
+		return SendNetworkPacket(stationID, (void *)(&Message), sizeof(Message) );
 }
 
 //
@@ -964,14 +969,11 @@ bool RProtocolMaster::SendRegisterEvtMaster( uint8_t stationID, uint8_t eventsMa
 //
 //      The routine will broadcast current time on PAN
 //
-void RProtocolMaster::SendTimeBroadcast(void)
+inline void SendTimeBroadcastInt(void)
 {
 	RMESSAGE_TIME_BROADCAST Message;
 
-//	SYSEVT_ERROR(F("Sending time broadcast\n"));
-
-		if( _SendMessage == 0 )
-			return;					// protection - transport callback is not registered
+		TRACE_INFO(F("Sending time broadcast\n"));
 
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_TIME_BROADCAST;
@@ -982,7 +984,7 @@ void RProtocolMaster::SendTimeBroadcast(void)
 
 		Message.timeNow = now();
 
-		_SendMessage(255, (void *)(&Message), sizeof(Message));
+		SendNetworkPacket(255, (void *)(&Message), sizeof(Message) );
 }
 
 //
@@ -1230,7 +1232,7 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 
 		if( (_ARPAddressUpdate != 0) && (pNetAddress != 0) ) _ARPAddressUpdate(pMessage->Header.FromUnitID, pNetAddress);
 
-//		SYSEVT_ERROR(F("ProcessNewFrame - processing packet, FCode: %d\n"), pMessage->Header.FCode);
+		TRACE_INFO(F("ProcessNewFrame - processing packet, FCode: %d\n"), pMessage->Header.FCode);
 
         switch( pMessage->Header.FCode )
         {
@@ -1314,6 +1316,150 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
         return;
 }
 
+
+//
+//	Remote station requests
+//
+
+//
+// Turn On/Off channels
+//
+
+bool RProtocolMaster::ChannelOn( uint8_t stationID, uint8_t chan, uint8_t ttr )
+{
+	{   // limit scope of sStation declaration to save memory during subsequent call
+		ShortStation	sStation;
+
+		TRACE_INFO(F("RProtocol - ChannelOn, stationID=%d, channel=%d, ttr=%d\n"), (int)stationID, (int)chan, (int)ttr);
+
+		if( stationID >= MAX_STATIONS )
+		{
+			SYSEVT_ERROR(F("RProtocol ChannelOn - stationID outside of range"));
+			return false;
+		}
+
+		LoadShortStation(stationID, &sStation);
+		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_ENABLED) )
+		{
+			SYSEVT_ERROR(F("RProtocol ChannelOn - station %d is not enabled"), (int)stationID);
+			return false;
+		}
+
+	}
+
+// OK, everything seems to be good. Send command.
+
+	return SendForceSingleZone( stationID, chan, ttr, 0 );
+}
+
+bool RProtocolMaster::ChannelOff( uint8_t stationID, uint8_t chan )
+{
+	return ChannelOn( stationID, chan, 0 );
+}
+
+bool RProtocolMaster::AllChannelsOff(uint8_t stationID)
+{
+	{
+		ShortStation	sStation;
+
+		if( stationID >= MAX_STATIONS )
+		{
+			SYSEVT_ERROR(F("XBee AllChannelsOff - stationID outside of range"));
+			return false;
+		}
+
+		LoadShortStation(stationID, &sStation);
+		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_ENABLED) )
+		{
+			SYSEVT_ERROR(F("XBee AllChannelsOff - station %d is not enabled"), (int)stationID);
+			return false;
+		}
+
+	}
+
+// OK, everything seems to be valid. Send command.
+
+	return SendTurnOffAllZones( stationID, 0 );
+}
+
+void RProtocolMaster::SendTimeBroadcast(void)
+{
+	static  time_t	nextBroadcastTime = 0;
+
+	if(nextBroadcastTime <= now()){
+
+		SendTimeBroadcastInt();
+
+		nextBroadcastTime = now() + 60; //  every 60 seconds
+	}  
+
+}
+
+bool RProtocolMaster::PollStationSensors(uint8_t stationID)
+{
+	{
+		ShortStation	sStation;
+
+		if( stationID >= MAX_STATIONS )
+		{
+			SYSEVT_ERROR(F("XBee PollStationSensors - stationID outside of range"));
+			return false;
+		}
+
+		LoadShortStation(stationID, &sStation);
+		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_ENABLED) )
+		{
+			SYSEVT_ERROR(F("XBee PollStationSensors - station %d is not enabled"), (int)stationID);
+			return false;
+		}
+
+		if( sStation.networkID != NETWORK_ID_XBEE )
+		{
+			SYSEVT_ERROR(F("XBee PollStationSensors - station %d is of a wrong type (not XBee)"), (int)stationID);
+			return false;
+		}
+	}
+
+	TRACE_INFO(F("PollStationSensors - sending request to station %d\n"), stationID);
+
+// OK, everything seems to be ready. Send command.
+
+	return SendReadSensors( stationID, 0 );
+}
+
+bool RProtocolMaster::SubscribeEvents( uint8_t stationID )
+{
+	{
+		ShortStation	sStation;
+
+		if( stationID >= MAX_STATIONS ) 
+			return false;		// basic protection
+
+		LoadShortStation(stationID, &sStation);
+		if( !(sStation.stationFlags & STATION_FLAGS_ENABLED) || (sStation.networkID != NETWORK_ID_XBEE) )
+			return false;
+	}
+	return SendRegisterEvtMaster( stationID, EVTMASTER_FLAGS_REPORT_ALL, 0);
+}
+
+
+
+// Main RProtocol poller. loop() should be called frequently, to allow processing of incoming packets
+//
+// Loop() will call appropriate transports.
+//
+
+
+void RProtocolMaster::loop(void)
+{
+#ifdef HW_ENABLE_XBEE
+		XBeeRF.loop();
+#endif //HW_ENABLE_XBEE
+
+#ifdef HW_ENABLE_MOTEINORF
+		XBeeRF.loop();
+#endif //HW_ENABLE_MOTEINORF
+}
 
 
 

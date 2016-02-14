@@ -10,8 +10,10 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "XBeeRF.h"
 #include <XBee.h>
 #include "settings.h"
-#include "port.h"
 #include "RProtocolMS.h"
+
+//#define TRACE_LEVEL			6		// trace everything for this module
+#include "port.h"
 
 
 //// Global core XBee object
@@ -113,9 +115,6 @@ void XBeeRFClass::begin()
 	SetXBeeFlags(GetXBeeFlags() | NETWORK_FLAGS_ON);	// Mark XBee network as On
 	fXBeeReady = true;		// and set local readiness flag
 
-	rprotocol.RegisterTransport((void*)&XBeeSendPacket);	// register transport Send routine with the remote protocol
-															// rprotocol will use it to send wire packets
-	
 	rprotocol.RegisterARP((void *)&XBeeARPUpdate);			// register ARP callback with the remote protocol
 															// rprotocol will use it to report station=address associations
 
@@ -125,145 +124,7 @@ failed_ex1:
 	return;
 }
 
-bool XBeeRFClass::ChannelOff( uint8_t stationID, uint8_t chan )
-{
-	return ChannelOn( stationID, chan, 0 );
-}
 
-bool XBeeRFClass::ChannelOn( uint8_t stationID, uint8_t chan, uint8_t ttr )
-{
-	{   // limit scope of sStation declaration to save memory during subsequent call
-		ShortStation	sStation;
-
-		TRACE_INFO(F("XBee - ChannelOn, stationID=%d, channel=%d, ttr=%d\n"), (int)stationID, (int)chan, (int)ttr);
-
-		if( !fXBeeReady ) 
-			return false;
-
-		if( stationID >= MAX_STATIONS )
-		{
-			SYSEVT_ERROR(F("XBee ChannelOnOffWorker - stationID outside of range"));
-			return false;
-		}
-
-		LoadShortStation(stationID, &sStation);
-		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_ENABLED) )
-		{
-			SYSEVT_ERROR(F("XBee ChannelOnOffWorker - station %d is not enabled"), (int)stationID);
-			return false;
-		}
-
-		if( sStation.networkID != NETWORK_ID_XBEE )
-		{
-			SYSEVT_ERROR(F("XBee ChannelOnOffWorker - station %d is of a wrong type (not XBee)"), (int)stationID);
-			return false;
-		}
-	}
-
-// OK, everything seems to be ready. Send command.
-
-	return rprotocol.SendForceSingleZone( stationID, chan, ttr, 0 );
-}
-
-bool XBeeRFClass::AllChannelsOff(uint8_t stationID)
-{
-	{
-		ShortStation	sStation;
-
-		if( !fXBeeReady ) 
-			return false;
-
-		if( stationID >= MAX_STATIONS )
-		{
-			SYSEVT_ERROR(F("XBee AllChannelsOff - stationID outside of range"));
-			return false;
-		}
-
-		LoadShortStation(stationID, &sStation);
-		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_ENABLED) )
-		{
-			SYSEVT_ERROR(F("XBee AllChannelsOff - station %d is not enabled"), (int)stationID);
-			return false;
-		}
-
-		if( sStation.networkID != NETWORK_ID_XBEE )
-		{
-			SYSEVT_ERROR(F("XBee AllChannelsOff - station %d is of a wrong type (not XBee)"), (int)stationID);
-			return false;
-		}
-	}
-
-// OK, everything seems to be ready. Send command.
-
-	return rprotocol.SendTurnOffAllZones( stationID, 0 );
-}
-
-void XBeeRFClass::SendTimeBroadcast(void)
-{
-	static  time_t	nextBroadcastTime = 0;
-
-	if(nextBroadcastTime <= now()){
-
-		rprotocol.SendTimeBroadcast();
-
-		nextBroadcastTime = now() + 60; //  every 60 seconds
-	}  
-
-}
-
-bool XBeeRFClass::PollStationSensors(uint8_t stationID)
-{
-	{
-		ShortStation	sStation;
-
-		if( !fXBeeReady ) 
-			return false;
-
-		if( stationID >= MAX_STATIONS )
-		{
-			SYSEVT_ERROR(F("XBee PollStationSensors - stationID outside of range"));
-			return false;
-		}
-
-		LoadShortStation(stationID, &sStation);
-		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_ENABLED) )
-		{
-			SYSEVT_ERROR(F("XBee PollStationSensors - station %d is not enabled"), (int)stationID);
-			return false;
-		}
-
-		if( sStation.networkID != NETWORK_ID_XBEE )
-		{
-			SYSEVT_ERROR(F("XBee PollStationSensors - station %d is of a wrong type (not XBee)"), (int)stationID);
-			return false;
-		}
-	}
-
-	TRACE_INFO(F("PollStationSensors - sending request to station %d\n"), stationID);
-
-// OK, everything seems to be ready. Send command.
-
-	return rprotocol.SendReadSensors( stationID, 0 );
-}
-
-
-bool XBeeRFClass::SubscribeEvents( uint8_t stationID )
-{
-	{
-		ShortStation	sStation;
-
-		if( !fXBeeReady ) 
-			return false;
-
-		if( stationID >= MAX_STATIONS ) 
-			return false;		// basic protection
-
-		LoadShortStation(stationID, &sStation);
-		if( !(sStation.stationFlags & STATION_FLAGS_ENABLED) || (sStation.networkID != NETWORK_ID_XBEE) )
-			return false;
-	}
-	return rprotocol.SendRegisterEvtMaster( stationID, EVTMASTER_FLAGS_REPORT_ALL, 0);
-}
 
 
 
@@ -399,6 +260,8 @@ bool XBeeARPUpdate(uint8_t nStation, uint8_t *pNetAddress)
 {
 	if( nStation >= MAX_STATIONS ) return false;	// basic protection
 
+	TRACE_INFO(F("Updating ARP table for station %d\n"), uint16_t(nStation) );
+
 	// Note: Since we read network address directly from the input buffer it will be in big endian (XBee convention) and we need to convert it to little endian
 	//       When sending we are going through the xbee library that will do endian conversion
 
@@ -458,12 +321,16 @@ bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 		{
 			tx.setAddress64(addrBroadcast);								// since our XBee objects are pre-allocated, set parameters on the existing objects
 			tx.setOption(8);	// send multicast
+
+			TRACE_INFO(F("Station not in ARP table, sending packet as broadcast to station %d\n"), uint16_t(nStation) );
 		}
 	}
 	else  // intended to be broadcast packet.
 	{
 		tx.setAddress64(addrBroadcast);								// since our XBee objects are pre-allocated, set parameters on the existing objects
 		tx.setOption(8);	// send multicast
+
+		TRACE_INFO(F("Sending broadcast message\n") );
 	}
 
 	tx.setPayload((uint8_t *)msg);
@@ -480,7 +347,7 @@ bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 }
 
 
-// Mail XBee loop poller. loop() should be called frequently, to allow processing of incoming packets
+// Main XBee loop poller. loop() should be called frequently, to allow processing of incoming packets
 //
 // Loop() will process incoming packets, will interpret remote protocol and will call appropriate handlers.
 //

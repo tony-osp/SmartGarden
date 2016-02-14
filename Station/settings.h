@@ -19,6 +19,7 @@ Portions came from sprinklers_pi code by Richard Zimmerman
 #include "web.h"
 #include "port.h"
 #include "Defines.h"
+#include "eepromMap.h"
 
 
 #ifndef _SETTINGS_h
@@ -144,9 +145,13 @@ struct ShortStation
 	uint16_t	networkAddress;			// XBee (or other) network address, 16 bit
 };
 
+#define STATION_STRUCT_OFFSET_NETWORKID	1	// offset in the structure for the networkID
+
 #define NETWORK_ID_LOCAL_PARALLEL	0	// hardware connection to the master controller - direct Positive or Negative, or OpenSprinkler
 #define NETWORK_ID_LOCAL_SERIAL		1	// hardware connection to the master controller - OpenSprinkler
 #define NETWORK_ID_XBEE				10	// XBee RF
+#define NETWORK_ID_MOTEINORF		11	// RFM (Moteino standard) RF
+#define NETWORK_ID_INVALID			255	// 
 
 #define STATION_FLAGS_VALID  		1	// 1 - indicates that this Station structure is filled in and valid
 #define STATION_FLAGS_ENABLED		2	// 1 - indicates that this Station is enabled
@@ -246,6 +251,16 @@ void SaveStation(uint8_t num, FullStation *pStation);
 void SaveShortStation(uint8_t num, ShortStation *pStation);
 uint8_t GetNumStations(void);
 
+inline uint8_t GetStationNetworkID(uint8_t num)
+{
+        if( num >= MAX_STATIONS )
+                return NETWORK_ID_INVALID;
+
+        return EEPROM.read(STATION_OFFSET + STATION_STRUCT_OFFSET_NETWORKID + STATION_INDEX * num);	// Note: networkID offset in the structure is 1 ***structure dependency!***
+}
+
+
+
 // Sensors
 void LoadSensor(uint8_t num, FullSensor *pSensor);
 void LoadShortSensor(uint8_t num, ShortSensor *pSensor);
@@ -278,6 +293,16 @@ void SetXBeePort(uint8_t port);
 void SetXBeePortSpeed(uint16_t speed);
 void SetXBeePANID(uint16_t panID);
 void SetXBeeAddr(uint16_t addr);
+
+// Moteino RF (RFM69)
+
+uint8_t GetMoteinoRFFlags(void);
+bool IsMoteinoRFEnabled(void);
+uint8_t GetMoteinoRFPANID(void);
+uint8_t GetMoteinoRFAddr(void);
+void SetMoteinoRFFlags(uint8_t flags);
+void SetMoteinoRFPANID(uint8_t panID);
+void SetMoteinoRFAddr(uint8_t addr);
 
 
 // KV Pairs Setters

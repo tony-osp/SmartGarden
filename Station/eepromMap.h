@@ -54,6 +54,11 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define ADDR_NETWORK_XBEE_ADDR16	134		// XBee address, two bytes (we are using two-byte mode)
 #define ADDR_NETWORK_XBEE_CHAN		136		// XBee channel, one byte
 
+#define	ADDR_NETWORK_MOTEINORF_FLAGS		140		// MoteinoRF network status flags (enabled/on/etc)
+#define ADDR_NETWORK_MOTEINORF_PANID		141		// MoteinoRF PAN ID, 1 byte
+#define ADDR_NETWORK_MOTEINORF_NODEID		142		// MoteinoRF node logical address, one byte
+
+
 #define SCHEDULE_OFFSET 1536
 #define SCHEDULE_INDEX 128
 #define ZONE_OFFSET 2048

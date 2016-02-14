@@ -8,6 +8,7 @@ Most of the code is written by Tony-osp (http://tony-osp.dreamwidth.org/),
 Some of the modules (nntp, tftp and few other pieces) came from Sprinklers_pi code and are covered by Richard's (c),
 
 */
+#include "MoteinoRF.h"
 #include "Defines.h"
 #include "port.h"
 
@@ -45,8 +46,18 @@ Some of the modules (nntp, tftp and few other pieces) came from Sprinklers_pi co
 #include <Wire.h>
 #include "LocalBoard.h"
 #include <IniFile.h>
+#include "RProtocolMS.h"
+
+#ifdef HW_ENABLE_XBEE
 #include <XBee.h>
 #include "XBeeRF.h"
+#endif //HW_ENABLE_XBEE
+
+#ifdef HW_ENABLE_MOTEINORF
+#include "RFM69.h"
+#include "MoteinoRF.h"
+#endif //HW_ENABLE_MOTEINORF
+
 #include "TimerOne.h"
 
 OSLocalUI localUI;
@@ -102,8 +113,10 @@ void setup() {
 		ResetEEPROM();	// note: ResetEEPROM will also reset the controller.
 	}
 
+#ifdef HW_ENABLE_XBEE
     localUI.lcd_print_line_clear_pgm(PSTR("XBee RF init..."), 1);
 	XBeeRF.begin();
+#endif //HW_ENABLE_XBEE
 
 #ifdef HW_ENABLE_ETHERNET
 
@@ -145,7 +158,7 @@ void setup() {
 void loop() {
     mainLoop();
     localUI.loop();
-	XBeeRF.loop();
+	rprotocol.loop();
 }
 
 
@@ -157,6 +170,6 @@ void	RegisterRemoteEvents(void)
 {
 		for( uint8_t i=1; i<MAX_STATIONS; i++ )		// iterate through stations starting from 1, since station 0 is always local
 		{
-			XBeeRF.SubscribeEvents( i );			// we are relying on the station enable and network type check inside SubscribeEvents()
+			rprotocol.SubscribeEvents( i );			// we are relying on the station enable and network type check inside SubscribeEvents()
 		}
 }

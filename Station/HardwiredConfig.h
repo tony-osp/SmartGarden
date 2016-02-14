@@ -47,7 +47,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #endif //HW_V10_MASTER
 
 //Large-screen LCD on Master V1.5
-#if SG_HARDWARE == HW_V15_MASTER
+#if (SG_HARDWARE == HW_V15_MASTER) || (SG_HARDWARE == HW_V16_MASTER)
 #define PIN_LCD_D4         18    // LCD d4 pin
 #define PIN_LCD_D5         14    // LCD d5 pin
 #define PIN_LCD_D6         13    // LCD d6 pin
@@ -69,7 +69,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
  #define PIN_BUTTON_3      A9    // button Down
  #define PIN_BUTTON_4      A11   // button Select
 
-#elif SG_HARDWARE == HW_V15_MASTER
+#elif (SG_HARDWARE == HW_V15_MASTER) || (SG_HARDWARE == HW_V16_MASTER)
  #define PIN_BUTTON_1      A3    // button 1
  #define PIN_BUTTON_2      A1    // button 2
  #define PIN_BUTTON_3      A2    // button 3

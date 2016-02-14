@@ -185,7 +185,7 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 		}
 		else if( sStation.networkID == NETWORK_ID_XBEE )
 		{
-			if( XBeeRF.ChannelOn(zone.stationID, zone.channel, ttr) )
+			if( rprotocol.ChannelOn(zone.stationID, zone.channel, ttr) )
 			{
 				zoneStateCache[nZone] = ZONE_STATE_STARTING + ZONE_STATE_TIMEOUT;	// remote stations go to "starting" state first, and will transition to "running" state when response arrives
 			}
@@ -259,7 +259,7 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 		}
 		else if( sStation.networkID == NETWORK_ID_XBEE )
 		{
-			if( XBeeRF.ChannelOff(zone.stationID, zone.channel) )
+			if( rprotocol.ChannelOff(zone.stationID, zone.channel) )
 			{
 				zoneStateCache[nZone] = ZONE_STATE_STOPPING + ZONE_STATE_TIMEOUT;	// remote stations go to "stopping" state first, and will transition to "running" state when response arrives
 			}
@@ -800,7 +800,7 @@ void mainLoop()
 			{
 #ifdef SG_STATION_MASTER	// if this is Master station, send time broadcasts
 				if( nntpTimeServer.GetNetworkStatus() )		// if we have reliable time data
-					XBeeRF.SendTimeBroadcast();				// broadcast time on RF network
+					rprotocol.SendTimeBroadcast();				// broadcast time on RF network
 #endif //SG_STATION_MASTER
 			}
 			else if( (tick_counter%10) == 6 )	// one-second block3

@@ -33,15 +33,6 @@ class XBeeRFClass
 	XBeeRFClass();
 	void begin(void);
 	void loop(void);
-	void SendTimeBroadcast(void);
-
-// Remote stations commands
-
-	bool ChannelOn( uint8_t stationID, uint8_t chan, uint8_t ttr);
-	bool ChannelOff( uint8_t stationID, uint8_t chan);
-	bool AllChannelsOff(uint8_t stationID);
-	bool PollStationSensors(uint8_t stationID);
-	bool SubscribeEvents( uint8_t stationID );
 
 	bool	fXBeeReady;			// Flag indicating that XBee is initialized and ready
 	uint8_t	frameIDCounter;		// Rolling counter used to generate FrameID
@@ -61,6 +52,7 @@ private:
 };
 
 extern XBeeRFClass XBeeRF;
+bool XBeeSendPacket(uint8_t nStation, void *msg, uint8_t mSize);
 
 #endif
 
