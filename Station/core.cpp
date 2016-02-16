@@ -326,7 +326,7 @@ bool runStateClass::StartZoneWorker(int iSchedule, uint8_t stationID, uint8_t ch
 
 			ch = sStation.startZone+channel;
 
-			SYSEVT_CRIT(F("StartZoneWorker - st:%u,ch:%u,zone=%u\n"), uint16_t(stationID), uint16_t(channel), uint16_t(ch));
+			SYSEVT_VERBOSE(F("StartZoneWorker - st:%u,ch:%u,zone=%u\n"), uint16_t(stationID), uint16_t(channel), uint16_t(ch));
 		}
 
 		uint8_t	n_zones = GetNumZones();

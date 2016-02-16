@@ -112,6 +112,7 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID, bool
 
 // ***Tony-osp***
 // Library modification to support optional non-interrupt (polling) mode.
+  _fUseInterrupts = fUseInterrupts;
   if( fUseInterrupts )
 	attachInterrupt(_interruptNum, RFM69::isr0, RISING);
 
@@ -241,11 +242,11 @@ bool RFM69::sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferS
     sentTime = millis();
     while (millis() - sentTime < retryWaitTime)
     {
-      if (ACKReceived(toAddress))
-      {
-        //Serial.print(" ~ms:"); Serial.print(millis() - sentTime);
-        return true;
-      }
+		if (ACKReceived(toAddress))
+		{
+			//Serial.print(" ~ms:"); Serial.print(millis() - sentTime);
+	        return true;
+		}
     }
     //Serial.print(" RETRY#"); Serial.println(i + 1);
   }
@@ -384,6 +385,12 @@ void RFM69::receiveBegin() {
 
 // checks if a packet was received and/or puts transceiver in receive (ie RX or listen) mode
 bool RFM69::receiveDone() {
+
+	if (!_fUseInterrupts)
+	{
+		loop();
+	}
+
 //ATOMIC_BLOCK(ATOMIC_FORCEON)
 //{
   noInterrupts(); // re-enabled in unselect() via setMode() or via receiveBegin()

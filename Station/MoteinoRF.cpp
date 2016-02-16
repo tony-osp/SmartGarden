@@ -12,7 +12,7 @@ Copyright 2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "settings.h"
 #include "RProtocolMS.h"
 
-//#define TRACE_LEVEL			6		// trace everything for this module
+//#define TRACE_LEVEL			7		// trace everything for this module
 #include "port.h"
 
 extern int16_t		LastReceivedRSSI;
@@ -90,7 +90,7 @@ bool MoteinoRFSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 	else
 	{
 		bool retFlag = moteinoRF.sendWithRetry(nStation, msg, mSize, 3, 200); // 3 retries, 200ms wait time
-		if(retFlag)
+		if(!retFlag)
 		{
 			TRACE_INFO(F("MoteinoRF - sendWithRetry returned %d\n"), int16_t(retFlag));
 		}
@@ -130,14 +130,13 @@ void MoteinoRFClass::loop(void)
 			TRACE_VERBOSE(F("MoteinoRF - ACK requested, sending it.\n"));
 		}
 
-		TRACE_VERBOSE(F("MoteinoRF - received packet from %d, len=%u\n"), int16_t(moteinoRF.SENDERID), uint16_t(moteinoRF.DATALEN));
 		if( buf_len > 5 ){
 
+			TRACE_VERBOSE(F("MoteinoRF - received packet from %d, len=%u\n"), int16_t(senderID), uint16_t(buf_len));
 			rprotocol.ProcessNewFrame(buf, buf_len, 0 );	// process incoming packet.
 		}
 
-		LastReceivedRSSI = moteinoRF.RSSI;
-	//DEBUG("   [RX_RSSI:");DEBUG(radio.RSSI);DEBUG("]");
+		LastReceivedRSSI = moteinoRF.RSSI;	// update global RSSI tracker
 	}
 }
 

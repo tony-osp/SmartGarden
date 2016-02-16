@@ -95,6 +95,7 @@ class RFM69 {
       _promiscuousMode = false;
       _powerLevel = 31;
       _isRFM69HW = isRFM69HW;
+	  _fUseInterrupts = false;
     }
 
     bool initialize(uint8_t freqBand, uint8_t ID, uint8_t networkID=1, bool fUseInterrupts=true);
@@ -142,6 +143,7 @@ class RFM69 {
     bool _isRFM69HW;
     uint8_t _SPCR;
     uint8_t _SPSR;
+	bool	_fUseInterrupts;	// global flag indicating whether we are running in interrupt mode or not (polling)
 
     virtual void receiveBegin();
     virtual void setMode(uint8_t mode);
