@@ -97,7 +97,7 @@ class RFM69 {
       _isRFM69HW = isRFM69HW;
     }
 
-    bool initialize(uint8_t freqBand, uint8_t ID, uint8_t networkID=1);
+    bool initialize(uint8_t freqBand, uint8_t ID, uint8_t networkID=1, bool fUseInterrupts=true);
     void setAddress(uint8_t addr);
     void setNetwork(uint8_t networkID);
     bool canSend();
@@ -123,6 +123,8 @@ class RFM69 {
     uint8_t readReg(uint8_t addr);
     void writeReg(uint8_t addr, uint8_t val);
     void readAllRegs();
+
+	void loop(void);
 
   protected:
     static void isr0();

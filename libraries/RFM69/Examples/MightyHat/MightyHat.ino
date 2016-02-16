@@ -43,11 +43,13 @@
 //*****************************************************************************************************************************
 #define NODEID          1  //the gateway has ID=1
 #define NETWORKID     100  //all nodes on the same network can talk to each other
+//#define FREQUENCY     RF69_433MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
 #define FREQUENCY     RF69_915MHZ //Match this with the version of your Moteino! (others: RF69_433MHZ, RF69_868MHZ)
+//#define FREQUENCY_EXACT 917000000 //uncomment and set to a specific frequency in Hz, if commented the center frequency is used
 #define ENCRYPTKEY    "sampleEncryptKey" //has to be same 16 characters/bytes on all nodes, not more not less!
 #define IS_RFM69HW    //uncomment only for RFM69HW! Leave out if you have RFM69W!
 #define ENABLE_ATC    //comment out this line to disable AUTO TRANSMISSION CONTROL //more here: http://lowpowerlab.com/blog/2015/11/11/rfm69_atc-automatic-transmission-control/
-#define ENABLE_WIRELESS_PROGRAMMING    //comment out this line to disable Wireless Programming of this gateway node
+//#define ENABLE_WIRELESS_PROGRAMMING    //comment out this line to disable Wireless Programming of this gateway node
 #define ENABLE_LCD    //comment this out if you don't have or don't want to use the LCD
 //*****************************************************************************************************************************
 #define ACK_TIME       30  // # of ms to wait for an ack
@@ -67,6 +69,8 @@
 
 #define BUZZER              5     // Buzzer attached to D5 (PWM pin required for tones)
 #define BUTTON             A2     // Power button pin
+#define BUTTON1            A4     // Backlight control button
+#define BUTTON2            A5     // Backlight control button
 #define LATCH_EN            4
 #define LATCH_VAL           7
 #define SIG_SHUTOFF        A3     // Signal to Pi to ask for a shutdown
@@ -109,19 +113,17 @@
 byte ackCount=0;
 String inputstr;
 byte inputLen=0;
-char BATstr[5];
-char BATvstr[6];
 char RSSIstr[] = "-100dBm";
-char input[64];
-byte temp[61]; //used for serial input
+char temp[64];
 
-int lastValidReading = 1;
+byte lastValidReading = 1;
 unsigned long lastValidReadingTime = 0;
 unsigned long NOW=0;
 byte PowerState = OFF;
 long lastPeriod = -1;
 int rssi=0;
 float systemVoltage = 5;
+float systemVoltagePrevious = 5;
 boolean batteryLow=false;
 boolean batteryLowShutdown=false;
 
@@ -141,7 +143,9 @@ char lcdbuff[80];
 #define PIN_LCD_LIGHT 3 //Backlight pin
 #define xbmp_logo_width 30
 #define xbmp_logo_height 27
-#define LCD_BACKLIGHT(x) { if (x) analogWrite(PIN_LCD_LIGHT, 100); else analogWrite(PIN_LCD_LIGHT, 0); }
+#define BACKLIGHTLEVELS  5 //5 levels gives a nice round number that allows full brightness
+void LCD_BACKLIGHT(byte level) { if (level>BACKLIGHTLEVELS) level=BACKLIGHTLEVELS; analogWrite(PIN_LCD_LIGHT, 255-level*255/BACKLIGHTLEVELS); }
+byte backlightLevel=BACKLIGHTLEVELS; //max at startup
 
 const uint8_t xbmp_logo[] PROGMEM = {
    0xe0, 0xff, 0xff, 0x01, 0xf0, 0xff, 0xff, 0x03, 0x08, 0x00, 0x00, 0x04,
@@ -185,14 +189,10 @@ void drawLogo() {
   } while(lcd.nextPage());
 }
 
-void clearDisplay() {
-  lcd.firstPage();
-  do{}while(lcd.nextPage());
-}
+void clearDisplay() { lcd.firstPage(); do{}while(lcd.nextPage()); }
 
 void refreshLCD() {
-  noInterrupts();
-  //SPI.setClockDivider(SPI_CLOCK_DIV16);
+  noInterrupts(); //while messing with LCD need to pause interrups from radio to avoid SPI conflicts!
   byte lcdwidth = lcd.getWidth();
   byte lcdheight = lcd.getHeight();
   char c;
@@ -214,14 +214,14 @@ void refreshLCD() {
     //this section splits the textp string into chunks that fit on the screen width and prints each to a new line
     while(textLength && !done)
     {
-      //DEBUGln(textLength);
       for (i=1;i<=textLength;i++)
       {
         c = textp[i];
         textp[i]=0;
         swidth = lcd.getStrWidth(textp);
         textp[i] = c;
-        if (swidth > lcdwidth || c=='\n') { pos = i-1; break; }
+        if (c=='\n') { pos = i; break; } //newline char found, skip it and go to next line
+        if (swidth > lcdwidth) { pos = i-1; break; } //line is full, go to next line
         else if (i==textLength) { done = true; }
       }
       if (!done)
@@ -250,16 +250,23 @@ void refreshLCD() {
     else bmpPtr = (byte*)xbmp_batt_x;
     lcd.drawXBMP(lcdwidth-xbmp_batt_width, lcdheight-xbmp_batt_height, xbmp_batt_width, xbmp_batt_height, bmpPtr);
 
+    lcd.setPrintPos(54, 48);
     if (systemVoltage >= CHARGINGTHRESHOLD)
-    {
-      sprintf(BATvstr, "CHRG");
-      lcd.drawStr(54, 48, BATvstr); 
-    }
-    else {
-      lcd.setPrintPos(54, 48) ;
+      lcd.print("CHRG"); 
+    else
       lcd.print(systemVoltage);  //sprintf(BATvstr, "%sv", BATstr);
-    }
-    //lcd.drawStr(50, 48, BATvstr);
+  
+    lcd.setPrintPos(0, 40);
+    uint16_t uptimeSeconds = millis()/1000;
+    if (uptimeSeconds<60)
+      sprintf(temp, "up:%us", uptimeSeconds);
+    else
+      sprintf(temp, "up:%um", uptimeSeconds/60);
+    lcd.print(temp);
+
+    lcd.setPrintPos(45, 40);
+    sprintf(temp, "RAM:%u", checkFreeRAM());
+    lcd.print(temp);
 
     //print rssi and icon
     if (rssi > -70) bmpPtr = (byte*)xbmp_rssi_3;
@@ -269,41 +276,66 @@ void refreshLCD() {
     lcd.drawXBMP(0, lcdheight-xbmp_rssi_height, xbmp_rssi_width, xbmp_rssi_height, bmpPtr);
     lcd.drawStr(xbmp_rssi_width+1, 48, RSSIstr);
   } while(lcd.nextPage());
-  //SPI.setClockDivider(SPI_CLOCK_DIV4);
-  interrupts();
+  digitalWrite(PIN_LCD_CS, HIGH);
+  interrupts(); //re-enable interrupts
 }
 #endif
 //******************************************** END LCD STUFF ********************************************************************************
 
+//******************************************** MESSAGE HISTORY ******************************************************************************
+#define MSG_MAX_LEN   32    //truncate message at 32 chars since most are shorter than that anyway
+#define HISTORY_LEN   10    //hold this many past messages (IMPORTANT: 10 records needs about 330 bytes of RAM so be careful about making this too large)
+typedef struct {
+  char data[MSG_MAX_LEN];
+  int rssi;
+} Message;
+Message * messageHistory = new Message[HISTORY_LEN];
+byte lastMessageIndex = HISTORY_LEN;
+byte currMessageIndex = HISTORY_LEN;
+byte historyLength = 0;
+
+void saveToHistory(char * msg, int rssi)
+{
+  byte length = strlen(msg);
+  byte i = 0;
+  if (lastMessageIndex >= HISTORY_LEN-1) lastMessageIndex = 0;
+  else lastMessageIndex++;
+  if (historyLength < HISTORY_LEN) historyLength++;
+  currMessageIndex = historyLength-1; //reset history pointer back to latest message
+
+  for (; i<(MSG_MAX_LEN-1) && (i < length); i++)
+    messageHistory[lastMessageIndex].data[i] = msg[i];
+
+  messageHistory[lastMessageIndex].data[i] = '\0'; //terminate string
+  messageHistory[lastMessageIndex].rssi = rssi;
+}
+//******************************************** END MESSAGE HISTORY **************************************************************************
 
 //parse through any serial commands from the host (Pi)
 void handleSerialInput() {
-  inputLen = readSerialLine(input, 10, 64, 10); //readSerialLine(char* input, char endOfLineChar=10, byte maxLength=64, uint16_t timeout=10);
+  inputLen = readSerialLine(temp, 10, 64, 10); //readSerialLine(char* input, char endOfLineChar=10, byte maxLength=64, uint16_t timeout=10);
   
   if (inputLen > 0)
   {
-    inputstr = String(input);
+    DEBUG("GTWCMD:");DEBUGln(temp);
+    inputstr = String(temp);
     inputstr.toUpperCase();
-    if (inputstr.equals("BEEP")) Beep(10, false);
+
+    if (inputstr.equals("BEEP")) Beep(5, false);
     if (inputstr.equals("BEEP2")) Beep(10, true);
     if (inputstr.equals("RAM")) { DEBUG(F("Free RAM bytes: "));DEBUGln(checkFreeRAM()); }
-    
-    if (inputstr.equals("KEY?"))
-    {
-      Serial.print(F("ENCRYPTKEY:"));
-      Serial.print(ENCRYPTKEY);
-    }
+    if (inputstr.equals("KEY?")) { Serial.print(F("ENCRYPTKEY:"));Serial.println(ENCRYPTKEY); }
 
     byte targetId = inputstr.toInt(); //extract ID if any
     byte colonIndex = inputstr.indexOf(":"); //find position of first colon
     if (targetId > 0) inputstr = inputstr.substring(colonIndex+1); //trim "ID:" if any
     if (targetId > 0 && targetId != NODEID && targetId != RF69_BROADCAST_ADDR && colonIndex>0 && colonIndex<4 && inputstr.length()>0)
     {
-      inputstr.getBytes(temp, 61);
-      if (radio.sendWithRetry(targetId, temp, inputstr.length()))
-        Serial.println(F("ACK:OK"));
+      inputstr.getBytes((byte*)temp, 61);
+      if (radio.sendWithRetry(targetId, (byte*)temp, inputstr.length()))
+        DEBUGln(F("ACK:OK"));
       else
-        Serial.println(F("ACK:NOK"));
+        DEBUGln(F("ACK:NOK"));
     }
   }
 }
@@ -323,14 +355,18 @@ void setupPowerControl(){
   pinMode(BTN_LED_RED, OUTPUT);
   pinMode(BTN_LED_GRN, OUTPUT);
   pinMode(LATCH_EN, OUTPUT);
-  //digitalWrite(LATCH_EN, LOW);
+  digitalWrite(LATCH_EN, LOW);
+  pinMode(PIN_LCD_CS, OUTPUT);
+  digitalWrite(PIN_LCD_CS, HIGH);
   pinMode(LATCH_VAL, OUTPUT);
+  pinMode(BUTTON1, INPUT_PULLUP);
+  pinMode(BUTTON2, INPUT_PULLUP);
   pinMode(BATTERYSENSE, INPUT);
   digitalWrite(SIG_SHUTOFF, LOW);//added after sudden shutdown quirks, DO NOT REMOVE!
 }
 
 void handlePowerControl() {
-  int reading = digitalRead(BUTTON);
+  byte reading = digitalRead(BUTTON);
   NOW = millis();
   digitalWrite(SIG_SHUTOFF, LOW);//added after sudden shutdown quirks, DO NOT REMOVE!
   
@@ -365,7 +401,6 @@ void handlePowerControl() {
             digitalWrite(SIG_SHUTOFF, HIGH);
             delay(RESETPULSETIME);
             digitalWrite(SIG_SHUTOFF, LOW);
-            //DEBUGln("SIG_SHUTOFF - HIGH>delay>LOW");
 
             NOW = millis();
             boolean recycleDetected=false;
@@ -523,6 +558,10 @@ void handlePowerControl() {
         PowerState = ON;
         batteryLowShutdown=false;
         POWER(PowerState);
+#ifdef ENABLE_LCD
+        sprintf(lcdbuff, "Pi is now ON");
+        refreshLCD();
+#endif
       }
     }
 
@@ -530,15 +569,57 @@ void handlePowerControl() {
   }
 }
 
+uint32_t buttonsLastChanged;
+void handle2Buttons()
+{
+  if (millis() - buttonsLastChanged < 200) return; //basic button debouncing & prevent changing level too fast
+
+  //button 1 - backlight
+  if (digitalRead(BUTTON1)==LOW)
+  {
+    buttonsLastChanged=millis();
+    Beep(3, false);
+#ifdef ENABLE_LCD
+    if (backlightLevel==BACKLIGHTLEVELS) backlightLevel=0;
+    else backlightLevel++;
+    LCD_BACKLIGHT(backlightLevel);
+    sprintf(lcdbuff, "LCDlight:%d/100", 100*backlightLevel/BACKLIGHTLEVELS);
+    refreshLCD();
+#endif
+  }
+  
+  //button 2 - message history
+  if (digitalRead(BUTTON2)==LOW)
+  {
+    buttonsLastChanged=millis();
+    Beep(3, false);
+    
+    if (historyLength > 0) //if at least 1 data packet was received and saved to history...
+    {
+      sprintf(RSSIstr, "%ddBm", messageHistory[currMessageIndex].rssi); //paint the history rssi string for the LCDRefresh
+      rssi = messageHistory[currMessageIndex].rssi;                     //save the history rssi for the LCDRefresh signal icon
+#ifdef ENABLE_LCD
+      sprintf(lcdbuff, "<HISTORY[%d/%d]>\n%s", currMessageIndex+1, historyLength, messageHistory[currMessageIndex].data); //fill the LCD string buffer with the history data string
+      refreshLCD(); //paint the screen
+#endif
+      if (currMessageIndex==0) currMessageIndex=historyLength-1; else currMessageIndex--; //this makes it cycle from the latest message towards oldest as you press BTN2
+    }
+  }
+}
+
 boolean BOOTOK() {
-  return analogRead(SIG_BOOTOK) > 800;
+  return analogRead(SIG_BOOTOK) > 800; //the BOOTOK signal is on an analog pin because a digital may not always pick it up (its less than 3.3v)
 }
 
 void POWER(uint8_t ON_OFF) {
   digitalWrite(LATCH_EN, HIGH);
-  delay(5);
   digitalWrite(LATCH_VAL, ON_OFF);
+  delay(5);
   digitalWrite(LATCH_EN, LOW);
+  delay(5);
+#ifdef ENABLE_LCD
+  digitalWrite(PIN_LCD_CS, HIGH); //if shared with LATCH_VAL, should be HIGH when not used by latch
+#endif
 }
 
 void Beep(byte theDelay, boolean twoSounds)
@@ -578,6 +659,7 @@ boolean readBattery() {
 }
 
 void setup() {
+  Beep(20, false);delay(50);Beep(20, false);delay(50);Beep(20, false);
   setupPowerControl();
   Serial.begin(SERIAL_BAUD);
 
@@ -591,7 +673,11 @@ void setup() {
   sprintf(lcdbuff, "Listening @ %dmhz...", FREQUENCY==RF69_433MHZ ? 433 : FREQUENCY==RF69_868MHZ ? 868 : 915);
   DEBUGln(lcdbuff);
   if (flash.initialize()) DEBUGln("SPI Flash Init OK!");
-  else DEBUGln(F("SPI Flash MEM not found, skipping..."));
+  else DEBUGln(F("SPI Flash MEM FAIL!"));
+
+#ifdef FREQUENCY_EXACT
+  radio.setFrequency(FREQUENCY_EXACT); //set frequency to some custom frequency
+#endif
 
 #ifdef ENABLE_ATC
   DEBUGln(F("RFM69_ATC Enabled (Auto Transmission Control)"));
@@ -601,32 +687,34 @@ void setup() {
   DEBUG(F("Free RAM bytes: "));DEBUG(checkFreeRAM());
 
 #ifdef ENABLE_LCD
-  //LCD backlight
-  pinMode(PIN_LCD_LIGHT, OUTPUT);
-  LCD_BACKLIGHT(1);
-  lcd.setRot180(); //rotate screen 180 degrees
+  pinMode(PIN_LCD_LIGHT, OUTPUT);  //LCD backlight, LOW = backlight ON
+  lcd.setRot180();  //rotate screen 180 degrees
+  lcd.setContrast(140); //120-160 seems to be usable range
   drawLogo();
+  LCD_BACKLIGHT(backlightLevel);
   delay(2000);
   refreshLCD();
-  delay(1500);
+  delay(1000);
 #endif
 }
 
 boolean newPacketReceived;
 void loop() {
   handlePowerControl(); //checks any button presses and takes action
+  handle2Buttons();     //checks the general purpose buttons next to the LCD (R2+)
   handleSerialInput();  //checks for any serial input from the Pi computer
 
   //process any received radio packets
   if (radio.receiveDone())
   {
     rssi = radio.RSSI;
-    if (radio.DATALEN > 0)
+    if (radio.DATALEN > 0) //data packets have a payload
     {
       sprintf(lcdbuff, "[%d] %s", radio.SENDERID, radio.DATA);
       sprintf(RSSIstr, "%ddBm", rssi);
-      Serial.print(lcdbuff);
+      Serial.print(lcdbuff); //this passes data to MightyHat / RaspberryPi
       Serial.print(F("   [RSSI:"));Serial.print(rssi);Serial.print(']');
+      saveToHistory(lcdbuff, rssi);
     }
 
     //check if the packet is a wireless programming request
@@ -638,7 +726,6 @@ void loop() {
     //respond to any ACK if requested
     if (radio.ACKRequested())
     {
-      byte theNodeID = radio.SENDERID;
       radio.sendACK();
       DEBUG(F("[ACK-sent]"));
     }
@@ -653,11 +740,12 @@ void loop() {
   readBattery();
 
 #ifdef ENABLE_LCD
-  if (newPacketReceived)
+  if (newPacketReceived || systemVoltagePrevious-systemVoltage > 0.01 || systemVoltagePrevious-systemVoltage < -0.1)
   {
+    systemVoltagePrevious = systemVoltage;
     newPacketReceived = false;
     refreshLCD();
   }
-  LCD_BACKLIGHT(batteryLow);
+  LCD_BACKLIGHT(batteryLow ? 0 : backlightLevel);
 #endif
 }

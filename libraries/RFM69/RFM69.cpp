@@ -43,7 +43,7 @@ volatile uint8_t RFM69::ACK_RECEIVED; // should be polled immediately after send
 volatile int16_t RFM69::RSSI;          // most accurate RSSI during reception (closest to the reception)
 RFM69* RFM69::selfPointer;
 
-bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
+bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID, bool fUseInterrupts)
 {
   const uint8_t CONFIG[][2] =
   {
@@ -109,7 +109,11 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID)
   while (((readReg(REG_IRQFLAGS1) & RF_IRQFLAGS1_MODEREADY) == 0x00) && millis()-start < timeout); // wait for ModeReady
   if (millis()-start >= timeout)
     return false;
-  attachInterrupt(_interruptNum, RFM69::isr0, RISING);
+
+// ***Tony-osp***
+// Library modification to support optional non-interrupt (polling) mode.
+  if( fUseInterrupts )
+	attachInterrupt(_interruptNum, RFM69::isr0, RISING);
 
   selfPointer = this;
   _address = nodeID;
@@ -305,6 +309,15 @@ void RFM69::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferSize,
   while (digitalRead(_interruptPin) == 0 && millis() - txStart < RF69_TX_LIMIT_MS); // wait for DIO0 to turn HIGH signalling transmission finish
   //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // wait for ModeReady
   setMode(RF69_MODE_STANDBY);
+}
+
+//***Tony-osp***
+// Polling method - should be called frequently if RFM69 is used in non-interrupt mode
+
+void RFM69::loop()
+{
+	if( digitalRead(_interruptPin) )
+		interruptHandler();
 }
 
 // internal function - interrupt gets called when a packet is received
