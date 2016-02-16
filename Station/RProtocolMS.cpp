@@ -17,13 +17,15 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "settings.h"
 #include "sensors.h"
 #include "XBeeRF.h"
+#include "MoteinoRF.h"
 
-//#define TRACE_LEVEL			6		// trace everything for this module
+//#define TRACE_LEVEL			7		// trace everything for this module
 #include "port.h"
 
 
 uint8_t		LastReceivedStationID;
 uint32_t	LastReceivedTime;
+int16_t		LastReceivedRSSI;
 
 
 // Local forward declarations
@@ -36,30 +38,15 @@ inline uint16_t		getSingleSensor(uint8_t regAddr);
 //
 inline bool SendNetworkPacket(uint8_t stationID, void *pMessage, uint8_t mSize )
 {
-	if( stationID == 255 )	// broadcast message
-	{
 #ifdef HW_ENABLE_XBEE
 		XBeeSendPacket(stationID, pMessage, mSize);
 #endif //HW_ENABLE_XBEE
 
 #ifdef HW_ENABLE_MOTEINORF
-		XBeeSendPacket(stationID, pMessage, mSize);
+		MoteinoRFSendPacket(stationID, pMessage, mSize);
 #endif //HW_ENABLE_MOTEINORF
 
 		return true;
-	}
-
-	uint8_t  networkID = GetStationNetworkID(stationID);
-
-#ifdef HW_ENABLE_XBEE
-		if( networkID == NETWORK_ID_XBEE ) return XBeeSendPacket(stationID, pMessage, mSize);
-#endif //HW_ENABLE_XBEE
-
-#ifdef HW_ENABLE_MOTEINORF
-		if( networkID == NETWORK_ID_MOTEINORF ) return XBeeSendPacket(stationID, pMessage, mSize);
-#endif //HW_ENABLE_MOTEINORF
-
-		return false;	//default fallback
 }
 
 
@@ -304,6 +291,8 @@ bool RProtocolMaster::SendZonesReport(uint8_t transactionID, uint8_t fromUnitID,
 			return false;																										// unit ID, Exception Code=2 (Illegal Data Address)
 		}
 	
+		//TRACE_VERBOSE(F("SendZonesReport - entering\n"));
+
 		RMESSAGE_ZONES_REPORT ReportMessage;
 
 		ReportMessage.Header.ProtocolID = RPROTOCOL_ID;
@@ -341,13 +330,13 @@ bool RProtocolMaster::SendZonesReport(uint8_t transactionID, uint8_t fromUnitID,
 					}
 				}
 			}
+			else
+			{
+				TRACE_VERBOSE(F("SendZonesReport - station is not enabled\n"));
+			}
 		}
 
-		if( stationFlags & STATION_FLAGS_ENABLED )
-			ReportMessage.StationFlags = ZONES_REPFLAG_STATION_ENABLED;
-		else
-			ReportMessage.StationFlags = 0;
-
+		ReportMessage.StationFlags = ZONES_REPFLAG_STATION_ENABLED;
 		ReportMessage.FirstZone = firstZone;
 		ReportMessage.NumZones = numZones;
 		ReportMessage.ZonesData[0] = zonesStatus;
@@ -434,6 +423,7 @@ bool RProtocolMaster::NotifySysEvent(uint8_t eventType, uint32_t timeStamp, uint
 		SYSEVT_ERROR(F("SendSysEvent - too big payload"));
 		return false;																				
 	}
+	TRACE_VERBOSE(F("NotifySysEvent - evtDataLength:%u, str:'%s'\n"), eventDataLength, eventData );
 
 	uint8_t		outbuf[sizeof(RMESSAGE_SYSEVT_REPORT)+SYSEVENT_MAX_STRING_LENGTH];
 	RMESSAGE_SYSEVT_REPORT *pReportMessage = (RMESSAGE_SYSEVT_REPORT*) outbuf;
@@ -443,13 +433,15 @@ bool RProtocolMaster::NotifySysEvent(uint8_t eventType, uint32_t timeStamp, uint
 	pReportMessage->Header.FromUnitID = GetMyStationID();
 	pReportMessage->Header.ToUnitID = GetEvtMasterStationID();
 	pReportMessage->Header.TransactionID = 0;
-	pReportMessage->Header.Length = eventDataLength;	
+	pReportMessage->Header.Length = eventDataLength + sizeof(RMESSAGE_SYSEVT_REPORT)-sizeof(RMESSAGE_HEADER);
 
 	memcpy(&(pReportMessage->EvtString), eventData, size_t(eventDataLength) );
 
 	pReportMessage->TimeStamp = timeStamp;
 	pReportMessage->SeqID = seqID;
 	pReportMessage->Flags = flags;
+	pReportMessage->EventType = eventType;
+	pReportMessage->NumDataBytes = eventDataLength;
 
 	return SendNetworkPacket(pReportMessage->Header.ToUnitID, (void *)(outbuf), sizeof(RMESSAGE_SYSEVT_REPORT)+eventDataLength );
 }
@@ -619,19 +611,11 @@ inline void MessageSysEvtReport( void *ptr )
 
 	TRACE_VERBOSE(F("MessageSysEvtReport - processing message\n"));
 
-	// parameters length check
-	if( pMessage->Header.Length <= (sizeof(RMESSAGE_SYSEVT_REPORT)-sizeof(RMESSAGE_HEADER)) )
-	{
-		SYSEVT_ERROR(F("MessageSysEvtReport - bad parameters length"));
-		return;		// Note: In RProtocol station does not respond to malformed/invalid packets, just ignore it
-	}
-	
 // Parameters validity check.
 
-// Note: since currently we have no more than 8 zones in the Remote station, we hardcode response size to 1 byte
 	if( pMessage->NumDataBytes > SYSEVENT_MAX_STRING_LENGTH )
 	{
-		SYSEVT_ERROR(F("MessageSysEvtReport - payload data is too long"));
+		SYSEVT_ERROR(F("MessageSysEvtReport - payload data is too long (%u)"), uint16_t(pMessage->NumDataBytes));
 		return;	
 	}
 // OK, payload seems to be valid.
@@ -815,7 +799,7 @@ bool RProtocolMaster::SendForceSingleZone( uint8_t stationID, uint8_t channel, u
 {
         RMESSAGE_ZONES_SET  Message;
 
-		SYSEVT_VERBOSE(F("SendForceSingleZone - sending request"));
+		//TRACE_VERBOSE(F("SendForceSingleZone - sending request\n"));
 
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_ZONES_SET;
@@ -977,14 +961,14 @@ inline void SendTimeBroadcastInt(void)
 
         Message.Header.ProtocolID = RPROTOCOL_ID;
 		Message.Header.FCode = FCODE_TIME_BROADCAST;
-        Message.Header.ToUnitID = 255;	// broadcast
+        Message.Header.ToUnitID = STATIONID_BROADCAST;	// broadcast
         Message.Header.FromUnitID = MY_STATION_ID;
         Message.Header.Length = sizeof(RMESSAGE_TIME_BROADCAST)-sizeof(RMESSAGE_HEADER);
 		Message.Header.TransactionID = 0;
 
 		Message.timeNow = now();
 
-		SendNetworkPacket(255, (void *)(&Message), sizeof(Message) );
+		SendNetworkPacket(STATIONID_BROADCAST, (void *)(&Message), sizeof(Message) );
 }
 
 //
@@ -1215,6 +1199,7 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 		if( (unsigned int)len != (pMessage->Header.Length+sizeof(RMESSAGE_HEADER)) )		// overall packet length should equal header size + length field
         {
                 SYSEVT_ERROR(F("ProcessNewFrame - Bad packet received, length does not match"));
+				TRACE_ERROR(F("\n Transport pkt len: %u, header len:%u, expected payload len:%u\n"), uint16_t(len), uint16_t(sizeof(RMESSAGE_HEADER)), uint16_t(pMessage->Header.Length) );
                 return;
         }
 
@@ -1413,9 +1398,9 @@ bool RProtocolMaster::PollStationSensors(uint8_t stationID)
 			return false;
 		}
 
-		if( sStation.networkID != NETWORK_ID_XBEE )
+		if( (sStation.networkID != NETWORK_ID_XBEE) && (sStation.networkID != NETWORK_ID_MOTEINORF) )
 		{
-			SYSEVT_ERROR(F("XBee PollStationSensors - station %d is of a wrong type (not XBee)"), (int)stationID);
+			SYSEVT_ERROR(F("XBee PollStationSensors - station %d is of a wrong type (not XBee or RFM69)"), (int)stationID);
 			return false;
 		}
 	}
@@ -1436,7 +1421,7 @@ bool RProtocolMaster::SubscribeEvents( uint8_t stationID )
 			return false;		// basic protection
 
 		LoadShortStation(stationID, &sStation);
-		if( !(sStation.stationFlags & STATION_FLAGS_ENABLED) || (sStation.networkID != NETWORK_ID_XBEE) )
+		if( !(sStation.stationFlags & STATION_FLAGS_ENABLED) || ((sStation.networkID != NETWORK_ID_XBEE) && (sStation.networkID != NETWORK_ID_MOTEINORF)) )
 			return false;
 	}
 	return SendRegisterEvtMaster( stationID, EVTMASTER_FLAGS_REPORT_ALL, 0);
@@ -1457,7 +1442,7 @@ void RProtocolMaster::loop(void)
 #endif //HW_ENABLE_XBEE
 
 #ifdef HW_ENABLE_MOTEINORF
-		XBeeRF.loop();
+		MoteinoRF.loop();
 #endif //HW_ENABLE_MOTEINORF
 }
 

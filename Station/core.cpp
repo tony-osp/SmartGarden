@@ -183,7 +183,7 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 			// Turn on the pump if necessary
 //			lBoard.PumpControl(zone.bPump);
 		}
-		else if( sStation.networkID == NETWORK_ID_XBEE )
+		else if( (sStation.networkID == NETWORK_ID_XBEE) || (sStation.networkID == NETWORK_ID_MOTEINORF) )
 		{
 			if( rprotocol.ChannelOn(zone.stationID, zone.channel, ttr) )
 			{
@@ -257,7 +257,7 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 			// Turn on the pump if necessary
 //			lBoard.PumpControl(zone.bPump);
 		}
-		else if( sStation.networkID == NETWORK_ID_XBEE )
+		else if( (sStation.networkID == NETWORK_ID_XBEE) || (sStation.networkID == NETWORK_ID_MOTEINORF) )
 		{
 			if( rprotocol.ChannelOff(zone.stationID, zone.channel) )
 			{
@@ -326,7 +326,7 @@ bool runStateClass::StartZoneWorker(int iSchedule, uint8_t stationID, uint8_t ch
 
 			ch = sStation.startZone+channel;
 
-			SYSEVT_CRIT(F("StartZoneWorker - starting channel %d on station %d, zone=%d\n"), uint16_t(channel), uint16_t(stationID), uint16_t(ch));
+			SYSEVT_CRIT(F("StartZoneWorker - st:%u,ch:%u,zone=%u\n"), uint16_t(stationID), uint16_t(channel), uint16_t(ch));
 		}
 
 		uint8_t	n_zones = GetNumZones();

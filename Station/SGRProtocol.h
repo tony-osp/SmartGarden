@@ -412,7 +412,7 @@ struct RMESSAGE_SYSEVT_READ
 #define SYSEVENT_FLAG_CONTINUE			128	// high bit set means that the message is carrying continuation of the event started in the previous message
 #define SYSEVENT_FLAG_MORE				64	// this bit means that more events are available 
 
-#define SYSEVENT_MAX_STRING_LENGTH		50
+#define SYSEVENT_MAX_STRING_LENGTH		40
 
 //
 //  FCODE_SYSEVT_REPORT - Report Syslog event

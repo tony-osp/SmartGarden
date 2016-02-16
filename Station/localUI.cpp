@@ -40,7 +40,8 @@ ST7036 OSLocalUI::lcd( LOCAL_UI_LCD_Y, LOCAL_UI_LCD_X, 0x78 );
 LiquidCrystal OSLocalUI::lcd(PIN_LCD_RS, PIN_LCD_EN, PIN_LCD_D4, PIN_LCD_D5, PIN_LCD_D6, PIN_LCD_D7);
 #endif
 
-extern uint8_t		LastReceivedStationID;
+extern  uint8_t		LastReceivedStationID;
+extern	int16_t		LastReceivedRSSI;
 
 
 inline uint8_t GetLastReceivedStationID(void)
@@ -51,6 +52,11 @@ inline uint8_t GetLastReceivedStationID(void)
 inline uint32_t GetLastReceivedTime(uint8_t stationID)
 {
 	return 	runState.sLastContactTime[stationID];
+}
+
+inline int16_t GetLastReceivedRSSI()
+{
+	return LastReceivedRSSI;
 }
 
 // Local forward declarations
@@ -553,9 +559,11 @@ byte OSLocalUI::modeHandler_Status(byte forceRefresh)
 				lcd_print_pgm(PSTR("Last received:"));
 				lcd_print_2digit(GetLastReceivedStationID());
 				LCD_SETCURSOR(lcd, 0, 1);
-				lcd_print_pgm(PSTR(" T:-"));
+				lcd_print_pgm(PSTR("T:-"));
 				lcd_print_3digit((millis()-GetLastReceivedTime(GetLastReceivedStationID()))/1000);
-				lcd_print_pgm(PSTR("         "));
+				lcd_print_pgm(PSTR("s, -")); 
+				lcd_print_3digit(-GetLastReceivedRSSI());
+				lcd_print_pgm(PSTR("db  "));
 			 }
           }
    }

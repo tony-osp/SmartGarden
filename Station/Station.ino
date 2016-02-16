@@ -118,10 +118,15 @@ void setup() {
 	XBeeRF.begin();
 #endif //HW_ENABLE_XBEE
 
+#ifdef HW_ENABLE_MOTEINORF
+    localUI.lcd_print_line_clear_pgm(PSTR("MoteinoRF init..."), 1);
+	MoteinoRF.begin();
+#endif //HW_ENABLE_XBEE
+
 #ifdef HW_ENABLE_ETHERNET
 
-	pinMode(SS, OUTPUT); digitalWrite(SS, HIGH);	// prep SDI port and turn Off Moteino Mega receiver (it is sitting on SS)
-	pinMode(SD_SS, OUTPUT); digitalWrite(SD_SS, HIGH);
+	//pinMode(SS, OUTPUT); digitalWrite(SS, HIGH);	// prep SDI port and turn Off Moteino Mega receiver (it is sitting on SS)
+	//pinMode(SD_SS, OUTPUT); digitalWrite(SD_SS, HIGH);
 	pinMode(W5500_SS, OUTPUT); digitalWrite(W5500_SS, HIGH);
 
 	localUI.lcd_print_line_clear_pgm(PSTR("Ethernet init..."), 1);

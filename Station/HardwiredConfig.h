@@ -29,7 +29,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #endif
 
 // use this definition for Moteino Mega - based Remote station with 8 parallel channels
-#if SG_HARDWARE == HW_V15_REMOTE
+#if (SG_HARDWARE == HW_V15_REMOTE) || (SG_HARDWARE == HW_V16_REMOTE)
 #define LOCAL_NUM_DIRECT_CHANNELS	8		// use this definition for Master or Remote station with 8 parallel OUT channels
 #define PARALLEL_PIN_OUT_MAP {12, 13, 14, 18, 19, 20, 21, 22 }
 #endif
@@ -186,5 +186,8 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #define NETWORK_XBEE_DEFAULT_SPEED	57600
 
+// MoteinoRF (RFM69)
+
+#define NETWORK_MOTEINORF_DEFAULT_PANID	55
 
 #endif // _HARDWIREDCONFIG_H

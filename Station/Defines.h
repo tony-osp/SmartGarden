@@ -25,13 +25,15 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define HW_V15_REMOTE			3	// Remote station, hardware version 1.5 (Moteino Mega-based)
 
 #define HW_V16_MASTER			4	// Master station, hardware version 1.6 (Moteino Mega-based, native Moteino RF module)
+#define HW_V16_REMOTE			5	// Remote station, hardware version 1.6 (Moteino Mega-based, native Moteino RF module)
 
 // Uncomment the line that corresponds to the actual hardware
 
 //#define SG_HARDWARE				HW_V15_REMOTE
-#define SG_HARDWARE				HW_V15_MASTER
-//#define SG_HARDWARE				HW_V16_MASTER
+//#define SG_HARDWARE				HW_V15_MASTER
 //#define SG_HARDWARE				HW_V10_MASTER
+//#define SG_HARDWARE				HW_V16_MASTER
+#define SG_HARDWARE				HW_V16_REMOTE
 
 #if SG_HARDWARE == HW_V16_MASTER
 
@@ -73,11 +75,22 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define HW_ENABLE_XBEE			1
 
 #define USE_I2C_LCD				1	// Use I2C LCD (instead of the parallel-connected LCD)
-#define SG_RF_TIME_CLIENT		1	// accept time broadcast messages on XBee network
+#define SG_RF_TIME_CLIENT		1	// accept time broadcast messages on RF network
 
 #define DEFAULT_STATION_ID		2	// 
 
 #endif //HW_V15_REMOTE
+
+#if SG_HARDWARE == HW_V16_REMOTE
+
+#define HW_ENABLE_MOTEINORF		1
+
+#define USE_I2C_LCD				1	// Use I2C LCD (instead of the parallel-connected LCD)
+#define SG_RF_TIME_CLIENT		1	// accept time broadcast messages on RF network
+
+#define DEFAULT_STATION_ID		2	// 
+
+#endif //HW_V16_REMOTE
 
 #define SG_STATION_SLAVE		1	// allow acting as a slave (allow remote access via RF network)
 #define DEFAULT_MAX_DURATION	99	// default maximum runtime - 99 minutes
@@ -148,6 +161,9 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // XBee RF network
 #define NETWORK_ADDRESS_BROADCAST	0x0FFFF
+
+#define STATIONID_BROADCAST			255		// reserved stationID for broadcasts
+
 
 //
 // Sensor types

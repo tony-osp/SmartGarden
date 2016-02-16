@@ -135,6 +135,8 @@ bool SysInfo(FILE* stream_file)
 	fprintf_P( stream_file, PSTR("</tr><tr>\n<td>SrLatPin</td>\n<td>%i</td>\n</tr></table>\n"), (int)(srIO.SrLatPin));
 
 	fprintf_P( stream_file, PSTR("<h3 class=\"auto-style1\">RF Link</h3>\n"));
+
+#ifdef HW_ENABLE_XBEE
 	if( IsXBeeEnabled() )
 	{
 		fprintf_P( stream_file, PSTR("<p>XBee - Enabled</p>\n"));
@@ -142,8 +144,17 @@ bool SysInfo(FILE* stream_file)
 		fprintf_P( stream_file, PSTR("<td>Serial%i</td>\n</tr><tr>\n<td>Port Speed</td>\n<td>%u</td>\n"), (int)GetXBeePort(), GetXBeePortSpeed());
 		fprintf_P( stream_file, PSTR("</tr><tr>\n<td>PAN ID</td>\n<td>%u</td>\n</tr><tr>\n<td>Channel</td>\n<td>%i</td>\n</tr><tr>\n</tr></table>\n"), GetXBeePANID(), (int)GetXBeeChan());
 	}
-	else
-		fprintf_P( stream_file, PSTR("<p>XBee - Disabled</p>\n"));
+#endif //HW_ENABLE_XBEE
+#ifdef HW_ENABLE_MOTEINORF
+	if( IsMoteinoRFEnabled() )
+	{
+		fprintf_P( stream_file, PSTR("<p>RFM69 - Enabled</p>\n"));
+		fprintf_P( stream_file, PSTR("<table align=\"center\" border=\"1\" style=\"border:medium\">\n"));
+		fprintf_P( stream_file, PSTR("<tr>\n<td>PAN ID</td>\n<td>%u</td>\n</tr><tr>\n<td>Node Addr</td>\n<td>%i</td>\n</tr><tr>\n</tr></table>\n"), GetMoteinoRFPANID(), (int)GetMoteinoRFAddr());
+	}
+#endif //HW_ENABLE_MOTEINORF
+	if( !IsXBeeEnabled() && !IsMoteinoRFEnabled() )
+		fprintf_P( stream_file, PSTR("<p>No RF interfaces</p>\n"));
 
 	fprintf_P( stream_file, PSTR("<h3 class=\"auto-style1\">Stations</h3>\n<p>Number of Stations:&nbsp; %i</p>\n"), (int)GetNumStations());
 	fprintf_P( stream_file, PSTR("<table align=\"center\" border=\"1\" style=\"border:medium\"><tr class=\"auto-style2\">\n"
@@ -160,6 +171,7 @@ bool SysInfo(FILE* stream_file)
 			if(      fStation.networkID == NETWORK_ID_LOCAL_PARALLEL )	strcpy_P(tmp_buf, PSTR("Parallel"));
 			else if( fStation.networkID == NETWORK_ID_LOCAL_SERIAL )	strcpy_P(tmp_buf, PSTR("Serial (OS)"));
 			else if( fStation.networkID == NETWORK_ID_XBEE )			strcpy_P(tmp_buf, PSTR("Remote XBee"));
+			else if( fStation.networkID == NETWORK_ID_MOTEINORF )		strcpy_P(tmp_buf, PSTR("Remote RFM69"));
 			else														strcpy_P(tmp_buf, PSTR("Unknown!"));
 
 			fprintf_P( stream_file, PSTR("<tr class=\"auto-style3\"><td>%i</td><td>%s</td><td>%i</td><td>%s</td>"), i, fStation.name, fStation.numZoneChannels, tmp_buf );

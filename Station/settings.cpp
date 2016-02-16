@@ -357,17 +357,19 @@ uint8_t GetMoteinoRFAddr(void)
 	return EEPROM.read(ADDR_NETWORK_MOTEINORF_NODEID);
 }
 
+void SetMoteinoRFFlags(uint8_t flags)
+{
+	EEPROM.write(ADDR_NETWORK_MOTEINORF_FLAGS, flags);
+}
+
 void SetMoteinoRFPANID(uint8_t panID)
 {
 	EEPROM.write(ADDR_NETWORK_MOTEINORF_PANID, panID);
 }
 
-void SetMoteinoRFAddr(uint16_t addr)
+void SetMoteinoRFAddr(uint8_t addr)
 {
-	//uint8_t addrh = (addr & 0x0FF00) >> 8;
-	uint8_t addrl = addr & 0x0FF;
-
-	EEPROM.write(ADDR_NETWORK_MOTEINORF_NODEID, addrl);  // only low 8 bits of address are used
+	EEPROM.write(ADDR_NETWORK_MOTEINORF_NODEID, addr);
 }
 
 
@@ -1127,6 +1129,8 @@ void ResetEEPROM()
 					netID = NETWORK_ID_LOCAL_SERIAL;
 				else if( strcmp_P(tmpb, PSTR("XBee")) == 0 )
 					netID = NETWORK_ID_XBEE;
+				else if( strcmp_P(tmpb, PSTR("RFM69")) == 0 )
+					netID = NETWORK_ID_MOTEINORF;
 				else
 				{
 					SYSEVT_ERROR(F("NetworkID not recognized for station %d, skipping the station"), i+1);
@@ -1352,6 +1356,25 @@ skip_Sensor:;
 			}
 		}
 
+// Load MoteinoRF config
+
+		SetMoteinoRFFlags(0);	// MoteinoRF disabled by default
+		if( ini.getValue_P(PSTR("RFM69"), PSTR("Enabled"), buffer, bufferLen, tmpb, sizeof(tmpb)-1) )
+		{
+			if( !strcmp_P(tmpb, PSTR("Yes")) || !strcmp_P(tmpb, PSTR("yes")) ){
+// XBee enabled
+				SetMoteinoRFFlags(NETWORK_FLAGS_ENABLED);
+					
+				if( ini.getValue_P(PSTR("RFM69"), PSTR("PANID"), buffer, bufferLen, u16 ) )
+					SetMoteinoRFPANID(u16);
+				else
+					SetMoteinoRFPANID(NETWORK_MOTEINORF_DEFAULT_PANID);
+
+				SetMoteinoRFAddr(GetMyStationID());		// for MoteinoRF NodeID == StationID
+			}
+		}
+
+
 // Reset running water counters
 
 		for( uint8_t ii=0; ii<7; ii++ )
@@ -1576,6 +1599,7 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 		SetNumZones(zoneIndex);
 		TRACE_INFO(F("LoadIniEEPROM - Generated %d Zones\n"), zoneIndex);
 
+#ifdef HW_ENABLE_XBEE
 // Load XBee config
 
 // XBee enabled by default
@@ -1584,6 +1608,15 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 		SetXBeePortSpeed(NETWORK_XBEE_DEFAULT_SPEED);
 		SetXBeePANID(NETWORK_XBEE_DEFAULT_PANID);
 		SetXBeeChan(NETWORK_XBEE_DEFAULT_CHAN);
+#endif //HW_ENABLE_XBEE
+
+#ifdef HW_ENABLE_MOTEINORF
+// Load MoteinoRF (RFM69) config
+
+		SetMoteinoRFFlags(NETWORK_FLAGS_ENABLED);
+		SetMoteinoRFPANID(NETWORK_MOTEINORF_DEFAULT_PANID);
+		SetMoteinoRFAddr(GetMyStationID());		// for MoteinoRF NodeID == StationID
+#endif //HW_ENABLE_MOTEINORF
 
 // Reset running water counters
 
