@@ -158,7 +158,7 @@ bool SysInfo(FILE* stream_file)
 
 	fprintf_P( stream_file, PSTR("<h3 class=\"auto-style1\">Stations</h3>\n<p>Number of Stations:&nbsp; %i</p>\n"), (int)GetNumStations());
 	fprintf_P( stream_file, PSTR("<table align=\"center\" border=\"1\" style=\"border:medium\"><tr class=\"auto-style2\">\n"
-		"<td>&nbsp StationID&nbsp</td><td>&nbsp Name&nbsp</td><td>&nbsp Num Channels&nbsp</td><td>&nbsp NetworkID&nbsp</td><td>&nbsp NetworkAddress&nbsp</td><td>Last Contact</td>\n"
+		"<td>&nbsp StationID&nbsp</td><td>&nbsp Name&nbsp</td><td>&nbsp Num Channels&nbsp</td><td>&nbsp NetworkID&nbsp</td><td>&nbsp NetworkAddress&nbsp</td><td>Last Contact</td><td>RSSI</td>\n"
 								 "</tr>\n"));
 
 	for( int i=0; i<MAX_STATIONS; i++ )
@@ -176,23 +176,26 @@ bool SysInfo(FILE* stream_file)
 
 			fprintf_P( stream_file, PSTR("<tr class=\"auto-style3\"><td>%i</td><td>%s</td><td>%i</td><td>%s</td>"), i, fStation.name, fStation.numZoneChannels, tmp_buf );
 			
-			if(fStation.networkID == NETWORK_ID_XBEE )
+			if((fStation.networkID == NETWORK_ID_XBEE) || (fStation.networkID == NETWORK_ID_MOTEINORF)  )
 			{
-				fprintf_P( stream_file, PSTR("<td>%lX:%lX</td>"), XBeeRF.arpTable[i].MSB,XBeeRF.arpTable[i].LSB);
+				if( fStation.networkID == NETWORK_ID_XBEE ) 
+					fprintf_P( stream_file, PSTR("<td>%lX:%lX</td>"), XBeeRF.arpTable[i].MSB,XBeeRF.arpTable[i].LSB);
+				else
+					fprintf_P( stream_file, PSTR("<td>%u</td>"), uint16_t(i));
 
 				if( runState.sLastContactTime[i] != 0 )
 				{
 					unsigned long c_age = (millis()-runState.sLastContactTime[i]) / (time_t)60000;
-					fprintf_P( stream_file, PSTR("<td>%lu min. ago</td></tr>\n"), c_age);
+					fprintf_P( stream_file, PSTR("<td>%lu min. ago</td><td>%ddb</td></tr>\n"), c_age, runState.iLastReceivedRSSI[i]);
 				}
 				else
 				{
-					fprintf_P( stream_file, PSTR("<td>No contact</td></tr>\n"));
+					fprintf_P( stream_file, PSTR("<td>No contact</td><td></td></tr>\n"));
 				}
-			}
+			}			
 			else
 			{
-				fprintf_P( stream_file, PSTR("<td>%u</td><td>N/A</td></tr>\n"), fStation.networkAddress);
+				fprintf_P( stream_file, PSTR("<td>%u</td><td>N/A</td><td>N/A</td></tr>\n"), fStation.networkAddress);
 			}
 		}
 	}

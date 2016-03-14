@@ -38,6 +38,9 @@ class MoteinoRFClass
 	void loop(void);
 
 	bool	fMoteinoRFReady;			// Flag indicating that XBee is initialized and ready
+	uint8_t	uNextSNumber[MAX_STATIONS];
+	uint8_t	uLastReceivedSNumber[MAX_STATIONS];
+
 private:
 
 };

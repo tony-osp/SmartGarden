@@ -1212,6 +1212,7 @@ void RProtocolMaster::ProcessNewFrame(uint8_t *ptr, int len, uint8_t *pNetAddres
 		if( pMessage->Header.FromUnitID < MAX_STATIONS ){	// basic protection check to ensure we don't go outside of range
 			
 			runState.sLastContactTime[pMessage->Header.FromUnitID] = millis();
+			runState.iLastReceivedRSSI[pMessage->Header.FromUnitID] = LastReceivedRSSI;
 		}
 // and report station->address association to ARP (if registered)
 

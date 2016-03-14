@@ -191,7 +191,7 @@ void runStateClass::TurnOnZone(uint8_t nZone, uint8_t ttr)
 			}
 			else
 			{
-				SYSEVT_ERROR(F("TurnOnZone - XBeeRF.ChannelOn returned failure for zone %d"), (uint16_t)nZone);
+				SYSEVT_ERROR(F("TurnOnZone - rprotocol.ChannelOn returned failure for zone %d"), (uint16_t)nZone);
 				return;
 			}
 
@@ -265,7 +265,7 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 			}
 			else
 			{
-				SYSEVT_ERROR(F("TurnOffZone - XBeeRF.ChannelOff returned failure for zone %d"), (uint16_t)nZone);
+				SYSEVT_ERROR(F("TurnOffZone - rprotocol.ChannelOff returned failure for zone %d"), (uint16_t)nZone);
 				return;
 			}
 
@@ -426,7 +426,10 @@ void runStateClass::ReportStationZonesStatus(uint8_t stationID, uint8_t z_status
 
 runStateClass::runStateClass() : m_iSchedule(-1), m_iZone(-1), m_wuScale(100), m_endPauseMillis(0)
 {
-	for( int i=0; i<MAX_STATIONS; i++ ) sLastContactTime[i] = 0;
+	for( int i=0; i<MAX_STATIONS; i++ ){
+		sLastContactTime[i] = 0;
+		iLastReceivedRSSI[i] = -999; // placeholder
+	}
 }
 
 void runStateClass::LogEvent()

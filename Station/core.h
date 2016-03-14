@@ -104,6 +104,7 @@ public:
 	void ReportStationZonesStatus(uint8_t stationID, uint8_t z_status);
 
 	time_t	sLastContactTime[MAX_STATIONS];
+	int16_t	iLastReceivedRSSI[MAX_STATIONS];
 
 private:
 	void		LogSchedule();
