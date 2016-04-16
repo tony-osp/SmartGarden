@@ -29,7 +29,6 @@ Some of the modules (nntp, tftp and few other pieces) came from Sprinklers_pi co
 #include <bufstream.h>
 #include <ArduinoStream.h>
 
-
 #include "settings.h"
 #include "core.h"
 #include <Ethernet.h>
@@ -48,6 +47,11 @@ Some of the modules (nntp, tftp and few other pieces) came from Sprinklers_pi co
 #include <IniFile.h>
 #include "RProtocolMS.h"
 
+#ifdef SG_WDT_ENABLED
+#include <avr/wdt.h>
+#include "SgWdt.h"
+#endif // SG_WDT_ENABLED
+
 #ifdef HW_ENABLE_XBEE
 #include <XBee.h>
 #include "XBeeRF.h"
@@ -61,9 +65,10 @@ Some of the modules (nntp, tftp and few other pieces) came from Sprinklers_pi co
 #include "TimerOne.h"
 
 OSLocalUI localUI;
-//#ifdef HW_ENABLE_SD
+
+#ifdef HW_ENABLE_SD
 SdFat sd;
-//#endif //HW_ENABLE_SD
+#endif //HW_ENABLE_SD
 
 #ifdef HW_ENABLE_ETHERNET
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xAD};
@@ -73,8 +78,12 @@ void	RegisterRemoteEvents(void);
 
 
 void setup() {
-	trace_setup(Serial, 115200);
-    
+
+#ifdef SG_WDT_ENABLED
+	wdt_disable();
+#endif // SG_WDT_ENABLED
+
+	trace_setup(Serial, 115200);    
 	TRACE_CRIT(F("Start!\n"));
 
     localUI.begin();
@@ -153,17 +162,24 @@ void setup() {
 	}
 #endif //HW_ENABLE_SD
 
+#ifdef SG_WDT_ENABLED
+	SgWdtBegin();
+#endif // SG_WDT_ENABLED
+
 	RegisterRemoteEvents();
 
     // give the Ethernet shield time to set up:
-    delay(1000);
-    
+    delay(1000);    
 }
 
 void loop() {
     mainLoop();
     localUI.loop();
 	rprotocol.loop();
+
+#ifdef SG_WDT_ENABLED
+	SgWdtReset();
+#endif // SG_WDT_ENABLED
 }
 
 

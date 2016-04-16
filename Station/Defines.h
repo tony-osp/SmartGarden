@@ -2,20 +2,31 @@
 
 Defaults definition for the SmartGarden system.
 
+The same source can be compiled to run on different versions of hardware, 
+as well as to select Master or Remote station HW config.
+To select specific hardware version uncomment the line below corresponding to required HW version.
+
+Please take into account that for Master station version only baseline HW config is defined at compile time,
+the rest of config (e.g. number of stations, sensors, sensor types etc) is configured dynamically, 
+using device.ini file on SD card.
+
+For Remote station version config is defined at compile time, with only limited configurability (e.g. StationID)
+defined at run time using LCD UI.
 
 Creative Commons Attribution-ShareAlike 3.0 license
-Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
+Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 
 */
 
 #ifndef _DEFINES_H
 #define _DEFINES_H 
 
-#define ENABLE_TRACE	1
+#define ENABLE_TRACE	1		// enable trace output (via Serial port)
 #define TRACE_LEVEL		2		// critical and alert messages only
 //#define TRACE_LEVEL			6		// all info
 #define TRACE_FREERAM_LIMIT	2000	// when free RAM goes below this limit freeMem() calls will start producing critical notifications
 
+// System events level threshold. System events are written to the system log, also they are copied to the trace output.
 #define SYSEVT_LEVEL	2	// critical events only
 
 // Supported hardware version definitions
@@ -27,13 +38,17 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define HW_V16_MASTER			4	// Master station, hardware version 1.6 (Moteino Mega-based, native Moteino RF module)
 #define HW_V16_REMOTE			5	// Remote station, hardware version 1.6 (Moteino Mega-based, native Moteino RF module)
 
-// Uncomment the line that corresponds to the actual hardware
+//To select specific hardware version uncomment the line below corresponding to required HW version.
 
 //#define SG_HARDWARE				HW_V15_REMOTE
 //#define SG_HARDWARE				HW_V15_MASTER
 //#define SG_HARDWARE				HW_V10_MASTER
 #define SG_HARDWARE				HW_V16_MASTER
 //#define SG_HARDWARE				HW_V16_REMOTE
+
+//
+// This section defined macro-level HW config for different versions.
+// Please note that part of the HW config (e.g. specific pin assignments etc) is defined in HardwiredConfig.h file.
 
 #if SG_HARDWARE == HW_V16_MASTER
 
@@ -92,6 +107,8 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #endif //HW_V16_REMOTE
 
+// Some common definitions
+
 #define SG_STATION_SLAVE		1	// allow acting as a slave (allow remote access via RF network)
 #define DEFAULT_MAX_DURATION	99	// default maximum runtime - 99 minutes
 
@@ -115,7 +132,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define MAX_STATTION_NAME_LENGTH	20
 #define MAX_SENSOR_NAME_LENGTH		20
 
-#define EEPROM_SHEADER "SG15"
+#define EEPROM_SHEADER "SG16"
 #define SG_FIRMWARE_VERSION	27
 
 #define EEPROM_INI_FILE	"/device.ini"
@@ -178,7 +195,13 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SENSOR_DEFAULT_LCD_TEMPERATURE	0		// if defined, this will be the sensor channel shown as Temperature reading on the local LCD
 #define SENSOR_DEFAULT_LCD_HUMIDITY		1		// if defined, this will be the sensor channel shown as Humidity reading on the local LCD
 
+// Watchdog timer config
+#define SG_WDT_ENABLED			1	// enable WDT 
 
+// Max number of watchdog timer ticks before reset
+#define SG_WDT_MAX_TICK_ALLOWED 8	// 8 ticks
+// Watchdog timer tick
+#define SG_WDT_TICK	WDT_8S	// 8 seconds per tick
 
 // HardwiredConfig.h specifies compile-time defaults for hardware config.
 // It is used when device.ini file is unavailable (e.g. no SD card), also few hardware definitions are always compile-time and 
