@@ -34,6 +34,12 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define PARALLEL_PIN_OUT_MAP {12, 13, 14, 18, 19, 20, 21, 22 }
 #endif
 
+// use this definition for Moteino Mega - based Remote station with 4 parallel channels and 4 sensors
+#if SG_HARDWARE == HW_V17_REMOTE
+#define LOCAL_NUM_DIRECT_CHANNELS	4		// use this definition for Remote station with 4 parallel OUT channels
+#define PARALLEL_PIN_OUT_MAP {12, 13, 14, 18 }
+#endif
+
 // LCD
 
 //Large-screen LCD on MEGA
@@ -81,6 +87,13 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define PIN_INVERTED_BUTTON3  1
 //#define PIN_INVERTED_BUTTON4  1
 
+#elif SG_HARDWARE == HW_V17_REMOTE
+
+#define PIN_BUTTON_1      19    // button 1
+#define PIN_BUTTON_2      21    // button 2
+#define PIN_BUTTON_3      20    // button 3
+#define PIN_BUTTON_4      22    // button 4
+
 #else	// default (e.g. HW_V15_REMOTE)
  #define PIN_BUTTON_1      A0    // button 1
  #define PIN_BUTTON_2      A2    // button 2
@@ -115,18 +128,40 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 //#define	SENSOR_CHANNEL_BMP180_PRESSURE		4
 
 // locally connected Humidity sensor via Analog port
-//#define SENSOR_ENABLE_ANALOG				1	// enable Analog sensor port
-//#define SENSOR_ANALOG_CHANNELS				1	// one Analog channel
 
-//#define SENSOR_CHANNEL_ANALOG_1_PIN			A7	// moisture sensor connected to A7
+#if SG_HARDWARE == HW_V17_REMOTE	// V17_REMOTE hardware has 4 channels
+
+#define SENSOR_ENABLE_ANALOG				1	// enable Analog sensor port
+#define SENSOR_ANALOG_CHANNELS				2	// 2 Analog channels
+
+#define SENSOR_CHANNEL_ANALOG_1_PIN			A4	// moisture sensor 1 - 1st external port
 #define SENSOR_CHANNEL_ANALOG_1_TYPE		SENSOR_TYPE_HUMIDITY	// humidity sensor
-#define SENSOR_CHANNEL_ANALOG_1_CHANNEL		2	// logical channel this sensor is mapped to
+#define SENSOR_CHANNEL_ANALOG_1_CHANNEL		0	// logical channel this sensor is mapped to
 
 #define SENSOR_CHANNEL_ANALOG_1_MINV		0	// minimum analog input value for this port
 #define SENSOR_CHANNEL_ANALOG_1_MAXV		930	// maximum analog input value for this port
 #define SENSOR_CHANNEL_ANALOG_1_MINVAL		0	// minimum sensor output value for this port
 #define SENSOR_CHANNEL_ANALOG_1_MAXVAL		100	// maximum sensor output value for this port
 #define SENSOR_CHANNEL_ANALOG_1_SCALE ((SENSOR_CHANNEL_ANALOG_1_MAXV-SENSOR_CHANNEL_ANALOG_1_MINV)/(SENSOR_CHANNEL_ANALOG_1_MAXVAL-SENSOR_CHANNEL_ANALOG_1_MINVAL))
+
+#define SENSOR_CHANNEL_ANALOG_2_PIN			A5	// moisture sensor 2 - 2nd external port
+#define SENSOR_CHANNEL_ANALOG_2_TYPE		SENSOR_TYPE_HUMIDITY	// humidity sensor
+#define SENSOR_CHANNEL_ANALOG_2_CHANNEL		1	// logical channel this sensor is mapped to
+
+#define SENSOR_CHANNEL_ANALOG_2_MINV		0	// minimum analog input value for this port
+#define SENSOR_CHANNEL_ANALOG_2_MAXV		930	// maximum analog input value for this port
+#define SENSOR_CHANNEL_ANALOG_2_MINVAL		0	// minimum sensor output value for this port
+#define SENSOR_CHANNEL_ANALOG_2_MAXVAL		100	// maximum sensor output value for this port
+#define SENSOR_CHANNEL_ANALOG_2_SCALE ((SENSOR_CHANNEL_ANALOG_1_MAXV-SENSOR_CHANNEL_ANALOG_1_MINV)/(SENSOR_CHANNEL_ANALOG_1_MAXVAL-SENSOR_CHANNEL_ANALOG_1_MINVAL))
+
+// locally connected Temperature-Thermistor sensor via Analog port
+#define SENSOR_ENABLE_THERMISTOR				1	// enable Thermistor sensor port
+
+#define SENSOR_CHANNEL_THERMISTOR_1_PIN			A6	// Thermistor sensor connected to A6
+#define SENSOR_CHANNEL_THERMISTOR_1_TYPE		SENSOR_TYPE_TEMPERATURE	// standard sensor type - Temperature
+#define SENSOR_CHANNEL_THERMISTOR_1_CHANNEL		2	// logical channel this sensor is mapped to
+
+#endif //SG_HARDWARE
 
 // locally connected "counter" - type sensor, typically this would be Waterflow meter
 //#define SENSOR_ENABLE_COUNTERMETER			1	// enable Counter/Meter sensor port
@@ -143,12 +178,6 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SENSOR_CHANNEL_COUNTERMETER_1_MULT		1	// multiplier for computing CounterMeter1 normalized reading
 #define SENSOR_CHANNEL_COUNTERMETER_1_DIV		1	// divider for computing CounterMeter1 normalized reading
 
-// locally connected Temperature-Thermistor sensor via Analog port
-#define SENSOR_ENABLE_THERMISTOR				1	// enable Thermistor sensor port
-
-#define SENSOR_CHANNEL_THERMISTOR_1_PIN			A6	// Thermistor sensor connected to A6
-#define SENSOR_CHANNEL_THERMISTOR_1_TYPE		SENSOR_TYPE_TEMPERATURE	// standard sensor type - Temperature
-#define SENSOR_CHANNEL_THERMISTOR_1_CHANNEL		1	// logical channel this sensor is mapped to
 
 
 

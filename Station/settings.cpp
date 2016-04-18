@@ -1490,16 +1490,16 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 				fullSens.sensorChannel = SENSOR_CHANNEL_DHT_TEMPERATURE;
 				fullSens.sensorStationID = DEFAULT_STATION_ID;
 				fullSens.flags = 0;	
-				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_DHT_TEMPERATURE);	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), uint16_t(defStationID), SENSOR_CHANNEL_DHT_TEMPERATURE);	
 
 				SaveSensor(sensID, &fullSens);	// save the sensor
 				sensID++;
 
 				fullSens.sensorType = SENSOR_TYPE_HUMIDITY;
 				fullSens.sensorChannel = SENSOR_CHANNEL_DHT_HUMIDITY;
-				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.sensorStationID = defStationID;
 				fullSens.flags = 0;	
-				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_DHT_HUMIDITY);	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), uint16_t(defStationID), SENSOR_CHANNEL_DHT_HUMIDITY);	
 
 				SaveSensor(sensID, &fullSens);	// save the sensor
 				sensID++;
@@ -1512,18 +1512,18 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 
 				fullSens.sensorType = SENSOR_TYPE_TEMPERATURE;
 				fullSens.sensorChannel = SENSOR_CHANNEL_BMP180_TEMPERATURE;
-				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.sensorStationID = defStationID;
 				fullSens.flags = 0;	
-				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_BMP180_TEMPERATURE);	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), uint16_t(defStationID), SENSOR_CHANNEL_BMP180_TEMPERATURE);	
 
 				SaveSensor(sensID, &fullSens);	// save the sensor
 				sensID++;
 
 				fullSens.sensorType = SENSOR_TYPE_PRESSURE;
 				fullSens.sensorChannel = SENSOR_CHANNEL_BMP180_PRESSURE;
-				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.sensorStationID = defStationID;
 				fullSens.flags = 0;	
-				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_BMP180_PRESSURE);	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), uint16_t(defStationID), SENSOR_CHANNEL_BMP180_PRESSURE);	
 
 				SaveSensor(sensID, &fullSens);	// save the sensor
 				sensID++;
@@ -1537,9 +1537,9 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 #ifdef SENSOR_CHANNEL_ANALOG_1_PIN
 				fullSens.sensorType = SENSOR_CHANNEL_ANALOG_1_TYPE;
 				fullSens.sensorChannel = SENSOR_CHANNEL_ANALOG_1_CHANNEL;
-				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.sensorStationID = defStationID;
 				fullSens.flags = 0;	
-				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_ANALOG_1_CHANNEL);	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), uint16_t(defStationID), SENSOR_CHANNEL_ANALOG_1_CHANNEL);	
 
 				SaveSensor(sensID, &fullSens);	// save the sensor
 				sensID++;
@@ -1548,15 +1548,44 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 #ifdef SENSOR_CHANNEL_ANALOG_2_PIN
 				fullSens.sensorType = SENSOR_CHANNEL_ANALOG_2_TYPE;
 				fullSens.sensorChannel = SENSOR_CHANNEL_ANALOG_2_CHANNEL;
-				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.sensorStationID = defStationID;
 				fullSens.flags = 0;	
-				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), DEFAULT_STATION_ID, SENSOR_CHANNEL_ANALOG_2_CHANNEL);	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), uint16_t(defStationID), SENSOR_CHANNEL_ANALOG_2_CHANNEL);	
 
 				SaveSensor(sensID, &fullSens);	// save the sensor
 				sensID++;
 #endif // SENSOR_CHANNEL_ANALOG_2_PIN
 			}
 #endif // SENSOR_ENABLE_ANALOG
+
+// Thermistor
+#ifdef SENSOR_ENABLE_THERMISTOR
+			{
+				FullSensor  fullSens;
+
+#ifdef SENSOR_CHANNEL_THERMISTOR_1_PIN
+				fullSens.sensorType = SENSOR_CHANNEL_THERMISTOR_1_TYPE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_THERMISTOR_1_CHANNEL;
+				fullSens.sensorStationID = defStationID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), uint16_t(defStationID), SENSOR_CHANNEL_THERMISTOR_1_CHANNEL);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+#endif // SENSOR_CHANNEL_THERMISTOR_1_PIN
+
+#ifdef SENSOR_CHANNEL_THERMISTOR_2_PIN
+				fullSens.sensorType = SENSOR_CHANNEL_THERMISTOR_2_TYPE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_THERMISTOR_2_CHANNEL;
+				fullSens.sensorStationID = defStationID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), uint16_t(defStationID), SENSOR_CHANNEL_THERMISTOR_2_CHANNEL);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+#endif // SENSOR_CHANNEL_THERMISTOR_2_PIN
+			}
+#endif // SENSOR_ENABLE_THERMISTOR
 
 
 			SetNumSensors(sensID);

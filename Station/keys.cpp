@@ -14,9 +14,10 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 */
 
 
-
-#include "localUI.h"
 #include "Defines.h"
+//#define TRACE_LEVEL			6		// all info
+#include "port.h"
+#include "localUI.h"
 
 // local forward declarations
 
@@ -45,7 +46,7 @@ byte get_keys_now(void)
 byte get_keys_now(void)
 {
    byte  new_buttons = 0;
-
+   
 #ifdef PIN_INVERTED_BUTTON1
    if( digitalRead(PIN_BUTTON_1) != 0 ) new_buttons |= BUTTON_1;
 #else //PIN_INVERTED_BUTTON1
@@ -69,6 +70,8 @@ byte get_keys_now(void)
 #else //PIN_INVERTED_BUTTON4
    if( digitalRead(PIN_BUTTON_4) == 0 ) new_buttons |= BUTTON_4;
 #endif //PIN_INVERTED_BUTTON4
+
+   //TRACE_INFO(F("Input buttons: %x\n"), new_buttons);
 
    return new_buttons;
 }

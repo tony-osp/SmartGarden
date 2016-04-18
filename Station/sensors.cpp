@@ -19,8 +19,11 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 */
 
-#include "sensors.h"
+#include "Defines.h"
+//#define TRACE_LEVEL			7		// all info including verbose
 #include "port.h"
+
+#include "sensors.h"
 #include <SFE_BMP180.h>
 #include <Wire.h>
 #include "XBeeRF.h"
@@ -278,6 +281,7 @@ void Sensors::poll_MinTimer(void)
 	{
 		if( stationsToPollList[nPoll] == GetMyStationID() )	// poll local sensors
 		{
+
 // Local sensors
 
 #ifdef SENSOR_ENABLE_BMP180
@@ -331,7 +335,7 @@ void Sensors::poll_MinTimer(void)
 #ifdef SENSOR_CHANNEL_ANALOG_1_PIN				
 				val = analogRead(SENSOR_CHANNEL_ANALOG_1_PIN);
 
-//				TRACE_ERROR(F("Analog sensor#1 reading: %d\n"), val);
+				TRACE_VERBOSE(F("Analog sensor#1 reading: %d\n"), val);
 
 				if( val < SENSOR_CHANNEL_ANALOG_1_MINV ) val = SENSOR_CHANNEL_ANALOG_1_MINV;
 				if( val > SENSOR_CHANNEL_ANALOG_1_MAXV ) val = SENSOR_CHANNEL_ANALOG_1_MAXV;
@@ -343,7 +347,7 @@ void Sensors::poll_MinTimer(void)
 				val = val/(SENSOR_CHANNEL_ANALOG_1_SCALE*16);
 				val = val + SENSOR_CHANNEL_ANALOG_1_MINVAL;
 
-//				TRACE_ERROR(F("Analog sensor#1 converted: %d, scale:%d\n"), val, int(SENSOR_CHANNEL_ANALOG_1_SCALE));
+				TRACE_VERBOSE(F("Analog sensor#1 converted: %d, scale:%d\n"), val, int(SENSOR_CHANNEL_ANALOG_1_SCALE));
 				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_1_CHANNEL, val );	
 #endif //SENSOR_CHANNEL_ANALOG_1_PIN
 
@@ -500,7 +504,7 @@ void Sensors::ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int
 				{
 					Humidity = sensorReading;
 				}
-#ifdef notdef	// I don't want to proactively send sensor readings to Master, let's poller pick it up
+#ifdef notdef	// I don't want to proactively send sensor readings to Master, let poller pick it up
 				if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SENSORS )
 				{
 					rprotocol.SendSensorsReport(0, GetMyStationID(), GetEvtMasterStationID(), i, 1);
