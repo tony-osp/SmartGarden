@@ -18,9 +18,9 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 */
 
-
-#include "localUI.h"
 #include <ethernet.h>
+#include "Defines.h"
+#include "localUI.h"
 #include "nntp.h"
 #include "core.h"
 #include "settings.h"

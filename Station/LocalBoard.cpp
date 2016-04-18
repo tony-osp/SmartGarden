@@ -25,7 +25,8 @@ LocalBoardParallel::LocalBoardParallel(void)
 
 bool LocalBoardParallel::begin(void)
 {
-	io_setup();
+	if( GetNumIOChannels() != 0 )
+		io_setup();
 
    return true;
 }
@@ -133,7 +134,8 @@ LocalBoardSerial::LocalBoardSerial(void)
 
 bool LocalBoardSerial::begin(void)
 {
-	io_setup();
+	if( GetNumOSChannels() != 0 )
+		io_setup();
 
    return true;
 }
