@@ -314,7 +314,7 @@ void Sensors::poll_MinTimer(void)
 					TRACE_ERROR(F("Failure reading temperature or humidity from DHT.\n"));
 
 //					// debugging - temporary hardcode some value here
-					temp = 10; hum = 20;
+//					temp = 10; hum = 20;
  					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_DHT_TEMPERATURE, temp );	
  					ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_DHT_HUMIDITY, hum );	
 				}

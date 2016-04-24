@@ -37,7 +37,7 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #define HW_V16_MASTER			4	// Master station, hardware version 1.6 (Moteino Mega-based, native Moteino RF module)
 #define HW_V16_REMOTE			5	// Remote station, hardware version 1.6 (Moteino Mega-based, native Moteino RF module)
-#define HW_V17_REMOTE			5	// Remote station, hardware version 1.7 (Moteino Mega-based, native Moteino RF module), different Button pins and 4 sensor connectors
+#define HW_V17_REMOTE			6	// Remote station, hardware version 1.7 (Moteino Mega-based, native Moteino RF module), different Button pins and 4 sensor connectors
 
 //To select specific hardware version uncomment the line below corresponding to required HW version.
 
@@ -45,8 +45,8 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 //#define SG_HARDWARE				HW_V15_MASTER
 //#define SG_HARDWARE				HW_V10_MASTER
 //#define SG_HARDWARE				HW_V16_MASTER
-//#define SG_HARDWARE				HW_V16_REMOTE
-#define SG_HARDWARE				HW_V17_REMOTE
+#define SG_HARDWARE				HW_V16_REMOTE
+//#define SG_HARDWARE				HW_V17_REMOTE
 
 //
 // This section defined macro-level HW config for different versions.
@@ -193,9 +193,6 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SENSOR_TYPE_HUMIDITY			3
 #define SENSOR_TYPE_WATERFLOW			4
 #define SENSOR_TYPE_VOLTAGE				5
-
-#define SENSOR_DEFAULT_LCD_TEMPERATURE	2		// if defined, this will be the sensor channel shown as Temperature reading on the local LCD
-#define SENSOR_DEFAULT_LCD_HUMIDITY		0		// if defined, this will be the sensor channel shown as Humidity reading on the local LCD
 
 // Watchdog timer config
 #define SG_WDT_ENABLED			1	// enable WDT 

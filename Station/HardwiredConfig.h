@@ -105,21 +105,27 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 // Sensors
 //
 // locally connected DHT (temp & humidity) sensor
-//#define SENSOR_ENABLE_DHT				1
-#define SENSOR_CHANNEL_DHT_TEMPERATURE	0	// logical channel this sensor is mapped to
-#define SENSOR_CHANNEL_DHT_HUMIDITY		1	// logical channel this sensor is mapped to
+
+#if SG_HARDWARE == HW_V16_REMOTE
+
+#define SENSOR_ENABLE_DHT				1
+#define DHTPIN							A4
+#define DHTTYPE							DHT21   // DHT 21 (AM2301)
+#define SENSOR_CHANNEL_DHT_TEMPERATURE	0		// logical channel this sensor is mapped to
+#define SENSOR_CHANNEL_DHT_HUMIDITY		1		// logical channel this sensor is mapped to
+
+#define SENSOR_DEFAULT_LCD_TEMPERATURE	0		// if defined, this will be the sensor channel shown as Temperature reading on the local LCD
+#define SENSOR_DEFAULT_LCD_HUMIDITY		1		// if defined, this will be the sensor channel shown as Humidity reading on the local LCD
+
+#endif //SG_HARDWARE == HW_V16_REMOTE
 
 // when DHT sensor is connected, this defines the data pin
 #if SG_HARDWARE == HW_V10_MASTER
-#define DHTPIN   A15
-#else  // MoteinoMega
-#define DHTPIN   A4
-#endif // MoteinoMega
+#define SENSOR_ENABLE_DHT				1
+#define DHTPIN							A15
 // DHT sensor sub-type
-#define DHTTYPE DHT21   // DHT 21 (AM2301)
-
-// by default we don't have local sensors
-#define SENSOR_NUM_LOCAL_SENSORS	0
+#define DHTTYPE							DHT21   // DHT 21 (AM2301)
+#endif
 
 
 // locally connected BMP180 (air pressure & temp) sensor
@@ -181,14 +187,6 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 
 
-
-#if defined(SENSOR_ENABLE_DHT) && defined(SENSOR_ENABLE_BMP180)
-#undef SENSOR_NUM_LOCAL_SENSORS
-#define SENSOR_NUM_LOCAL_SENSORS	2
-#elif defined(SENSOR_ENABLE_DHT) || defined(SENSOR_ENABLE_BMP180)
-#undef SENSOR_NUM_LOCAL_SENSORS
-#define SENSOR_NUM_LOCAL_SENSORS	1
-#endif 
 
 // XBee RF network
 
