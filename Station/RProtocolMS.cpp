@@ -609,7 +609,7 @@ inline void MessageSysEvtReport( void *ptr )
 {
 	RMESSAGE_SYSEVT_REPORT	*pMessage = (RMESSAGE_SYSEVT_REPORT *)ptr;
 
-	TRACE_VERBOSE(F("MessageSysEvtReport - processing message\n"));
+	TRACE_VERBOSE(F("MessageSysEvtReport - processing message, NumDataBytes=%u\n"), uint16_t(pMessage->NumDataBytes));
 
 // Parameters validity check.
 
@@ -621,10 +621,10 @@ inline void MessageSysEvtReport( void *ptr )
 // OK, payload seems to be valid.
 
 	uint8_t		evtBuf[SYSEVENT_MAX_STRING_LENGTH+1];
-	memcpy(evtBuf, (void *)(pMessage->EvtString), pMessage->NumDataBytes);
-	evtBuf[pMessage->NumDataBytes] = 0; // we need to bull-terminate the string since incoming message has string without termination (but with explicit length)
+	memcpy(evtBuf, (void *)(&pMessage->EvtString), uint16_t(pMessage->NumDataBytes));
+	evtBuf[pMessage->NumDataBytes] = 0; // we need to null-terminate the string since incoming message has string without termination (but with explicit length)
 
-	syslog_evt(pMessage->EventType, F("RemoteEvent: %s"), evtBuf);
+	syslog_evt(pMessage->EventType, F("RemoteEvent, stn:%u, type:%u, str:%s"), uint16_t(pMessage->Header.FromUnitID), uint16_t(pMessage->EventType), evtBuf);
 }
 
 

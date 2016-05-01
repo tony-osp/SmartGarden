@@ -46,9 +46,9 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 //#define SG_HARDWARE				HW_V15_REMOTE
 //#define SG_HARDWARE				HW_V15_MASTER
 //#define SG_HARDWARE				HW_V10_MASTER
-//#define SG_HARDWARE				HW_V16_MASTER
+#define SG_HARDWARE				HW_V16_MASTER
 //#define SG_HARDWARE				HW_V16_REMOTE
-#define SG_HARDWARE				HW_V17_REMOTE
+//#define SG_HARDWARE				HW_V17_REMOTE
 
 //
 // This section defined macro-level HW config for different versions.

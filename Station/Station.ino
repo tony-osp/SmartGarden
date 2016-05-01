@@ -145,6 +145,10 @@ void setup() {
 	else
 		Ethernet.begin(mac, GetIP(), INADDR_NONE, GetGateway(), GetNetmask());
 	TRACE_CRIT(F("Assigned IP:")); Serial.println(Ethernet.localIP());
+
+    // give the Ethernet shield time to set up:
+    delay(1000);    
+
 #endif //HW_ENABLE_ETHERNET
 
 #ifdef HW_ENABLE_SD
@@ -167,9 +171,6 @@ void setup() {
 #endif // SG_WDT_ENABLED
 
 	RegisterRemoteEvents();
-
-    // give the Ethernet shield time to set up:
-    delay(1000);    
 }
 
 void loop() {
