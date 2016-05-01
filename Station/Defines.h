@@ -29,6 +29,8 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 // System events level threshold. System events are written to the system log, also they are copied to the trace output.
 #define SYSEVT_LEVEL	2	// critical events only
 
+//#define SENSORS_FAST_POLL		1	// poll sensors at fast rate (60 times faster than normal) - useful for debugging
+
 // Supported hardware version definitions
 
 #define HW_V10_MASTER			1	// Master station, hardware version 1.0 (Mega 2560-based)
@@ -45,8 +47,8 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 //#define SG_HARDWARE				HW_V15_MASTER
 //#define SG_HARDWARE				HW_V10_MASTER
 //#define SG_HARDWARE				HW_V16_MASTER
-#define SG_HARDWARE				HW_V16_REMOTE
-//#define SG_HARDWARE				HW_V17_REMOTE
+//#define SG_HARDWARE				HW_V16_REMOTE
+#define SG_HARDWARE				HW_V17_REMOTE
 
 //
 // This section defined macro-level HW config for different versions.

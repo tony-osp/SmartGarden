@@ -253,10 +253,12 @@ void Sensors::loop(void)
 {
        unsigned long  new_millis = millis();    // Note: we are using built-in Arduino millis() function instead of now() or time-zone adjusted LocalNow(), because it is a lot faster
                                                 // and for detecting minutes changes it does not make any difference.
-	   
-       if( (new_millis - old_millis) >= 60000ul ){   // one minute detection
-//       if( (new_millis - old_millis) >= 1000 ){   // debug - 1 sec instead of 1 minute
 
+#ifdef SENSORS_FAST_POLL
+       if( (new_millis - old_millis) >= 1000 ){   // debug - 1 sec instead of 1 minute
+#else
+	   if( (new_millis - old_millis) >= 60000ul ){   // one minute detection
+#endif //SENSORS_FAST_POLL
              old_millis = new_millis;             
              poll_MinTimer();             
        }
@@ -331,11 +333,11 @@ void Sensors::poll_MinTimer(void)
 
 #ifdef SENSOR_ENABLE_ANALOG
 			{
-				int		val;
+				int32_t		val;
 #ifdef SENSOR_CHANNEL_ANALOG_1_PIN				
-				val = analogRead(SENSOR_CHANNEL_ANALOG_1_PIN);
+				val = int32_t(analogRead(SENSOR_CHANNEL_ANALOG_1_PIN));
 
-				TRACE_VERBOSE(F("Analog sensor#1 reading: %d\n"), val);
+				TRACE_VERBOSE(F("Analog sensor#1 reading: %d\n"), int(val));
 
 				if( val < SENSOR_CHANNEL_ANALOG_1_MINV ) val = SENSOR_CHANNEL_ANALOG_1_MINV;
 				if( val > SENSOR_CHANNEL_ANALOG_1_MAXV ) val = SENSOR_CHANNEL_ANALOG_1_MAXV;
@@ -344,23 +346,25 @@ void Sensors::poll_MinTimer(void)
 // and by multiplying scaling factor by 16 as well. 
 // It is OK, since input signal is guaranteed to be only 10bit (AtMega ADC).				
 				val = (val-SENSOR_CHANNEL_ANALOG_1_MINV)*16;
-				val = val/(SENSOR_CHANNEL_ANALOG_1_SCALE*16);
+				val = val/(((SENSOR_CHANNEL_ANALOG_1_MAXV-SENSOR_CHANNEL_ANALOG_1_MINV)*16)/(SENSOR_CHANNEL_ANALOG_1_MAXVAL-SENSOR_CHANNEL_ANALOG_1_MINVAL));
 				val = val + SENSOR_CHANNEL_ANALOG_1_MINVAL;
 
-				TRACE_VERBOSE(F("Analog sensor#1 converted: %d, scale:%d\n"), val, int(SENSOR_CHANNEL_ANALOG_1_SCALE));
-				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_1_CHANNEL, val );	
+				TRACE_VERBOSE(F("Analog sensor#1 converted: %d\n"), int(val));
+				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_1_CHANNEL, int(val) );	
 #endif //SENSOR_CHANNEL_ANALOG_1_PIN
 
 #ifdef SENSOR_CHANNEL_ANALOG_2_PIN				
-				val = analogRead(SENSOR_CHANNEL_ANALOG_2_PIN);
+				val = int32_t(analogRead(SENSOR_CHANNEL_ANALOG_2_PIN));
+
+				TRACE_VERBOSE(F("Analog sensor#2 reading: %d\n"), int(val));
 
 				if( val < SENSOR_CHANNEL_ANALOG_2_MINV ) val = SENSOR_CHANNEL_ANALOG_2_MINV;
 				if( val > SENSOR_CHANNEL_ANALOG_2_MAXV ) val = SENSOR_CHANNEL_ANALOG_2_MAXV;
 
 				val = (val-SENSOR_CHANNEL_ANALOG_2_MINV)*16;
-				val = val/(SENSOR_CHANNEL_ANALOG_2_SCALE*16);
+				val = val/(((SENSOR_CHANNEL_ANALOG_2_MAXV-SENSOR_CHANNEL_ANALOG_2_MINV)*16)/(SENSOR_CHANNEL_ANALOG_2_MAXVAL-SENSOR_CHANNEL_ANALOG_2_MINVAL));
 				val = val + SENSOR_CHANNEL_ANALOG_2_MINVAL;
-				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_2_CHANNEL, val );	
+				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_2_CHANNEL, int(val) );
 #endif //SENSOR_CHANNEL_ANALOG_2_PIN
 
 			}
