@@ -169,8 +169,8 @@ Logging::~Logging()
 bool Logging::begin(void)
 {
 #ifndef HW_ENABLE_SD
-	return false;
-#endif //!HW_ENABLE_SD
+	return true;
+#else
 
   char    log_fname[20];
   time_t  curr_time = now();
@@ -264,6 +264,7 @@ bool Logging::begin(void)
   logger_ready = true;      // we are good to go
 
   return true;
+#endif //!HW_ENABLE_SD
 }
 
 void Logging::Close()
@@ -280,6 +281,9 @@ bool Logging::LogSchedEvent(time_t start, int duration, uint16_t water_used, int
 {
 	  TRACE_VERBOSE(F("LogSchedEvent called, start=%lu, duration=%d, schedule=%d, sadj=%d, wunderground=%d\n"), start, duration, schedule, sadj, wunderground);
 
+#ifndef HW_ENABLE_SD
+	  return true;
+#else
       if( !logger_ready ) return false;  //check if the logger is ready
 	
 // temp buffer for log strings processing
@@ -304,6 +308,7 @@ bool Logging::LogSchedEvent(time_t start, int duration, uint16_t water_used, int
       lfile.close();
 
       return true;
+#endif //HW_ENABLE_SD
 }
 
 // Record zone watering event
@@ -326,6 +331,9 @@ bool Logging::LogZoneEvent(time_t start, int zone, int duration, uint16_t water_
 			//TRACE_CRIT(F("Updating WWCounter, dow=%d, duration=%d, zone.wfRate=%d, increment=%d\n"), int(dow), duration, szone.waterFlowRate, int(tmp32) );
 	  }
 
+#ifndef HW_ENABLE_SD
+	  return true;
+#else
 	  water_used = water_used/100; // water used is reported in 1/100 of a gallon. We use full precision value for WWCounters calculations, but round it to nearest gallon for logging.
 
 	  if( !logger_ready ) return false;  //check if the logger is ready
@@ -352,6 +360,7 @@ bool Logging::LogZoneEvent(time_t start, int zone, int duration, uint16_t water_
       lfile.close();
 
       return true;
+#endif //HW_ENABLE_SD
 }
 
 // Sensors logging - record sensor reading. 
@@ -367,6 +376,9 @@ bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int32_t senso
 {
 //	TRACE_ERROR(F("LogSensorReading - enter, sensor_type=%i, sensor_id=%i, sensor_reading=%ld\n"), (int)sensor_type, sensor_id, sensor_reading);
 
+#ifndef HW_ENABLE_SD
+	  return true;
+#else
 	if( !logger_ready ) return false;  //check if the logger is ready
 
 	time_t  t = now();
@@ -432,12 +444,16 @@ bool Logging::LogSensorReading(uint8_t sensor_type, int sensor_id, int32_t senso
       lfile.close();
 
       return true;    // standard exit-success
+#endif //HW_ENABLE_SD
 }
 
 
 
 bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 {
+#ifndef HW_ENABLE_SD
+	  return false;
+#else
         char tmp_buf[MAX_LOG_RECORD_SIZE];
 
 		fprintf_P(stream_file, PSTR("{\n\t\"logs\": [\n"));
@@ -539,11 +555,15 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 
 		fprintf_P(stream_file, PSTR("\t]\n}"));
         return true;
+#endif //HW_ENABLE_SD
 }
 
 
 bool Logging::TableSchedule(FILE* stream_file, time_t start, time_t end)
 {
+#ifndef HW_ENABLE_SD
+	  return false;
+#else 
         char tmp_buf[MAX_LOG_RECORD_SIZE];
 
         if (start == 0)
@@ -621,6 +641,7 @@ bool Logging::TableSchedule(FILE* stream_file, time_t start, time_t end)
 				}
 
         return true;
+#endif //HW_ENABLE_SD
 }
 
 
@@ -629,8 +650,9 @@ bool Logging::TableSchedule(FILE* stream_file, time_t start, time_t end)
 //
 void emitDirectoryListing(SdFile &dir, char *folder, FILE *pFile)
 {
-//	SdFile dir;
-
+#ifndef HW_ENABLE_SD
+	  return;
+#else
 //	TRACE_ERROR(F("Serving directory listing of %s\n"), folder);
 	
 	fprintf_P( pFile, PSTR("<table><tr><td><b>File Name</b></td> <td>&nbsp&nbsp</td> <td><b>Size, bytes</b></td></tr>\n"));
@@ -653,6 +675,7 @@ void emitDirectoryListing(SdFile &dir, char *folder, FILE *pFile)
         entry.close();
    }
    return;
+#endif //HW_ENABLE_SD
 }
 
 // "/logs*" URL handler.
@@ -662,6 +685,9 @@ void emitDirectoryListing(SdFile &dir, char *folder, FILE *pFile)
 
 void Logging::LogsHandler(char *sPage, FILE *pFile, EthernetClient client)
 {
+#ifndef HW_ENABLE_SD
+	  return;
+#else 
 //   let's check what is it - log listing or a specific log file request
 
    if( sPage[4] == 0 || sPage[4] == ' ' || (sPage[4] == '/' && sPage[5] == 0)){    // this is log listing - the string is either /logs or /logs/
@@ -738,11 +764,15 @@ void Logging::LogsHandler(char *sPage, FILE *pFile, EthernetClient client)
 			logfile.close();
 	   }
    }
+#endif //HW_ENABLE_SD
 }
 
 // emit sensor log as JSON
 bool Logging::EmitSensorLog(FILE* stream_file, time_t start, time_t end, char sensor_type, int sensor_id, char summary_type)
 {
+#ifndef HW_ENABLE_SD
+	  return false;
+#else 
         char tmp_buf[MAX_LOG_RECORD_SIZE];
         char *sensor_name;
 
@@ -948,6 +978,7 @@ bool Logging::EmitSensorLog(FILE* stream_file, time_t start, time_t end, char se
         }
 
     return true; 
+#endif //HW_ENABLE_SD
 }
 
 
