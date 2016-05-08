@@ -52,7 +52,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define PIN_LCD_RS         27    // LCD rs pin
 #endif //HW_V10_MASTER
 
-//Large-screen LCD on Master V1.5
+//Large-screen LCD on Master V1.5 and V1.6
 #if (SG_HARDWARE == HW_V15_MASTER) || (SG_HARDWARE == HW_V16_MASTER)
 #define PIN_LCD_D4         18    // LCD d4 pin
 #define PIN_LCD_D5         14    // LCD d5 pin
@@ -126,6 +126,27 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 // DHT sensor sub-type
 #define DHTTYPE							DHT21   // DHT 21 (AM2301)
 #endif
+
+#if SG_HARDWARE == HW_V16_MASTER
+
+#define SENSOR_ENABLE_DHT				1
+#define DHTPIN							A4
+#define DHTTYPE							DHT21   // DHT 21 (AM2301)
+#define SENSOR_CHANNEL_DHT_TEMPERATURE	0		// logical channel this sensor is mapped to
+#define SENSOR_CHANNEL_DHT_HUMIDITY		1		// logical channel this sensor is mapped to
+
+#define SENSOR_DEFAULT_LCD_TEMPERATURE	0		// if defined, this will be the sensor channel shown as Temperature reading on the local LCD
+#define SENSOR_DEFAULT_LCD_HUMIDITY		1		// if defined, this will be the sensor channel shown as Humidity reading on the local LCD
+
+// locally connected Temperature-Thermistor sensor via Analog port
+#define SENSOR_ENABLE_THERMISTOR				1	// enable Thermistor sensor port
+
+#define SENSOR_CHANNEL_THERMISTOR_1_PIN			A5	// Thermistor sensor connected to A6
+#define SENSOR_CHANNEL_THERMISTOR_1_TYPE		SENSOR_TYPE_TEMPERATURE	// standard sensor type - Temperature
+#define SENSOR_CHANNEL_THERMISTOR_1_CHANNEL		2	// logical channel this sensor is mapped to
+
+#endif //SG_HARDWARE == HW_V16_REMOTE
+
 
 
 // locally connected BMP180 (air pressure & temp) sensor

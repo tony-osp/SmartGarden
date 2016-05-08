@@ -342,8 +342,8 @@ static void JSONState(const KVPairs & key_value_pairs, FILE * stream_file)
 	ServeHeader(stream_file, 200, PSTR("OK"), false, PSTR("text/plain"));
 
 	fprintf_P(stream_file,
-			PSTR("{\n\t\"version\" : \"%s\",\n\t\"run\" : \"%s\",\n\t\"zones\" : \"%d\",\n\t\"schedules\" : \"%d\",\n\t\"stations\" : \"%d\",\n\t\"timenow\" : \"%lu\",\n\t\"locationZip\" : \"%lu\","),
-			VERSION, GetRunSchedules() ? "on" : "off", GetNumEnabledZones(), int(GetNumSchedules()), int(GetNumStations()), now(), GetZip());
+			PSTR("{\n\t\"version\" : \"%u\",\n\t\"run\" : \"%s\",\n\t\"zones\" : \"%d\",\n\t\"schedules\" : \"%d\",\n\t\"stations\" : \"%d\",\n\t\"timenow\" : \"%lu\",\n\t\"locationZip\" : \"%lu\","),
+			uint16_t(SG_FIRMWARE_VERSION), GetRunSchedules() ? "on" : "off", GetNumEnabledZones(), int(GetNumSchedules()), int(GetNumStations()), now(), GetZip());
 	
 	if( runState.isPaused() )
 	{
