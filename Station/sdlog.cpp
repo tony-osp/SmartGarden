@@ -15,9 +15,12 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #define __STDC_FORMAT_MACROS
 #include "sdlog.h"
-#include "port.h"
 #include "settings.h"
 #include "RProtocolMS.h"
+
+//#define TRACE_LEVEL			7		// trace everything for this module
+#include "port.h"
+
 
 extern SdFat sd;
 
@@ -484,11 +487,13 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 
                 sprintf_P(tmp_buf, PSTR(WATERING_LOG_FNAME_FORMAT), nmonth, (int)(nyear%100) );
 
-                if( lfile.open(tmp_buf, O_READ) ){  // logs for each zone are stored in a separate file, with the file name based on the year and zone number. Try to open it.
+                if( lfile.open(tmp_buf, O_READ) ){  
 
                      char bFirstRow = true;
-                    
+   					TRACE_VERBOSE(F("TableZone - reading file %s\n"), tmp_buf);
+
                      lfile.fgets(tmp_buf, MAX_LOG_RECORD_SIZE-1);  // skip first line in the file - column headers
+
 
 // OK, we opened required watering log file. Iterate over records, filtering out necessary dates range
                   
@@ -501,21 +506,25 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
                             int bytes = lfile.fgets(tmp_buf, MAX_LOG_RECORD_SIZE-1);
                             if (bytes <= 0)
                                        break;
+   							TRACE_VERBOSE(F("TableZone - got string %s\n"), tmp_buf);
 
 // Parse the string into fields. 
 
 							sscanf_P( tmp_buf, PSTR("%u,%u,%u:%u,%u,%u,%i,%i,%i"),
                                                             &nzone, &nday, &nhour, &nminute, &nduration, &nwater_used, &nschedule, &nsadj, &nwunderground);
 
-                            if( (nmonth == nmend) && (nday > ndayend) )    // check for the end date
-                                         break;
+                            if( (nmonth == nmend) && (nday > ndayend) ){    // check for the end date
+			   					
+								TRACE_VERBOSE(F("TableZone - date is beyond requested range, stop processing file\n"));
+								break;
+							}
 
-                            if( nday >= day(start) ){        // the record is within required range.
+							{
+								tmElements_t tm;   tm.Day = nday;  tm.Month = nmonth; tm.Year = nyear - 1970;  tm.Hour = nhour;  tm.Minute = nminute;  tm.Second = 0;
+								evt_time = makeTime(tm);
+							}
+                            if( evt_time >= start ){        // the record is within required range.
 // we have something to output.
-									{
-										tmElements_t tm;   tm.Day = nday;  tm.Month = nmonth; tm.Year = nyear - 1970;  tm.Hour = nhour;  tm.Minute = nminute;  tm.Second = 0;
-										evt_time = makeTime(tm);
-									}
 
                                     if( (nschedule != xsched) || (evt_time > prev_evtEnd) ){
                                       
@@ -541,12 +550,16 @@ bool Logging::TableZone(FILE* stream_file, time_t start, time_t end)
 
                                      bFirstRow = false;
                             }
+							else
+							{
+   								TRACE_VERBOSE(F("TableZone - record date %u:%u before start date of %u:%u, skipping\n"), nmonth, nday, int(month(start)), int(day(start)));
+							}
                      }   // while
                      lfile.close();
                 }
 				else
 				{
-//					TRACE_ERROR(F("TableZone - cannot open log file %s\n"), tmp_buf);
+					TRACE_ERROR(F("TableZone - cannot open log file %s\n"), tmp_buf);
 				}
         }   // for( int nmonth = nmstart; nmonth <= nmend; nmonth++ )
 
