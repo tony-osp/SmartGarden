@@ -20,10 +20,6 @@ Copyright 2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "sdlog.h"
 extern Logging sdlog;
 
-#ifndef VERSION
-#define VERSION "SG 1.5"
-#endif
-
 // Zone state cache.
 // We are using upper nibble for status, and lower nibble as a timer for transitional states
 

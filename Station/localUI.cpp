@@ -513,8 +513,10 @@ byte OSLocalUI::modeHandler_Status(byte forceRefresh)
           if( osUI_Page == 0 ){
 
              lcd_print_pgm(PSTR("Status: Version "));
-//			 LCD_SETCURSOR(lcd, 0, 1);
-			 lcd_print_line_clear_pgm(PSTR(VERSION),1);
+			 LCD_SETCURSOR(lcd, 0, 1);
+			 lcd_print_pgm(PSTR("SG v"));
+			 lcd_print_2digit(SG_FIRMWARE_VERSION);
+			 lcd_print_pgm(PSTR("          "));
           }
           else if( osUI_Page == 1 ){
              uint32_t ip = Ethernet.localIP();
