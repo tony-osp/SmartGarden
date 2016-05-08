@@ -12,6 +12,7 @@ Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
 #include "settings.h"
 #include "Weather.h"
 #include "web.h"
+//#define TRACE_LEVEL			7		// trace everything for this module
 #include "port.h"
 #include "LocalBoard.h"
 #include <stdlib.h>
@@ -26,6 +27,7 @@ static tftp tftpServer;
 #include <wiringPi.h>
 #include <unistd.h>
 #endif
+
 
 
 // Core modules
@@ -733,9 +735,6 @@ void mainLoop()
                 firstLoop = false;
                 freeMemory();
 
-                if (IsFirstBoot())
-                        ResetEEPROM();
-
 				lBoardParallel.begin();			// start local Parallel board (IO) handler
 				lBoardSerial.begin();			// start local Serial board (IO) handler
 
@@ -811,6 +810,11 @@ void mainLoop()
 				sensorsModule.loop();  // read and process sensors. Note: sensors module has its own scheduler.
              	zoneHandlerLoop();
 			}
+			else if( (tick_counter%10) == 7 )	// one-second block4
+			{
+				lBoardSerial.loop();			// refresh state of the serial (OS-style) outputs
+			}
+
 	   }
 
         

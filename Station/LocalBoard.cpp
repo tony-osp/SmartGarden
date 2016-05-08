@@ -247,6 +247,40 @@ bool LocalBoardSerial::AllChannelsOff(void)
 }
 
 
+// refresh channel pins without changing their state (just output current state)
+bool LocalBoardSerial::loop(void)
+{
+		if( lBoard_ready != true )		// to ensure local board is ready
+			return false;
+
+		SrIOMapStruct	SrIoMap; 
+		LoadSrIOMap(&SrIoMap);			// load serial (OpenSprinkler-style) IO map from EEPROM
+
+		// turn off the latch pin
+        digitalWrite(SrIoMap.SrLatPin, 0);
+        digitalWrite(SrIoMap.SrClkPin, 0);
+
+		uint8_t numOSChannels = GetNumOSChannels();
+
+        for( uint8_t iboard = 0; iboard < (numOSChannels/8); iboard++ )
+		{
+			for( uint8_t i = 0; i < 8; i++ )
+			{
+				digitalWrite(SrIoMap.SrClkPin, 0);
+				digitalWrite(SrIoMap.SrDatPin, outState[iboard]&(0x01<<(7-i)));
+				digitalWrite(SrIoMap.SrClkPin, 1);
+			}
+        }
+        // latch the outputs
+        digitalWrite(SrIoMap.SrLatPin, 1);
+
+        // Turn off the NOT enable pin (turns on outputs)
+        digitalWrite(SrIoMap.SrNoePin, 0);
+
+		return true;
+}
+
+
 void LocalBoardSerial::io_setup()
 {
 		SrIOMapStruct	SrIoMap; 

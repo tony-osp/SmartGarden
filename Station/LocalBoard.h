@@ -42,6 +42,7 @@ public:
 		bool ChannelOn( uint8_t chan );
 		bool ChannelOff( uint8_t chan );
 		bool AllChannelsOff(void);
+		bool loop(void);
 
 private:
         bool	lBoard_ready;
