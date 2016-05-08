@@ -21,6 +21,13 @@ Portions came from sprinklers_pi 2013 Richard Zimmerman (schedule settings handl
 
 
 
+#ifdef SG_WDT_ENABLED
+#include <avr/wdt.h>
+#include "SgWdt.h"
+#endif // SG_WDT_ENABLED
+
+
+
 extern LocalBoardParallel	lBoardParallel;		// local hardware handler
 extern LocalBoardSerial		lBoardSerial;		// local hardware handler
 extern OSLocalUI localUI;
@@ -816,6 +823,10 @@ bool SetSettings(const KVPairs & key_value_pairs)
 //
 void ResetEEPROM()
 {
+#ifdef SG_WDT_ENABLED
+	wdt_disable();
+#endif // SG_WDT_ENABLED
+
 	bool  retcode = true;
 
 	const size_t bufferLen = 128;
@@ -1889,7 +1900,7 @@ bool IsFirstBoot()
 
         if ((SCHEDULE_INDEX < sizeof(Schedule)) || (ZONE_INDEX < sizeof(FullZone)))
         {
-                trace (F("Size mismatch."));
+                TRACE_CRIT(F("Schedule or Zone index size mismatch."));
                 exit(1);
         }
 
