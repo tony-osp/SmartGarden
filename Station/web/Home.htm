@@ -294,15 +294,17 @@ i<!DOCTYPE html>
                     var sens_html = "";
 
                     if (temps_html != "") {
-                        sens_html += '<tr>\n <td style="text-align:center; padding-top:1em">\n <img src="Therm.jpg" width="30"/>\n</td>';
-                        sens_html += '<td><span>'+temps_html+'</span>\n</td>\n</tr>'
+                        sens_html += '<tr>\n <td style="text-align:center; padding-top:0.5em">\n <img src="Therm.jpg" width="30"/>\n</td>';
+                        sens_html += '<td><span>' + temps_html + '</span>\n</td>\n</tr>'
+                        if(humids_html != "") sens_html += '<tr><td>&nbsp</td></tr>';
                     }
                     if (humids_html != "") {
-                        sens_html += '<tr>\n <td style="text-align:center; padding-top:1em">\n <img src="WDrop.jpg" width="30"/>\n</td>';
+                        sens_html += '<tr>\n <td style="text-align:center; padding-top:0.5em">\n <img src="WDrop.jpg" width="30"/>\n</td>';
                         sens_html += '<td><span>' + humids_html + '</span>\n</td>\n</tr>'
+                        if(pressures_html != "") sens_html += '<tr><td>&nbsp</td></tr>';
                     }
                     if (pressures_html != "") {
-                        sens_html += '<tr>\n <td style="text-align:center; padding-top:1em">\n <img src="Gauge.jpg" width="30"/>\n</td>';
+                        sens_html += '<tr>\n <td style="text-align:center; padding-top:0.5em">\n <img src="Gauge.jpg" width="30"/>\n</td>';
                         sens_html += '<td><span>' + humids_html + '</span>\n</td>\n</tr>'
                     }
 
