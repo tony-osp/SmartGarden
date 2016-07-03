@@ -356,8 +356,11 @@ static void JSONState(const KVPairs & key_value_pairs, FILE * stream_file)
 	
 	if( runState.isSchedule() )
 	{
+		int8_t c_zone = runState.getZone();
+
 		FullZone zone;
-		LoadZone(runState.getZone() - 1, &zone);
+		if( c_zone == -2 )  strcpy_P(zone.name, PSTR("Delay"));
+		else				LoadZone(runState.getZone() - 1, &zone);
         Schedule sched;
 		LoadSchedule(runState.getSchedule(), &sched);
 

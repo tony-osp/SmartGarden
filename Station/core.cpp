@@ -40,9 +40,6 @@ runStateClass runState;
 LocalBoardParallel	lBoardParallel;		// local hardware handler for Parallel-connected stations
 LocalBoardSerial	lBoardSerial;		// local hardware handler for Serially-connected stations
 
-// maximum ulong value
-#define MAX_ULONG       4294967295
-
 static uint8_t	zoneStateCache[MAX_ZONES] = {0};
 
 // Zone handler loop, it is called once a second
@@ -382,6 +379,7 @@ void runStateClass::TurnOffZonesWorker()
 			if( zoneStateCache[i] != ZONE_STATE_OFF )
 				TurnOffZone(i+1);
 		}
+		m_iZone = -1;
 		if( m_iSchedule != -1 )
 			m_iSchedule = -1;
 }
@@ -436,7 +434,7 @@ runStateClass::runStateClass() : m_iSchedule(-1), m_iZone(-1), m_wuScale(100), m
 
 void runStateClass::LogEvent()
 {
-	if( m_iZone!=-1 )
+	if( m_iZone >= 0 )
 	{
 		int duration = int((millis()-m_startZoneMillis)/60000ul);
 		uint16_t water_used;
@@ -463,7 +461,7 @@ void runStateClass::StopSchedule(void)
 {
         if( m_iSchedule != -1 )		// a schedule is already running, stop it
 		{
-			if( m_iZone != -1 )
+			if( m_iZone >= 0 )
 				TurnOffZone(m_iZone+1);
 			
 			m_iZone = -1; // no zone is running
@@ -585,7 +583,48 @@ void runStateClass::ProcessScheduledEvents(void)
 
 	if( m_iSchedule != -1 )		// a schedule is currently running
 	{
-		if( m_iZone != -1 )		// a zone is currently running
+		if( m_iZone == -2 )		// delay between zones is currently in progress
+		{
+			register uint32_t  rt = millis()-m_startZoneMillis;
+			if( rt < SG_DELAY_BETWEEN_ZONES )
+				return;			// currently executing delay still has time
+
+			// OK, delay time finished, start next zone in the same schedule. m_iNextZone should have zone ID to start
+			
+			if( m_iNextZone < 0 )  // state corruption check
+			{
+				SYSEVT_ERROR(F("ProcessEvents - state corruption, end of delay with m_iNextZone not set\n"));
+				StopSchedule();
+				return;
+			}
+
+			Schedule	sched;
+			if( m_iSchedule == 100 )	// quick schedule
+			{
+				memcpy(&sched, &quickSchedule, sizeof(quickSchedule));
+			}
+			else
+			{
+				LoadSchedule(m_iSchedule, &sched);
+				if( !sched.IsEnabled() )		// basic protection, if schedule is not enabled - exit.
+				{
+					TRACE_CRIT(F("ProcessScheduledEvents - current schedule %d is not enabled, exiting\n"));
+					m_iZone = -1;
+					StopSchedule();
+					return;
+				}
+			}
+			m_iZone = m_iNextZone; m_iNextZone = -1;
+			m_startZoneMillis = millis();
+			if (sched.IsWAdj())
+				m_zoneMins = sAdj(sched.zone_duration[m_iZone]);
+			else
+				m_zoneMins = sched.zone_duration[m_iZone];
+
+			TurnOnZone(m_iZone+1, m_zoneMins);
+			return;	// done
+		} // inter-zone delay
+		else if( m_iZone >= 0 )		// a zone is currently running
 		{
 			register uint32_t  rt = (millis()-m_startZoneMillis)/60000ul;
 			if( rt < m_zoneMins )
@@ -617,14 +656,12 @@ void runStateClass::ProcessScheduledEvents(void)
 			{
 				if( sched.zone_duration[i] != 0 )  // OK, we found first zone in this schedule to start
 				{
-					m_iZone = i;
-					m_startZoneMillis = millis();
-					if (sched.IsWAdj())
-						m_zoneMins = sAdj(sched.zone_duration[i]);
-					else
-						m_zoneMins = sched.zone_duration[i];
+					// add delay between zones in a schedule
 
-					TurnOnZone(i+1, m_zoneMins);
+					m_iNextZone = i;	//next zone to run after delay
+					m_iZone = -2;		// flag indicating we are in delay mode
+					m_startZoneMillis = millis();
+
 					return;	// done
 				}
 			}
@@ -783,7 +820,7 @@ void mainLoop()
 			if( (tick_counter%10) == 0 )	// one-second block1
 			{
 				 // Check to see if we need to set the clock and do so if necessary.
-#ifdef HW_ENABLE_ETHERNET
+#if defined(HW_ENABLE_ETHERNET) && defined(ARDUINO)
 				nntpTimeServer.checkTime();
 #endif //HW_ENABLE_ETHERNET
 
@@ -805,18 +842,19 @@ void mainLoop()
 					rprotocol.SendTimeBroadcast();				// broadcast time on RF network
 #endif //SG_STATION_MASTER
 			}
-			else if( (tick_counter%10) == 6 )	// one-second block3
+			else if( (tick_counter%10) == 4 )	// one-second block3
 			{
 				sensorsModule.loop();  // read and process sensors. Note: sensors module has its own scheduler.
+			}
+			else if( (tick_counter%10) == 5 )	// one-second block4
+			{
              	zoneHandlerLoop();
 			}
-			else if( (tick_counter%10) == 7 )	// one-second block4
+			else if( (tick_counter%10) == 7 )	// one-second block5
 			{
 				lBoardSerial.loop();			// refresh state of the serial (OS-style) outputs
 			}
-
 	   }
-
         
 #ifdef HW_ENABLE_ETHERNET
         //  See if any web clients have connected
@@ -826,15 +864,10 @@ void mainLoop()
         // Process any pending events.
         runState.ProcessScheduledEvents();
 
-#ifdef ARDUINO
-#ifdef HW_ENABLE_ETHERNET
+#if defined(ARDUINO) && defined(HW_ENABLE_ETHERNET)
         // Process the TFTP Server
         tftpServer.Poll();
 #endif //HW_ENABLE_ETHERNET
-#else
-        // if we've changed the settings, store them to disk
-        EEPROM.Store();
-#endif
 
 }
 

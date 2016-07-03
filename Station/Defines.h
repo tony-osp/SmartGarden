@@ -23,7 +23,7 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #define ENABLE_TRACE	1		// enable trace output (via Serial port)
 #define TRACE_LEVEL		2		// critical and alert messages only
-//#define TRACE_LEVEL			6		// all info
+//#define TRACE_LEVEL			7		// all info
 #define TRACE_FREERAM_LIMIT	2000	// when free RAM goes below this limit freeMem() calls will start producing critical notifications
 
 // System events level threshold. System events are written to the system log, also they are copied to the trace output.
@@ -46,11 +46,14 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 //#define SG_HARDWARE				HW_V15_REMOTE
 //#define SG_HARDWARE				HW_V15_MASTER
 //#define SG_HARDWARE				HW_V10_MASTER
-#define SG_HARDWARE				HW_V16_MASTER
-//#define SG_HARDWARE				HW_V16_REMOTE
+//#define SG_HARDWARE				HW_V16_MASTER
+#define SG_HARDWARE				HW_V16_REMOTE
 //#define SG_HARDWARE				HW_V17_REMOTE
 
-//
+//// delay between zones run in a schedule, in milliseconds
+#define SG_DELAY_BETWEEN_ZONES		5000ul
+
+
 // This section defined macro-level HW config for different versions.
 // Please note that part of the HW config (e.g. specific pin assignments etc) is defined in HardwiredConfig.h file.
 

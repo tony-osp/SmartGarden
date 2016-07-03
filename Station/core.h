@@ -44,6 +44,9 @@ int ActiveZoneNum(void);
 bool GetNextEvent(uint8_t *pSchedID, uint8_t *pZoneID, short *pTime);
 
 
+// Core runState class. This class is handling schedules, starting/stopping zones etc.
+//
+
 class runStateClass
 {
 public:
@@ -54,11 +57,13 @@ public:
 
 	int8_t getZone()
 	{
-		return m_iZone+1;
+		if( m_iZone == -2 ) return -2;
+		else				return m_iZone+1;
 	}
 	short getRemainingTime()
 	{
-		return max(m_zoneMins*60 - int((millis()-m_startZoneMillis)/1000ul), 0);
+		if( m_iZone == -2 ) return max(int(SG_DELAY_BETWEEN_ZONES/1000ul) - int((millis()-m_startZoneMillis)/1000ul), 0);
+		else				return max(m_zoneMins*60 - int((millis()-m_startZoneMillis)/1000ul), 0);
 	}
 	int8_t getSchedule()
 	{
@@ -107,9 +112,14 @@ private:
 	void		LogEvent();
 	uint8_t		sAdj(uint8_t val);
 
-	int8_t		m_iSchedule;
-	int8_t		m_iZone;
-	uint32_t	m_startZoneMillis;	// millis() reading when zone started
+	int8_t		m_iSchedule;		// Currently running schedule ID, or -1 if no schedules are running
+	int8_t		m_iZone;			// Currently running zone ID, or -1 if no zones are active
+									// Note: Another special state value is -2, this state means (few seconds) delay between zones in a schedule currently in progress
+									//		 When m_iZone==-2, m_iNextZone will have the ID of the next zone that will be started after the pause
+
+	int8_t		m_iNextZone;		// When m_iZone==-2 (short delay between zones in a schedule), m_iNextZone will have the ID of the next zone to run
+
+	uint32_t	m_startZoneMillis;	// millis() reading when zone started, or when delay between zones in a schedule started
 	uint8_t		m_zoneMins;			// number of minutes to run
 	uint32_t	m_startSchedMillis;
 
