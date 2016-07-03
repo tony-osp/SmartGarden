@@ -52,7 +52,11 @@ void MoteinoRFClass::begin()
 	}
 
 	//bool initFlag = moteinoRF.initialize(MOTEINORF_FREQUENCY,GetMoteinoRFAddr(),GetMoteinoRFPANID());
+#if SG_HARDWARE == HW_V16_REMOTE
+	bool initFlag = moteinoRF.initialize(MOTEINORF_FREQUENCY,GetMoteinoRFAddr(),NETWORK_MOTEINORF_DEFAULT_PANID, true); // use the lib in interrupt mode
+#else
 	bool initFlag = moteinoRF.initialize(MOTEINORF_FREQUENCY,GetMoteinoRFAddr(),NETWORK_MOTEINORF_DEFAULT_PANID, false); // use the lib in non-interrupt mode
+#endif
 
 	TRACE_VERBOSE(F("MoteinoRF init returned %d\n"), int16_t(initFlag));
 	if( initFlag == false )
