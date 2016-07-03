@@ -121,7 +121,7 @@ bool MoteinoRFSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 		TRACE_VERBOSE(F("MoteinoRF - sending packet to station %u, SN:%u, len %u\n"), uint16_t(nStation), uint16_t(buf[0]), uint16_t(mSize));
 		memcpy(buf+1, msg, mSize);	// because sequence number is added as the first byte in the transmission, need to allocate new buffer and copy data to it (TODO: fill fix it later)
 
-		bool retFlag = moteinoRF.sendWithRetry(nStation, buf, mSize+1, 3, 200); // 3 retries, 200ms wait time
+		bool retFlag = moteinoRF.sendWithRetry(nStation, buf, mSize+1, 5, 200); // 5 retries, 200ms wait time
 		if(retFlag)
 		{
 			// packet successfully sent and acknowledged, increase sequence counter for this destination
@@ -130,7 +130,7 @@ bool MoteinoRFSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 		}
 		else
 		{
-			TRACE_INFO(F("MoteinoRF - sendWithRetry returned %d\n"), int16_t(retFlag));
+			SYSEVT_ERROR(F("MoteinoRF - sendWithRetry returned %d\n"), int16_t(retFlag));
 		}
 	}
 
