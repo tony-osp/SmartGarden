@@ -350,7 +350,7 @@ void Sensors::poll_MinTimer(void)
 				val = val + SENSOR_CHANNEL_ANALOG_1_MINVAL;
 
 				TRACE_VERBOSE(F("Analog sensor#1 converted: %d\n"), int(val));
-				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_1_CHANNEL, int(val) );	
+				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_1_CHANNEL, val );	
 #endif //SENSOR_CHANNEL_ANALOG_1_PIN
 
 #ifdef SENSOR_CHANNEL_ANALOG_2_PIN				
@@ -364,7 +364,7 @@ void Sensors::poll_MinTimer(void)
 				val = (val-SENSOR_CHANNEL_ANALOG_2_MINV)*16;
 				val = val/(((SENSOR_CHANNEL_ANALOG_2_MAXV-SENSOR_CHANNEL_ANALOG_2_MINV)*16)/(SENSOR_CHANNEL_ANALOG_2_MAXVAL-SENSOR_CHANNEL_ANALOG_2_MINVAL));
 				val = val + SENSOR_CHANNEL_ANALOG_2_MINVAL;
-				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_2_CHANNEL, int(val) );
+				ReportSensorReading( GetMyStationID(), SENSOR_CHANNEL_ANALOG_2_CHANNEL, val );
 #endif //SENSOR_CHANNEL_ANALOG_2_PIN
 
 			}

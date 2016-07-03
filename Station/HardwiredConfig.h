@@ -165,7 +165,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SENSOR_CHANNEL_ANALOG_1_TYPE		SENSOR_TYPE_HUMIDITY	// humidity sensor
 #define SENSOR_CHANNEL_ANALOG_1_CHANNEL		0	// logical channel this sensor is mapped to
 
-#define SENSOR_CHANNEL_ANALOG_1_MINV		0	// minimum analog input value for this port
+#define SENSOR_CHANNEL_ANALOG_1_MINV		300	// minimum analog input value for this port
 #define SENSOR_CHANNEL_ANALOG_1_MAXV		970	// maximum analog input value for this port
 #define SENSOR_CHANNEL_ANALOG_1_MINVAL		0	// minimum sensor output value for this port
 #define SENSOR_CHANNEL_ANALOG_1_MAXVAL		100	// maximum sensor output value for this port
@@ -174,7 +174,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define SENSOR_CHANNEL_ANALOG_2_TYPE		SENSOR_TYPE_HUMIDITY	// humidity sensor
 #define SENSOR_CHANNEL_ANALOG_2_CHANNEL		1	// logical channel this sensor is mapped to
 
-#define SENSOR_CHANNEL_ANALOG_2_MINV		0	// minimum analog input value for this port
+#define SENSOR_CHANNEL_ANALOG_2_MINV		300	// minimum analog input value for this port
 #define SENSOR_CHANNEL_ANALOG_2_MAXV		970	// maximum analog input value for this port
 #define SENSOR_CHANNEL_ANALOG_2_MINVAL		0	// minimum sensor output value for this port
 #define SENSOR_CHANNEL_ANALOG_2_MAXVAL		100	// maximum sensor output value for this port
