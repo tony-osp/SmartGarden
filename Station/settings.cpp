@@ -1499,7 +1499,7 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 
 				fullSens.sensorType = SENSOR_TYPE_TEMPERATURE;
 				fullSens.sensorChannel = SENSOR_CHANNEL_DHT_TEMPERATURE;
-				fullSens.sensorStationID = DEFAULT_STATION_ID;
+				fullSens.sensorStationID = defStationID;
 				fullSens.flags = 0;	
 				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), uint16_t(defStationID), SENSOR_CHANNEL_DHT_TEMPERATURE);	
 
