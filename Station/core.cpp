@@ -285,7 +285,12 @@ void runStateClass::TurnOffZone(uint8_t nZone)
 //
 bool runStateClass::RemoteStartZone(int iSchedule, uint8_t stationID, uint8_t channel, uint8_t time2run )
 {
-	return StartZoneWorker( iSchedule, stationID, channel, time2run );
+// When starting zone remotely, we expect the initator (Master) to turn Off the zone,
+// and the time2run specified in the request is used as a backstop, to ensure zone will not stay On if there is an interruption in comms,
+// or if Master died etc
+//
+// To support this, we increase time2run just a bit (by 1 minute) and use this increased time as a backstop.
+	return StartZoneWorker( iSchedule, stationID, channel, time2run+1 );
 }
 
 //
