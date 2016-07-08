@@ -1388,20 +1388,20 @@ bool RProtocolMaster::PollStationSensors(uint8_t stationID)
 
 		if( stationID >= MAX_STATIONS )
 		{
-			SYSEVT_ERROR(F("XBee PollStationSensors - stationID outside of range"));
+			SYSEVT_ERROR(F("RProtocol PollStationSensors - stationID outside of range"));
 			return false;
 		}
 
 		LoadShortStation(stationID, &sStation);
 		if( !(sStation.stationFlags & STATION_FLAGS_VALID) || !(sStation.stationFlags & STATION_FLAGS_ENABLED) )
 		{
-			SYSEVT_ERROR(F("XBee PollStationSensors - station %d is not enabled"), (int)stationID);
+			SYSEVT_ERROR(F("RProtocol PollStationSensors - station %d is not enabled"), (int)stationID);
 			return false;
 		}
 
 		if( (sStation.networkID != NETWORK_ID_XBEE) && (sStation.networkID != NETWORK_ID_MOTEINORF) )
 		{
-			SYSEVT_ERROR(F("XBee PollStationSensors - station %d is of a wrong type (not XBee or RFM69)"), (int)stationID);
+			SYSEVT_ERROR(F("RProtocol PollStationSensors - station %d is of a wrong type (not XBee or RFM69)"), (int)stationID);
 			return false;
 		}
 	}
