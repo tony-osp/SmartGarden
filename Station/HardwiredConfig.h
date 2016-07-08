@@ -238,4 +238,12 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #define NETWORK_MOTEINORF_DEFAULT_PANID	55
 
+#if SG_HARDWARE == HW_V16_REMOTE
+//#define NETWORK_MOTEINORF_USE_INTERRUPT 1
+#define NETWORK_MOTEINORF_RETRY_COUNT	5
+#else
+#define NETWORK_MOTEINORF_RETRY_COUNT	3
+#endif
+
+
 #endif // _HARDWIREDCONFIG_H
