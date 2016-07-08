@@ -52,10 +52,10 @@ void MoteinoRFClass::begin()
 	}
 
 	//bool initFlag = moteinoRF.initialize(MOTEINORF_FREQUENCY,GetMoteinoRFAddr(),GetMoteinoRFPANID());
-#if SG_HARDWARE == HW_V16_REMOTE
-	bool initFlag = moteinoRF.initialize(MOTEINORF_FREQUENCY,GetMoteinoRFAddr(),NETWORK_MOTEINORF_DEFAULT_PANID, true); // use the lib in interrupt mode
+#ifdef NETWORK_MOTEINORF_USE_INTERRUPT
+	bool initFlag = moteinoRF.initialize(MOTEINORF_FREQUENCY,GetMoteinoRFAddr(),GetMoteinoRFPANID(), true); // use the lib in interrupt mode
 #else
-	bool initFlag = moteinoRF.initialize(MOTEINORF_FREQUENCY,GetMoteinoRFAddr(),NETWORK_MOTEINORF_DEFAULT_PANID, false); // use the lib in non-interrupt mode
+	bool initFlag = moteinoRF.initialize(MOTEINORF_FREQUENCY,GetMoteinoRFAddr(),GetMoteinoRFPANID(), false); // use the lib in non-interrupt mode
 #endif
 
 	TRACE_VERBOSE(F("MoteinoRF init returned %d\n"), int16_t(initFlag));
@@ -121,16 +121,19 @@ bool MoteinoRFSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 		TRACE_VERBOSE(F("MoteinoRF - sending packet to station %u, SN:%u, len %u\n"), uint16_t(nStation), uint16_t(buf[0]), uint16_t(mSize));
 		memcpy(buf+1, msg, mSize);	// because sequence number is added as the first byte in the transmission, need to allocate new buffer and copy data to it (TODO: fill fix it later)
 
-		bool retFlag = moteinoRF.sendWithRetry(nStation, buf, mSize+1, 5, 200); // 5 retries, 200ms wait time
-		if(retFlag)
+		bool retFlag = moteinoRF.sendWithRetry(nStation, buf, mSize+1, NETWORK_MOTEINORF_RETRY_COUNT, 200); // num of retries, 200ms wait time
+		// increase sequence counter for this destination
+		if( MoteinoRF.uNextSNumber[nStation] == 254 )	MoteinoRF.uNextSNumber[nStation] = 0;
+		else											MoteinoRF.uNextSNumber[nStation]++;
+		if(!retFlag)
 		{
-			// packet successfully sent and acknowledged, increase sequence counter for this destination
-			if( MoteinoRF.uNextSNumber[nStation] == 254 )	MoteinoRF.uNextSNumber[nStation] = 0;
-			else											MoteinoRF.uNextSNumber[nStation]++;
-		}
-		else
-		{
-			SYSEVT_ERROR(F("MoteinoRF - sendWithRetry returned %d\n"), int16_t(retFlag));
+// for Master station we want to log transmission errors, while for Remote station should send errors to trace
+// This is required to avoid infine recursive loop on remote station, since attempt to log error will attempt to send error report which may also result in error
+#if (SG_HARDWARE == HW_V16_REMOTE) || (SG_HARDWARE == HW_V17_REMOTE)
+			TRACE_ERROR(F("MoteinoRF - sendWithRetry returned %d\n"), int16_t(retFlag));
+#else
+			SYSEVT_ERROR(F("MoteinoRF - sendWithRetry returned %d"), int16_t(retFlag));
+#endif
 		}
 	}
 
