@@ -27,7 +27,8 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 #define TRACE_FREERAM_LIMIT	2000	// when free RAM goes below this limit freeMem() calls will start producing critical notifications
 
 // System events level threshold. System events are written to the system log, also they are copied to the trace output.
-#define SYSEVT_LEVEL	2	// critical events only
+//#define SYSEVT_LEVEL	2	// critical events only
+#define SYSEVT_LEVEL	3	// errors and critical events only
 
 //#define SENSORS_FAST_POLL		1	// poll sensors at fast rate (60 times faster than normal) - useful for debugging
 
