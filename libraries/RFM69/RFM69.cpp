@@ -49,7 +49,7 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID, bool
   {
     /* 0x01 */ { REG_OPMODE, RF_OPMODE_SEQUENCER_ON | RF_OPMODE_LISTEN_OFF | RF_OPMODE_STANDBY },
     /* 0x02 */ { REG_DATAMODUL, RF_DATAMODUL_DATAMODE_PACKET | RF_DATAMODUL_MODULATIONTYPE_FSK | RF_DATAMODUL_MODULATIONSHAPING_00 }, // no shaping
-    /* 0x03 */ { REG_BITRATEMSB, RF_BITRATEMSB_55555}, // default: 4.8 KBPS
+    /* 0x03 */ { REG_BITRATEMSB, RF_BITRATEMSB_55555}, // chip default: 4.8 KBPS, initialize will set it to 55,555 kbps
     /* 0x04 */ { REG_BITRATELSB, RF_BITRATELSB_55555},
     /* 0x05 */ { REG_FDEVMSB, RF_FDEVMSB_50000}, // default: 5KHz, (FDEV + BitRate / 2 <= 500KHz)
     /* 0x06 */ { REG_FDEVLSB, RF_FDEVLSB_50000},
@@ -84,7 +84,12 @@ bool RFM69::initialize(uint8_t freqBand, uint8_t nodeID, uint8_t networkID, bool
     /* 0x3D */ { REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_2BITS | RF_PACKET2_AUTORXRESTART_ON | RF_PACKET2_AES_OFF }, // RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent)
     //for BR-19200: /* 0x3D */ { REG_PACKETCONFIG2, RF_PACKET2_RXRESTARTDELAY_NONE | RF_PACKET2_AUTORXRESTART_ON | RF_PACKET2_AES_OFF }, // RXRESTARTDELAY must match transmitter PA ramp-down time (bitrate dependent)
     /* 0x6F */ { REG_TESTDAGC, RF_DAGC_IMPROVED_LOWBETA0 }, // run DAGC continuously in RX mode for Fading Margin Improvement, recommended default for AfcLowBetaOn=0
-    {255, 0}
+    
+//***Tony-osp***
+// Experimental - increase RX sensitivity by enabling low-noise preamp
+//				{REG_TESTLNA, 0x2D},
+
+	{255, 0}
   };
 
   digitalWrite(_slaveSelectPin, HIGH);
@@ -223,8 +228,19 @@ bool RFM69::canSend()
 void RFM69::send(uint8_t toAddress, const void* buffer, uint8_t bufferSize, bool requestACK)
 {
   writeReg(REG_PACKETCONFIG2, (readReg(REG_PACKETCONFIG2) & 0xFB) | RF_PACKET2_RXRESTART); // avoid RX deadlocks
+  //*** Tony-osp ***
+  // Added receiveBegin call to clear up receiver state. For some reasons it was causing problems
+  receiveBegin();
+
   uint32_t now = millis();
-  while (!canSend() && millis() - now < RF69_CSMA_LIMIT_MS) receiveDone();
+  while (!canSend() && millis() - now < RF69_CSMA_LIMIT_MS){
+	  //Serial.println(F("send: canSend returned false, calling receiveDone"));
+	  receiveDone();
+  }
+  //uint32_t  waitt = millis() - now;
+  //Serial.print(F("send: about to call sendFrame, spent "));
+  //Serial.print(uint16_t(waitt));
+  //Serial.println(F(" msec in waiting"));
   sendFrame(toAddress, buffer, bufferSize, requestACK, false);
 }
 
@@ -244,19 +260,22 @@ bool RFM69::sendWithRetry(uint8_t toAddress, const void* buffer, uint8_t bufferS
     {
 		if (ACKReceived(toAddress))
 		{
-			//Serial.print(" ~ms:"); Serial.print(millis() - sentTime);
+			//Serial.print(F("sendWithRetry: got ACK, ~ms:")); Serial.println(millis() - sentTime);
 	        return true;
 		}
     }
-    //Serial.print(" RETRY#"); Serial.println(i + 1);
+    //Serial.print(F(" sendWithRetry: ")); Serial.print(uint16_t(millis() - sentTime)); Serial.print(F("ms wait, RETRY#")); Serial.println(i + 1);
   }
+  //Serial.println(F("sendWithRetry: failed to get ACK, exiting")); 
   return false;
 }
 
 // should be polled immediately after sending a packet with ACK request
 bool RFM69::ACKReceived(uint8_t fromNodeID) {
-  if (receiveDone())
+  if (receiveDone()){
+	  //Serial.println(F("ACKReceived: receiveDone==true, SENDERID==")); Serial.print(SENDERID); Serial.print(F(", PAYLOADLEN==")); Serial.print(PAYLOADLEN); Serial.print(F(", ACK_RECEIVED==")); Serial.println(ACK_RECEIVED);
     return (SENDERID == fromNodeID || fromNodeID == RF69_BROADCAST_ADDR) && ACK_RECEIVED;
+  }
   return false;
 }
 
@@ -310,15 +329,6 @@ void RFM69::sendFrame(uint8_t toAddress, const void* buffer, uint8_t bufferSize,
   while (digitalRead(_interruptPin) == 0 && millis() - txStart < RF69_TX_LIMIT_MS); // wait for DIO0 to turn HIGH signalling transmission finish
   //while (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PACKETSENT == 0x00); // wait for ModeReady
   setMode(RF69_MODE_STANDBY);
-}
-
-//***Tony-osp***
-// Polling method - should be called frequently if RFM69 is used in non-interrupt mode
-
-void RFM69::loop()
-{
-	if( digitalRead(_interruptPin) )
-		interruptHandler();
 }
 
 // internal function - interrupt gets called when a packet is received
@@ -386,9 +396,12 @@ void RFM69::receiveBegin() {
 // checks if a packet was received and/or puts transceiver in receive (ie RX or listen) mode
 bool RFM69::receiveDone() {
 
+//***Tony-osp***
+// Handle case when we are running in non-interrupt (polling) mode
 	if (!_fUseInterrupts)
 	{
-		loop();
+		if( digitalRead(_interruptPin) )
+			interruptHandler();
 	}
 
 //ATOMIC_BLOCK(ATOMIC_FORCEON)
@@ -509,7 +522,7 @@ void RFM69::setCS(uint8_t newSPISlaveSelect) {
 }
 
 //for debugging
-#define REGISTER_DETAIL 0
+//#define REGISTER_DETAIL 0
 #if REGISTER_DETAIL
 // SERIAL PRINT
 // replace Serial.print("string") with SerialPrint("string")
@@ -537,7 +550,7 @@ void RFM69::readAllRegs()
   long freqCenter = 0;
 #endif
   
-  Serial.println("Address - HEX - BIN");
+  Serial.println(F("Address - HEX - BIN"));
   for (uint8_t regAddr = 1; regAddr <= 0x4F; regAddr++)
   {
     select();
@@ -555,42 +568,42 @@ void RFM69::readAllRegs()
     switch ( regAddr ) 
     {
         case 0x1 : {
-            SerialPrint ( "Controls the automatic Sequencer ( see section 4.2 )\nSequencerOff : " );
+            SerialPrint ( PSTR("Controls the automatic Sequencer ( see section 4.2 )\nSequencerOff : ") );
             if ( 0x80 & regVal ) {
-                SerialPrint ( "1 -> Mode is forced by the user\n" );
+                SerialPrint ( PSTR("1 -> Mode is forced by the user\n") );
             } else {
-                SerialPrint ( "0 -> Operating mode as selected with Mode bits in RegOpMode is automatically reached with the Sequencer\n" );
+                SerialPrint ( PSTR("0 -> Operating mode as selected with Mode bits in RegOpMode is automatically reached with the Sequencer\n") );
             }
             
-            SerialPrint( "\nEnables Listen mode, should be enabled whilst in Standby mode:\nListenOn : " );
+            SerialPrint( PSTR("\nEnables Listen mode, should be enabled whilst in Standby mode:\nListenOn : ") );
             if ( 0x40 & regVal ) {
-                SerialPrint ( "1 -> On\n" );
+                SerialPrint ( PSTR("1 -> On\n") );
             } else {
-                SerialPrint ( "0 -> Off ( see section 4.3)\n" );
+                SerialPrint ( PSTR("0 -> Off ( see section 4.3)\n") );
             }
             
-            SerialPrint( "\nAborts Listen mode when set together with ListenOn=0 See section 4.3.4 for details (Always reads 0.)\n" );
+            SerialPrint( PSTR("\nAborts Listen mode when set together with ListenOn=0 See section 4.3.4 for details (Always reads 0.)\n") );
             if ( 0x20 & regVal ) {
-                SerialPrint ( "ERROR - ListenAbort should NEVER return 1 this is a write only register\n" );
+                SerialPrint ( PSTR("ERROR - ListenAbort should NEVER return 1 this is a write only register\n") );
             }
             
-            SerialPrint("\nTransceiver's operating modes:\nMode : ");
+            SerialPrint(PSTR("\nTransceiver's operating modes:\nMode : "));
             capVal = (regVal >> 2) & 0x7;
             if ( capVal == 0b000 ) {
-                SerialPrint ( "000 -> Sleep mode (SLEEP)\n" );
+                SerialPrint ( PSTR("000 -> Sleep mode (SLEEP)\n") );
             } else if ( capVal = 0b001 ) {
-                SerialPrint ( "001 -> Standby mode (STDBY)\n" );
+                SerialPrint ( PSTR("001 -> Standby mode (STDBY)\n") );
             } else if ( capVal = 0b010 ) {
-                SerialPrint ( "010 -> Frequency Synthesizer mode (FS)\n" );
+                SerialPrint ( PSTR("010 -> Frequency Synthesizer mode (FS)\n") );
             } else if ( capVal = 0b011 ) {
-                SerialPrint ( "011 -> Transmitter mode (TX)\n" );
+                SerialPrint ( PSTR("011 -> Transmitter mode (TX)\n") );
             } else if ( capVal = 0b100 ) {
-                SerialPrint ( "100 -> Receiver Mode (RX)\n" );
+                SerialPrint ( PSTR("100 -> Receiver Mode (RX)\n") );
             } else {
                 Serial.print( capVal, BIN );
-                SerialPrint ( " -> RESERVED\n" );
+                SerialPrint ( PSTR(" -> RESERVED\n") );
             }
-            SerialPrint ( "\n" );
+            SerialPrint ( PSTR("\n") );
             break;
         }
         

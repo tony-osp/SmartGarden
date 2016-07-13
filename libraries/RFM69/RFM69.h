@@ -125,8 +125,6 @@ class RFM69 {
     void writeReg(uint8_t addr, uint8_t val);
     void readAllRegs();
 
-	void loop(void);
-
   protected:
     static void isr0();
     void virtual interruptHandler();
