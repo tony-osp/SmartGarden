@@ -10,13 +10,9 @@ Humidity, Air Pressure, Waterflow etc. Sensors data is collected and stored on a
 can be visualized in the WEB UI and downloaded (to an Excel) for offline analysis.
 
 Currently the hardware is based on Arduino. Remote stations are running on Arduino Uno-level hardware,
-Master station is using Arduino Mega as the core. XBee is used as RF link. The code itself is portable,
-and I'm planning to move Master code to a more powerful controller later this year. In theory Master can run nicely on
-RPi, but even better option could be a cheap small tablet - such as HP Stream 7, which includes decent CPU/memory/etc
-as well as 7" LCD screen - the whole package is considerably cheaper than RPi + LCD + MicroSD etc.
+Master station is using Arduino MoteinoMega as the core. XBee is used as RF link. 
 
-The project is in development stage, 80% complete. The code works (including multi-station), but some parts
-of funcitonality is still not enabled or missing. I'm planning to finish it up to v1.0 level this spring.
+The project is complete, I'm using it since 2015 as my home garden irrigation and sensors monitoring system
 
 This project was inspired by OpenSprinklers design, and by the sprinklers_pi control program created by Richard Zimmerman.
 
