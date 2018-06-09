@@ -826,6 +826,11 @@ bool Logging::EmitSensorLog(FILE* stream_file, time_t start, time_t end, char se
                        sprintf_P(tmp_buf, PSTR(HUMIDITY_LOG_FNAME_FORMAT), nmonth, nyear%100, sensor_id );
                        sensor_name = PSTR("Humidity");
                 }
+                else if( sensor_type == SENSOR_TYPE_WATERFLOW )
+                {
+                       sprintf_P(tmp_buf, PSTR(WFLOW_LOG_FNAME_FORMAT), nmonth, nyear%100, sensor_id );
+                       sensor_name = PSTR("Waterflow");
+                }
                 else  
                 {
                      SYSEVT_ERROR(F("EmitSensorLog - requested sensor type not recognized\n"));

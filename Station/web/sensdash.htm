@@ -387,6 +387,19 @@
 
                         sensHtml += '</tr></table>\n';
                     }
+                    else if (data.sensors[i].sensorType == "Waterflow" ) {      // waterflow meter
+
+                        sensHtml += '<div style="text-align: center"><h3>' + data.sensors[i].sensorName + '</h3></div>\n';
+                        sensHtml += '<table>\n';
+                        sensHtml += '<tr><td style="vertical-align: text-bottom;">';
+                        sensHtml += '<br>SensorID: ' + data.sensors[i].sensorID;
+                        sensHtml += '<br>Station : ' + data.sensors[i].stationName;
+                        sensHtml += '<br>Sensor channel: ' + data.sensors[i].sensorChannel;
+                        sensHtml += '<br><b>' + data.sensors[i].sensorType + ' (gal): <span id="lv_sens' + i + '">' + Math.floor(data.sensors[i].lastReading*0.748) + '</span></b>';
+                        sensHtml += '<br>Updated <span id="ar_sens' + i + '">' + Math.round(data.sensors[i].readingAge / 60) + '</span> min. ago';
+                        sensHtml += '</td>';
+                        sensHtml += '</tr></table>\n';
+                    }
                     else {      // all other sensor types
 
                         sensHtml += '<div style="text-align: center"><h3>' + data.sensors[i].sensorName + '</h3></div>\n';

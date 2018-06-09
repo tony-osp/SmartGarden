@@ -19,6 +19,8 @@
 
       <script type="text/javascript">
 
+          var gblSensorType = -1;
+
     var options = {
         chart: {
             renderTo: 'container',
@@ -129,6 +131,7 @@ Start date: <input data-bind="value: startDate" /> &nbsp; &nbsp; End date: <inpu
 			if( gblSensorsList[selSensor].sensorType == 'Temperature' ) sensType = '1';
 			else if( gblSensorsList[selSensor].sensorType == 'Pressure') sensType = '2';
 			else if( gblSensorsList[selSensor].sensorType == 'Humidity') sensType = '3';
+			else if (gblSensorsList[selSensor].sensorType == 'Waterflow') sensType = '4';
 
 			var scaleCode = "d";
 			if( this.scaleSelect() == "Hourly" ) scaleCode = 'h';
@@ -141,10 +144,32 @@ Start date: <input data-bind="value: startDate" /> &nbsp; &nbsp; End date: <inpu
 							"&edate=" + (new Date(this.endDate()).getTime()/1000) + "&type=" + sensType + "&id=" + sensIndex.toFixed() + "&sum=" + scaleCode;
                
 			$('html,body,button').css('cursor', 'wait');
+			gblSensorType = sensType;   //hackhack - save sensor type in global
 			$.getJSON(
 				pageName,  // json endpoint with parameters we just generated
 				function(data) 	{
 				
+				    if (gblSensorType == 1) { //temperature sensor, set units text
+				        options.yAxis.title.text = "Temperature, F";
+				    }
+				    else if (gblSensorType == 2) { //pressure sensor, set units text
+				        options.yAxis.title.text = "Pressure, Pa";
+				    }
+				    else if (gblSensorType == 3) { //humidity sensor, set units text
+				        options.yAxis.title.text = "Humidity/Moisture, %";
+				    }
+				    else if (gblSensorType == 4) { //waterflow sensor, adjust scale and set units text
+				        var ti;
+				        for (ti = 0; ti < data.series[0].data.length; ti++) {
+				            data.series[0].data[ti][1] =
+                                Math.floor(data.series[0].data[ti][1] * 0.748);  //0.1 sq ft to gal conversion
+				        }
+				        options.yAxis.title.text = "Water used (total), gal";
+				    }
+				    else { //catch-all
+				        options.yAxis.title = "Reading";
+				    }
+
 				    $('html,body,button').css('cursor', 'auto');
 				    options.series[0].data = data.series[0].data;
 					options.series[0].name = data.series[0].name;
