@@ -35,7 +35,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #endif
 
 // use this definition for Moteino Mega - based Remote station with 4 parallel channels and 4 sensors
-#if SG_HARDWARE == HW_V17_REMOTE
+#if (SG_HARDWARE == HW_V17_REMOTE) || (SG_HARDWARE == HW_V16_REMOTE_2)
 #define LOCAL_NUM_DIRECT_CHANNELS	4		// use this definition for Remote station with 4 parallel OUT channels
 #define PARALLEL_PIN_OUT_MAP {12, 13, 14, 18 }
 #endif
@@ -87,7 +87,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 #define PIN_INVERTED_BUTTON3  1
 //#define PIN_INVERTED_BUTTON4  1
 
-#elif SG_HARDWARE == HW_V17_REMOTE
+#elif (SG_HARDWARE == HW_V17_REMOTE)
 
 #define PIN_BUTTON_1      19    // button 1
 #define PIN_BUTTON_2      21    // button 2
@@ -156,7 +156,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 // locally connected Humidity sensor via Analog port
 
-#if SG_HARDWARE == HW_V17_REMOTE	// V17_REMOTE hardware has 4 channels
+#if SG_HARDWARE == HW_V17_REMOTE	// V17_REMOTE sensors
 
 #define SENSOR_ENABLE_ANALOG				1	// enable Analog sensor port
 #define SENSOR_ANALOG_CHANNELS				2	// 2 Analog channels
@@ -190,20 +190,35 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #endif //HW_V17_REMOTE
 
+#if SG_HARDWARE == HW_V16_REMOTE_2	// the same as V16_REMOTE but with different sensors
+
+#define SENSOR_ENABLE_DHT				1
+#define DHTPIN							A4
+#define DHTTYPE							DHT21   // DHT 21 (AM2301)
+#define SENSOR_CHANNEL_DHT_TEMPERATURE	0		// logical channel this sensor is mapped to
+#define SENSOR_CHANNEL_DHT_HUMIDITY		1		// logical channel this sensor is mapped to
+
+#define SENSOR_DEFAULT_LCD_TEMPERATURE	0		// if defined, this will be the sensor channel shown as Temperature reading on the local LCD
+#define SENSOR_DEFAULT_LCD_HUMIDITY		1		// if defined, this will be the sensor channel shown as Humidity reading on the local LCD
+
 // locally connected "counter" - type sensor, typically this would be Waterflow meter
-//#define SENSOR_ENABLE_COUNTERMETER			1	// enable Counter/Meter sensor port
+#define SENSOR_ENABLE_COUNTERMETER			1	// enable Counter/Meter sensor port
 #define SENSOR_COUNTERMETER_CHANNELS		1	// one Counter/Meter channel
 #define SENSOR_COUNTERMETER_RING_DELAY		3	// 3 cycles (i.e. 30ms) delay before counter-meter change is registered
 
-#define SENSOR_CHANNEL_COUNTERMETER_1_PIN		A5	// Arduino pin for this sensor
+#define SENSOR_CHANNEL_COUNTERMETER_1_PIN		A7	// Arduino pin for this sensor
 #define SENSOR_CHANNEL_COUNTERMETER_1_ACTIVE	LOW	// active value for this CounterMeter is LOW or HIGH
 #define SENSOR_CHANNEL_COUNTERMETER_1_TYPE		SENSOR_TYPE_WATERFLOW	// waterflow meter/sensor
-#define SENSOR_CHANNEL_COUNTERMETER_1_CHANNEL	1	// logical channel this sensor is mapped to
+#define SENSOR_CHANNEL_COUNTERMETER_1_CHANNEL	2	// logical channel this sensor is mapped to
 
 // Normalized CounterMeter reading is calculated by multiplying actual tick delta reading by a constant1 (below) and then dividing by another constant, all in 32bit integer. 
 // This is equivalent to multiplying by floating point coefficient, but is a lot faster, while providing reasonable precision
 #define SENSOR_CHANNEL_COUNTERMETER_1_MULT		1	// multiplier for computing CounterMeter1 normalized reading
 #define SENSOR_CHANNEL_COUNTERMETER_1_DIV		1	// divider for computing CounterMeter1 normalized reading
+
+//#define SENSOR_DEFAULT_LCD_HUMIDITY		2	// show waterflow counter Sensor instead of humidity on LCD
+
+#endif //HW_V16_REMOTE_2
 
 
 
@@ -238,7 +253,7 @@ Copyright 2014-2015 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #define NETWORK_MOTEINORF_DEFAULT_PANID	55
 
-#if SG_HARDWARE == HW_V16_REMOTE
+#if (SG_HARDWARE == HW_V16_REMOTE) || (SG_HARDWARE == HW_V16_REMOTE_2)
 //#define NETWORK_MOTEINORF_USE_INTERRUPT 1
 #define NETWORK_MOTEINORF_RETRY_COUNT	5
 #else

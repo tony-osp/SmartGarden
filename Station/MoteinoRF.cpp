@@ -129,7 +129,7 @@ bool MoteinoRFSendPacket(uint8_t nStation, void *msg, uint8_t mSize)
 		{
 // for Master station we want to log transmission errors, while for Remote station should send errors to trace
 // This is required to avoid infine recursive loop on remote station, since attempt to log error will attempt to send error report which may also result in error
-#if (SG_HARDWARE == HW_V16_REMOTE) || (SG_HARDWARE == HW_V17_REMOTE)
+#if (SG_HARDWARE == HW_V16_REMOTE) || (SG_HARDWARE == HW_V17_REMOTE) || (SG_HARDWARE == HW_V16_REMOTE_2)
 			TRACE_ERROR(F("MoteinoRF - sendWithRetry returned %d\n"), int16_t(retFlag));
 #else
 			SYSEVT_ERROR(F("MoteinoRF - sendWithRetry returned %d"), int16_t(retFlag));

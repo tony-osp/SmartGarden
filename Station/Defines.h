@@ -41,15 +41,17 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 #define HW_V16_MASTER			4	// Master station, hardware version 1.6 (Moteino Mega-based, native Moteino RF module)
 #define HW_V16_REMOTE			5	// Remote station, hardware version 1.6 (Moteino Mega-based, native Moteino RF module)
 #define HW_V17_REMOTE			6	// Remote station, hardware version 1.7 (Moteino Mega-based, native Moteino RF module), different Button pins and 4 sensor connectors
+#define HW_V16_REMOTE_2			7	// Remote station, hardware version 1.6, different sensor definitions
 
 //To select specific hardware version uncomment the line below corresponding to required HW version.
 
 //#define SG_HARDWARE				HW_V15_REMOTE
 //#define SG_HARDWARE				HW_V15_MASTER
 //#define SG_HARDWARE				HW_V10_MASTER
-//#define SG_HARDWARE				HW_V16_MASTER
-#define SG_HARDWARE				HW_V16_REMOTE
+#define SG_HARDWARE				HW_V16_MASTER
+//#define SG_HARDWARE				HW_V16_REMOTE
 //#define SG_HARDWARE				HW_V17_REMOTE
+//#define SG_HARDWARE				HW_V16_REMOTE_2
 
 //// delay between zones run in a schedule, in milliseconds
 #define SG_DELAY_BETWEEN_ZONES		5000ul
@@ -104,7 +106,7 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #endif //HW_V15_REMOTE
 
-#if (SG_HARDWARE == HW_V16_REMOTE) || (SG_HARDWARE == HW_V17_REMOTE)
+#if (SG_HARDWARE == HW_V16_REMOTE) || (SG_HARDWARE == HW_V17_REMOTE) || (SG_HARDWARE == HW_V16_REMOTE_2)
 
 #define HW_ENABLE_MOTEINORF		1
 
@@ -113,7 +115,7 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 
 #define DEFAULT_STATION_ID		2	// 
 
-#endif //HW_V16_REMOTE || HW_V17_REMOTE
+#endif //HW_V16_REMOTE || HW_V17_REMOTE || HW_V16_REMOTE_2
 
 // Some common definitions
 
@@ -141,7 +143,7 @@ Copyright 2014-2016 tony-osp (http://tony-osp.dreamwidth.org/)
 #define MAX_SENSOR_NAME_LENGTH		20
 
 #define EEPROM_SHEADER "SG17"
-#define SG_FIRMWARE_VERSION	27
+#define SG_FIRMWARE_VERSION	28
 
 #define EEPROM_INI_FILE	"/device.ini"
 
