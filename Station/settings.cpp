@@ -1598,6 +1598,23 @@ void 	ResetEEPROM_NoSD(uint8_t  defStationID)
 			}
 #endif // SENSOR_ENABLE_THERMISTOR
 
+// Waterfloow counter
+#ifdef SENSOR_ENABLE_COUNTERMETER
+			{
+				FullSensor  fullSens;
+
+#ifdef SENSOR_CHANNEL_COUNTERMETER_1_PIN
+				fullSens.sensorType = SENSOR_CHANNEL_COUNTERMETER_1_TYPE;
+				fullSens.sensorChannel = SENSOR_CHANNEL_COUNTERMETER_1_CHANNEL;
+				fullSens.sensorStationID = defStationID;
+				fullSens.flags = 0;	
+				sprintf_P(fullSens.name, PSTR("Sensor %u:%u"), uint16_t(defStationID), SENSOR_CHANNEL_COUNTERMETER_1_CHANNEL);	
+
+				SaveSensor(sensID, &fullSens);	// save the sensor
+				sensID++;
+#endif // SENSOR_CHANNEL_COUNTERMETER_1_PIN
+			}
+#endif // SENSOR_ENABLE_COUNTERMETER
 
 			SetNumSensors(sensID);
 			TRACE_INFO(F("LoadIniEEPROM - saved %d sensors\n"), sensID);
