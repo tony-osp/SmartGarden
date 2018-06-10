@@ -3,7 +3,7 @@
   This is a simple Sensors Dashboard page for SmartGarden system.
  
  Creative Commons Attribution-ShareAlike 3.0 license
- (c) 2015 Tony-osp (tony-osp.dreamwidth.org)
+ (c) 2015-2018 Tony-osp (tony-osp.dreamwidth.org)
 -->
 <html>
   <head>
@@ -13,8 +13,9 @@
     <link rel="stylesheet" href="custom.css" />
     <script src="http://code.jquery.com/jquery-1.11.3.min.js" type="text/javascript"></script>
     <script src="http://code.jquery.com/mobile/1.4.1/jquery.mobile-1.4.1.min.js" type="text/javascript"></script>
-     <script src="http://code.highcharts.com/highcharts.js"></script>
+    <script src="http://code.highcharts.com/highcharts.js"></script>
     <script src="http://code.highcharts.com/highcharts-more.js"></script>
+    <script src="splitflp.js"></script>
 <style>    
 .thermometer-outer {
     background: #c4f0ff;
@@ -320,6 +321,25 @@
             d.innerHTML = val; // update last reading (in the text)
         }
 
+        setupWaterflowSens = function (sID, val) {
+
+            $('#' + sID).splitFlap({
+                image: 'chars.png',
+                imageSize: '',
+                charsMap: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789.,!?#@()+-=',
+                charWidth: 25,
+                charHeight: 50,
+                charSubstitute: ' ',
+                speed: 3,
+                speedVariation: 2,
+                text: ("00000" + val).slice(-5),
+                textInit: '00000',
+                autoplay: true,
+                onComplete: function () { }
+            });
+
+        };
+
 
         setupSensors = function () {
 
@@ -395,9 +415,14 @@
                         sensHtml += '<br>SensorID: ' + data.sensors[i].sensorID;
                         sensHtml += '<br>Station : ' + data.sensors[i].stationName;
                         sensHtml += '<br>Sensor channel: ' + data.sensors[i].sensorChannel;
-                        sensHtml += '<br><b>' + data.sensors[i].sensorType + ' (gal): <span id="lv_sens' + i + '">' + Math.floor(data.sensors[i].lastReading*0.748) + '</span></b>';
+                        sensHtml += '<br><b>' + 'Water meter' + ' (gal): <span id="lv_sens' + i + '">' + Math.floor(data.sensors[i].lastReading*0.748) + '</span></b>';
                         sensHtml += '<br>Updated <span id="ar_sens' + i + '">' + Math.round(data.sensors[i].readingAge / 60) + '</span> min. ago';
                         sensHtml += '</td>';
+
+                        sensHtml += '<td>';
+                        sensHtml += '<div id="sens' + i + '" style="vertical-align: middle; width: 150px; height: 150px; margin-top: 40px; margin-left: 10px; text-align: center"></div>';
+                        sensHtml += '</td>\n';
+
                         sensHtml += '</tr></table>\n';
                     }
                     else {      // all other sensor types
@@ -425,6 +450,7 @@
                     if (data.sensors[i].sensorType == 'Temperature') setupTempSens('sens' + i, data.sensors[i].lastReading);
                     else if (data.sensors[i].sensorType == 'Pressure') setupPressureSens('sens' + i, data.sensors[i].lastReading);
                     else if (data.sensors[i].sensorType == 'Humidity') setupHumiditySens('sens' + i, data.sensors[i].lastReading);
+                    else if (data.sensors[i].sensorType == 'Waterflow') setupWaterflowSens('sens' + i, Math.floor(data.sensors[i].lastReading * 0.748));
                 }
 
             });
