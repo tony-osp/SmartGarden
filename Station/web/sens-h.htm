@@ -32,8 +32,8 @@
         xAxis: {
             type: 'datetime',
             dateTimeLabelFormats: { 
-                month: '%e. %b',
-                year: '%y'
+                hour: '%H:%M',
+                month: '%e.%b',
             },
             title: {
                 text: 'Date'
@@ -47,7 +47,7 @@
 
         tooltip: {
             headerFormat: '<b>{series.name}</b><br>',
-            pointFormat: '{point.x:%e. %b %y}: {point.y:.2f}'
+            pointFormat: '{point.x:%H:%M %e.%b}: {point.y:.2f}'
         },
 
 
