@@ -14,7 +14,7 @@ using time-series pattern. Errors are reported using common Trace infrastructure
 
 
 Creative Commons Attribution-ShareAlike 3.0 license
-Copyright 2014 tony-osp (http://tony-osp.dreamwidth.org/)
+Copyright 2014-2018 tony-osp (http://tony-osp.dreamwidth.org/)
 
 
 */
@@ -496,6 +496,8 @@ void Sensors::ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int
 			if( (SensorsList[i].config.sensorStationID == stationID) && (SensorsList[i].config.sensorChannel == sensorChannel) )
 			{
 				// we found our sensor. Store latest reading and log it.
+
+				int32_t	  prevReading = SensorsList[i].lastReading;		//temporary capture prev sensor reading to check if it changed
 				
 				SensorsList[i].lastReading = sensorReading;
 				SensorsList[i].lastReadingTimestamp = millis();
@@ -508,12 +510,16 @@ void Sensors::ReportSensorReading( uint8_t stationID, uint8_t sensorChannel, int
 				{
 					Humidity = sensorReading;
 				}
-#ifdef notdef	// I don't want to proactively send sensor readings to Master, let poller pick it up
-				if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SENSORS )
+
+// Proactively report sensor reading to Master only for Watermeter counter and if the counter changed since last report. For all other sensor types let master poll
+				if( (SensorsList[i].config.sensorType == SENSOR_TYPE_WATERFLOW) && (SensorsList[i].lastReading != prevReading) )
 				{
-					rprotocol.SendSensorsReport(0, GetMyStationID(), GetEvtMasterStationID(), i, 1);
+					if( GetEvtMasterFlags() & EVTMASTER_FLAGS_REPORT_SENSORS )
+					{
+						rprotocol.SendSensorsReport(0, GetMyStationID(), GetEvtMasterStationID(), i, 1);
+					}
 				}
-#endif //notdef
+
 				sdlog.LogSensorReading( SensorsList[i].config.sensorType, (int)i, sensorReading );
 				return;
 			}
